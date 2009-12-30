@@ -6,15 +6,23 @@ Paws programming language.
 the home page
 -------------
 
-    22:28:27 < skampler> what is paws exactly? :)
-    22:30:40 < skampler> is paws a javascript re-implementation in javascript?
-    22:30:42 <+elliottcable> skampler: uh, programming language, fully async (the first, I believe), heavily bootstrapped in libspace, super-simple syntax, super-simple central concepts, reference impl is in JavaScript and intended to run equally well in the browser and on the serverside, uhhhhh…
-    22:30:45 <+elliottcable> did I miss anything, guys?
-    22:30:52 <@alexgordon> it's crazy
-    22:31:26 < skampler> okay!
-    22:31:33 <+elliottcable> skampler: nope, it’s an *entirely* new language. Bits were inspired by JavaScript (as well as Io, Ruby, Python, and Objective-C)… and I’m told the end product is semantically similar to Lisp in some ways… but no, it’s not an implementation of any existing language
-    22:32:43 <+inimino> man, that was surprisingly coherent
-    22:32:45 <+inimino> you should put that up somewhere and call it the home page
+    < skampler> what is paws exactly? :)
+    < skampler> is paws a javascript re-implementation in javascript?
+    <+elliottcable> skampler: uh, programming language, fully async (the
+                    first, I believe), heavily bootstrapped in libspace,
+                    super-simple syntax, super-simple central concepts,
+                    reference impl is in JavaScript and intended to run
+                    equally well in the browser and on the serverside, uhhhhh…
+    <+elliottcable> did I miss anything, guys?
+    <@alexgordon> it's crazy
+    < skampler> okay!
+    <+elliottcable> skampler: nope, it’s an *entirely* new language. Bits were
+                    inspired by JavaScript (as well as Io, Ruby, Python, and
+                    Objective-C)… and I’m told the end product is semantically
+                    similar to Lisp in some ways… but no, it’s not an
+                    implementation of any existing language
+    <+inimino> man, that was surprisingly coherent
+    <+inimino> you should put that up somewhere and call it the home page
 
 Attributions
 ------------
