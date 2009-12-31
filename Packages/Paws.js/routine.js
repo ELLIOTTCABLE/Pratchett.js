@@ -9,7 +9,7 @@ return (function(){ var routine;
   routine = paws.list.beget();
   
   routine.errors = {
-    invalidAST: new(Error)("Syntax tree contains invalid structure.")
+    invalidAST: new(Error)("Syntax tree contains invalid structure")
   };
   
   // Constructs a `paws.routine`, given a routine blueprint. If a `body`

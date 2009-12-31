@@ -8,10 +8,9 @@ return (function(){ var list;
   };
   
   list.constructor = function (blueprint) { var that, naughty;
-    that = this;
-    
     // This is the unique per-object lexical scope in which to store our
     // private data
+    that = this;
     (function(){ var store;
       store = new(Array);
       
