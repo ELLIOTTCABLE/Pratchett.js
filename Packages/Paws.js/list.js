@@ -25,8 +25,8 @@ return (function(){ var list;
     if (typeof blueprint                   === 'undefined' ||
                blueprint.initializeNaughty !== false ) {
       naughty = list.beget({ initializeNaughty : false });
-      naughty.set(0, naughty);
-         that.set(0, naughty);
+      naughty._set(0, naughty);
+         that._set(0, naughty);
     };
     
     if (typeof blueprint          !== 'undefined' &&
