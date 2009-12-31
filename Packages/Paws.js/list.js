@@ -50,7 +50,7 @@ return (function(){ var list;
   // TODO: `infrastructure null` should map into a `delete` operation on the
   //       store.
   list.set = function (index, listObject) {
-    if (list.isPrototypeOf(listObject)) {
+    if (list.isPrototypeOf(listObject) || list === listObject) {
       return this._set(index, listObject) }
     else { throw(list.errors.invalidChild) }
   };
