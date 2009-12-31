@@ -6,7 +6,7 @@ return (function(){ var routine;
   //      want the basic objects on a `paws.object` available on a
   //      `paws.routine`. Then again, a `paws.routine` should really have an
   //      attached `paws.object` *anyhow*… hrm.
-  routine = new(Object);
+  routine = paws.list.beget();
   
   routine.errors = {
     invalidAST: new(Error)("Syntax tree contains invalid structure.")
