@@ -49,13 +49,10 @@ return (function(){ var list;
   //--
   // TODO: `infrastructure null` should map into a `delete` operation on the
   //       store.
-  list.set = function (index, listObject) { var proto;
-    proto = listObject;
-    
-    while (proto = proto.__proto__) {
-       if (proto === list) { return this._set(index, listObject) } };
-    
-    throw(list.errors.invalidChild);
+  list.set = function (index, listObject) {
+    if (list.isPrototypeOf(listObject)) {
+      return this._set(index, listObject) }
+    else { throw(list.errors.invalidChild) }
   };
   
   // Returns the current length of this `list`.

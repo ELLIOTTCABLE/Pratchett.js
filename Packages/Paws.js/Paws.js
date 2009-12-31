@@ -1,4 +1,5 @@
 var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
+var poopy = from.relative('../Support/ECMAScript_5--.js').wait();
 
 return (function(){ var paws;
   paws = new(Object);
