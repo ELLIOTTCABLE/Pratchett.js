@@ -1,7 +1,7 @@
 var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
 
 return (function(){ var list;
-        list = new(Object);
+  list = new(Object);
   
   list.errors = {
     invalidChild: new(Error)("Lists may only contain lists as children")
