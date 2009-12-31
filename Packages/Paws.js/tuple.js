@@ -7,19 +7,19 @@ return (function(){ var tuple;
     immutable: new(Error)("Tuples may not be modified after creation")
   };
   
-  tuple.constructor = function (blueprint) { var contents;
-    // We pop `contents` off of the blueprint before passing it up, because
+  tuple.constructor = function (blueprint) { var content;
+    // We pop `content` off of the blueprint before passing it up, because
     // `list.constructor` will try to `this.set()`, which we block.
-    if (typeof blueprint          !== 'undefined' &&
-        typeof blueprint.contents !== 'undefined' ) {
-      contents = blueprint.contents;
-          delete blueprint.contents;
+    if ( typeof blueprint         !== 'undefined' &&
+         typeof blueprint.content !== 'undefined' ) {
+      content = blueprint.content;
+         delete blueprint.content;
     };
     
     paws.list.constructor.apply(this, arguments);
     
-    if (typeof contents !== 'undefined') {
-      for (var a = contents, l = a.length, i = 0, element = a[i];
+    if (typeof content !== 'undefined') {
+      for (var a = content, l = a.length, i = 0, element = a[i];
                i < l; element = a[++i]) {
         paws.list.set.apply(this, [i + 1, element]) } };
   };

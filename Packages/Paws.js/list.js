@@ -28,9 +28,9 @@ return (function(){ var list;
          that._set(0, naughty);
     };
     
-    if (typeof blueprint          !== 'undefined' &&
-        typeof blueprint.contents !== 'undefined' ) {
-      for (var a = blueprint.contents, l = a.length, i = 0, element = a[i];
+    if (typeof blueprint         !== 'undefined' &&
+        typeof blueprint.content !== 'undefined' ) {
+      for (var a = blueprint.content, l = a.length, i = 0, element = a[i];
                i < l; element = a[++i]) { this.set(i + 1, element) } };
   };
   
