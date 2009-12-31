@@ -16,8 +16,8 @@ return (function(){ var numeric, table, inheritedBeget;
   
   numeric.beget = function (blueprint) { var memoized;
     if (typeof blueprint      !== 'undefined' &&
-        typeof blueprint.body !== 'undefined' ) {
-      memoized = table[ (new(Number)(blueprint.body)).valueOf() ];
+        typeof blueprint.nate !== 'undefined' ) {
+      memoized = table[ (new(Number)(blueprint.nate)).valueOf() ];
       if (typeof memoized !== 'undefined') { return memoized };
     };
     
@@ -30,36 +30,36 @@ return (function(){ var numeric, table, inheritedBeget;
     // This is the unique per-object lexical scope in which to store our
     // private data
     that = this;
-    (function(){ var body;
-      // These are private methods. Do not use them; use `numeric.body()` and
+    (function(){ var nate;
+      // These are private methods. Do not use them; use `numeric.nate()` and
       // `numeric` instead.
-      that._body = function () { return body };
-      that._setBody = function (val) { var bodyPrimative;
-        if (typeof body !== 'undefined') {
-          delete table[body.valueOf()] };
+      that._nate = function () { return nate };
+      that._setNate = function (val) { var natePrimative;
+        if (typeof nate !== 'undefined') {
+          delete table[nate.valueOf()] };
         
-        body = new(Number)(val);
+        nate = new(Number)(val);
         
-        bodyPrimative = body.valueOf();
-        if (typeof table[bodyPrimative] !== 'undefined') {
+        natePrimative = nate.valueOf();
+        if (typeof table[natePrimative] !== 'undefined') {
           throw(numeric.errors.preexistent) };
-        table[bodyPrimative] = this;
+        table[natePrimative] = this;
       };
     })();
     
     if (typeof blueprint      !== 'undefined' &&
-        typeof blueprint.body !== 'undefined' ) {
-      this._setBody(blueprint.body) };
+        typeof blueprint.nate !== 'undefined' ) {
+      this._setNate(blueprint.nate) };
   };
   
-  // Retreives the natively-implemented body
-  numeric.body = function () {
-    return this._body()
+  // Retreives the natively-implemented nate
+  numeric.nate = function () {
+    return this._nate()
   };
   
   // `list` *is* our root `infrastructure list`. Thus, *it* needs to be
   // initialized properly.
-  numeric.constructor({ body : 0 });
+  numeric.constructor({ nate : 0 });
   
   return numeric;
 })();

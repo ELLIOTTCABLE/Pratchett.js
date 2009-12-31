@@ -12,24 +12,27 @@ return (function(){ var routine;
     invalidAST: new(Error)("Syntax tree contains invalid structure")
   };
   
-  // Constructs a `paws.routine`, given a routine blueprint. If a `body`
+  // Constructs a `paws.routine`, given a routine blueprint. If a `nate`
   // element is available on the blueprint, that will be used as the
-  // `routine.body`.
+  // `routine.nate`. The same is true of `body`.
   routine.constructor = function (blueprint) {
-    if (typeof blueprint      !== 'undefined' &&
-        typeof blueprint.body !== 'undefined') {
-           this.body = blueprint.body  }
-    else { this.body = ['routine', []] }
+    if        (typeof blueprint      !== 'undefined') {
+      if      (typeof blueprint.nate !== 'undefined') {
+          this.nate = blueprint.nate }
+      else if (typeof blueprint.body !== 'undefined') {
+          this.body = blueprint.body }
+      else {
+          this.body = ['routine', []] } };
   };
   
   // ‘Runs’ a routine; either farming out the (native) implementation, or
   // passing the AST to `routine.interpret()`.
   routine.run = function () {
-    if (typeof this.body === 'function') { this.body.apply(this, arguments) }
-                                    else { this.interpret(arguments) }
+    if (typeof this.nate !== 'undefined') { this.nate.apply(this, arguments) }
+                                     else { this.interpret(arguments) }
   };
   
-  // Iterates over an AST stored in a `paws.routine`’s `routine.body`,
+  // Iterates over an AST stored in a `paws.routine`’s `routine.nate`,
   // farming out lookups.
   //--
   // TODO: *Do* something with argumentObject

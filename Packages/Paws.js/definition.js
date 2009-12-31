@@ -2,7 +2,7 @@ var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait
 
 return (function(){ var definition, rootDefinition;
   rootDefinition = [
-    paws.string.beget({ body : '' }),
+    paws.string.beget({ nate : '' }),
     paws['null'],
     paws.list.beget()
   ];

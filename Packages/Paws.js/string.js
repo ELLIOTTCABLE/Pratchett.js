@@ -23,8 +23,8 @@ return (function(){ var string, table, inheritedBeget;
   
   string.beget = function (blueprint) { var memoized;
     if (typeof blueprint      !== 'undefined' &&
-        typeof blueprint.body !== 'undefined' ) {
-      memoized = table[ (new(String)(blueprint.body)).valueOf() ];
+        typeof blueprint.nate !== 'undefined' ) {
+      memoized = table[ (new(String)(blueprint.nate)).valueOf() ];
       if (typeof memoized !== 'undefined') { return memoized };
     };
     
@@ -37,42 +37,42 @@ return (function(){ var string, table, inheritedBeget;
     // This is the unique per-object lexical scope in which to store our
     // private data
     that = this;
-    (function(){ var body;
-      // These are private methods. Do not use them; use `string.body()` and
-      // `string.bodyLength()` instead.
-      that._body = function () { return body };
-      that._setBody = function (val) { var bodyPrimative;
-        if (typeof body !== 'undefined') {
-          delete table[body.valueOf()] };
+    (function(){ var nate;
+      // These are private methods. Do not use them; use `string.nate()` and
+      // `string.nateLength()` instead.
+      that._nate = function () { return nate };
+      that._setNate = function (val) { var natePrimative;
+        if (typeof nate !== 'undefined') {
+          delete table[nate.valueOf()] };
         
-        body = new(String)(val);
+        nate = new(String)(val);
         
-        bodyPrimative = body.valueOf();
-        if (typeof table[bodyPrimative] !== 'undefined') {
+        natePrimative = nate.valueOf();
+        if (typeof table[natePrimative] !== 'undefined') {
           throw(string.errors.preexistent) };
-        table[bodyPrimative] = this;
+        table[natePrimative] = this;
       };
-      that._bodyLength = function () { return body.length };
+      that._nateLength = function () { return nate.length };
     })();
     
     if (typeof blueprint      !== 'undefined' &&
-        typeof blueprint.body !== 'undefined' ) {
-      this._setBody(blueprint.body) };
+        typeof blueprint.nate !== 'undefined' ) {
+      this._setNate(blueprint.nate) };
   };
   
-  // Retreives the natively-implemented body
-  string.body = function () {
-    return this._body()
+  // Retreives the natively-implemented nate
+  string.nate = function () {
+    return this._nate()
   };
   
   // Returns the length of the native string
-  string.bodyLength = function () {
-    return this._bodyLength()
+  string.nateLength = function () {
+    return this._nateLength()
   };
   
   // `list` *is* our root `infrastructure list`. Thus, *it* needs to be
   // initialized properly.
-  string.constructor({ body : '' });
+  string.constructor({ nate : '' });
   
   return string;
 })();
