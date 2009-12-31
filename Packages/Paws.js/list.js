@@ -28,6 +28,11 @@ return (function(){ var list;
       naughty.set(0, naughty);
          that.set(0, naughty);
     };
+    
+    if (typeof blueprint          !== 'undefined' &&
+        typeof blueprint.contents !== 'undefined' ) {
+      for (var a = blueprint.contents, l = a.length, i = 0, element = a[i];
+               i < l; element = a[++i]) { this.set(i + 1, element) } };
   };
   
   // Hard-fetchs an element from the datastore, by numeric index. Does *not*
