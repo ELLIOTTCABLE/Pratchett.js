@@ -1,9 +1,4 @@
 return (function(){ var routine;
-  // UHH: Should this be begat from `paws.object`? How are we going to
-  //      handle inheritance on the JavaScript side, anyway? I suppose we
-  //      want the basic objects on a `paws.object` available on a
-  //      `paws.routine`. Then again, a `paws.routine` should really have an
-  //      attached `paws.object` *anyhow*… hrm.
   routine = paws.list.beget();
   
   routine.errors = {
