@@ -7,10 +7,11 @@ return (function(){ var definition, rootDefinition;
   definition = paws.tuple.beget({ content : rootDefinition });
   
   definition.errors = {
-    nameError: new(Error)("The first element of a definition must be a string"),
-    structureError: new(Error)("A definition must contain either two or " +
-                               "three elements: name, value, and an " +
-                               "optional metadata list")
+    invalidName: new(Error)("The first element of a definition must be an" +
+                            "`infrastructure string`"),
+    invalidStructure: new(Error)("A definition must contain either two or " +
+                                 "three elements: name, value, and an " +
+                                 "optional metadata list")
   };
   
   definition.constructor = function (blueprint) { var keys = [], values = [], me;
@@ -24,9 +25,9 @@ return (function(){ var definition, rootDefinition;
         
         if (!paws.string.isPrototypeOf(blueprint.content[0]) &&
             !paws.string === blueprint.content[0]) {
-          throw(definition.errors.nameError) };
+          throw(definition.errors.invalidName) };
         if (blueprint.content.length > 4 || blueprint.content.length < 3) {
-          throw(definition.errors.structureError) };
+          throw(definition.errors.invalidStructure) };
         
       } else {
         
