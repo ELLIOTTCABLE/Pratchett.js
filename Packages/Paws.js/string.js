@@ -20,6 +20,10 @@ return (function(){ var string, table, inheritedBeget;
   table = new(Object);
   
   string.beget = function (blueprint) { var memoized;
+    // This would normally be preformed in the `constructor`, but we need to
+    // pull out `nate` to check for a memoized version.
+    if (typeof blueprint === 'string') { blueprint = { nate : blueprint } };
+    
     if (typeof blueprint      !== 'undefined' &&
         typeof blueprint.nate !== 'undefined' ) {
       memoized = table[ (new(String)(blueprint.nate)).valueOf() ];

@@ -13,6 +13,10 @@ return (function(){ var numeric, table, inheritedBeget;
   table = new(Object);
   
   numeric.beget = function (blueprint) { var memoized;
+    // This would normally be preformed in the `constructor`, but we need to
+    // pull out `nate` to check for a memoized version.
+    if (typeof blueprint === 'number') { blueprint = { nate : blueprint } };
+    
     if (typeof blueprint      !== 'undefined' &&
         typeof blueprint.nate !== 'undefined' ) {
       memoized = table[ (new(Number)(blueprint.nate)).valueOf() ];
@@ -29,8 +33,8 @@ return (function(){ var numeric, table, inheritedBeget;
     // private data
     that = this;
     (function(){ var nate;
-      // These are private methods. Do not use them; use `numeric.nate()` and
-      // `numeric` instead.
+      // These are private methods. Do not use them; use `numeric.nate()`
+      // instead.
       that._nate = function () { return nate };
       that._setNate = function (val) { var natePrimative;
         if (typeof nate !== 'undefined') {

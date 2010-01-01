@@ -26,6 +26,9 @@ return (function(){ var list;
          that._set(0, naughty);
     };
     
+    // TODO: Preform the extensive checks to see if `blueprint.content` is an
+    //       array; if not, treat it as a hash (i.e. turn each key/value pair
+    //       into a definition tuple)
     if (typeof blueprint         !== 'undefined' &&
         typeof blueprint.content !== 'undefined' ) {
       for (var a = blueprint.content, l = a.length, i = 0, element = a[i];
