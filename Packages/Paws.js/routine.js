@@ -9,6 +9,8 @@ return (function(){ var routine;
   // element is available on the blueprint, that will be used as the
   // `routine.nate`. The same is true of `body`.
   routine.constructor = function (blueprint) {
+    paws.list.constructor.apply(this, arguments);
+    
     if        (typeof blueprint      !== 'undefined') {
       if      (typeof blueprint.nate !== 'undefined') {
           this.nate = blueprint.nate }
