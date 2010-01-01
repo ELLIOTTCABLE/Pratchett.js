@@ -1,5 +1,3 @@
-var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
-
 return (function(){ var numeric, table, inheritedBeget;
   // FIXME: see the FIXME at the top of `string.js`. Same problems apply to
   //        the globally-unique `infrastructure numeric`.
@@ -62,4 +60,4 @@ return (function(){ var numeric, table, inheritedBeget;
   numeric.constructor({ nate : 0 });
   
   return numeric;
-})();
+})()

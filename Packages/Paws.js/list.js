@@ -1,5 +1,3 @@
-var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
-
 return (function(){ var list;
   list = new(Object);
   
@@ -69,4 +67,4 @@ return (function(){ var list;
   list.constructor();
   
   return list;
-})();
+})()

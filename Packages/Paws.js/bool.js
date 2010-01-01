@@ -1,5 +1,3 @@
-var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
-
 // A `bool` is, to be absolutely explicit, simply a unique object, in this
 // interpreter implementation. It really exists to serve no purpose, except as
 // a common ancestor of `true`, `false`, and `null`. Thus, the single shared
@@ -47,4 +45,4 @@ return (function(){ var bool;
   // TODO: Implement `lookup()` on `null`, and make it act like a routine.
   
   return bool;
-})();
+})()

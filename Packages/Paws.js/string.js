@@ -1,5 +1,3 @@
-var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
-
 return (function(){ var string, table, inheritedBeget;
   // FIXME: For now, `infrastructure string`s are not only immutable, but are
   //        also `tuple`s, which means they can’t be given any list elements.
@@ -75,4 +73,4 @@ return (function(){ var string, table, inheritedBeget;
   string.constructor({ nate : '' });
   
   return string;
-})();
+})()

@@ -1,5 +1,3 @@
-var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
-
 return (function(){ var definition, rootDefinition;
   rootDefinition = [
     paws.string.beget({ nate : '' }),
@@ -39,4 +37,4 @@ return (function(){ var definition, rootDefinition;
   definition.constructor({ content : rootDefinition });
   
   return definition;
-})();
+})()

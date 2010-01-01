@@ -1,5 +1,3 @@
-var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
-
 return (function(){ var routine;
   // UHH: Should this be begat from `paws.object`? How are we going to
   //      handle inheritance on the JavaScript side, anyway? I suppose we
@@ -78,4 +76,4 @@ return (function(){ var routine;
   };
   
   return routine;
-})();
+})()

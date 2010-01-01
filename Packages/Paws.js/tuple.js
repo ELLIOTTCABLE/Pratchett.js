@@ -1,5 +1,3 @@
-var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
-
 return (function(){ var tuple;
   tuple = paws.list.beget();
   
@@ -37,4 +35,4 @@ return (function(){ var tuple;
   tuple.constructor();
   
   return tuple;
-})();
+})()
