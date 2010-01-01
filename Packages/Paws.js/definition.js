@@ -1,8 +1,7 @@
 return (function(){ var definition, rootDefinition;
   rootDefinition = [
     paws.string.beget({ nate : '' }),
-    paws['null'],
-    paws.list.beget()
+    paws['null']
   ];
   definition = paws.tuple.beget({ content : rootDefinition });
   
@@ -28,6 +27,9 @@ return (function(){ var definition, rootDefinition;
           throw(definition.errors.invalidName) };
         if (blueprint.content.length > 3 || blueprint.content.length < 2) {
           throw(definition.errors.invalidStructure) };
+        
+        if (blueprint.content.length === 2) {
+          blueprint.content.push(paws.list.beget()) };
         
       } else {
         
