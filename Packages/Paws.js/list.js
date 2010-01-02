@@ -65,6 +65,9 @@ return (function(){ var list;
     return this._length - 1
   };
   
+  // Stores another `list` in the position *after* the last element
+  list.append = function (other) { this.set(this.length() + 1, other) };
+  
   // `list` *is* our root `infrastructure list`. Thus, *it* needs to be
   // initialized properly.
   list.constructor();
