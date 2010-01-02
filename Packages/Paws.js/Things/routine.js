@@ -43,9 +43,12 @@ return (function(){ var routine;
     
     this._bind(paws.bool.void);
     
-    if (typeof blueprint      !== 'undefined' &&
-        typeof blueprint.body !== 'undefined') { this._setBody(blueprint.body) }
-                                          else { this._setBody([]) };
+    if (typeof blueprint      !== 'undefined') {
+      if (typeof blueprint === 'function') { this._setBody(blueprint) }
+      else if (typeof blueprint.body !== 'undefined') {
+        this._setBody(blueprint.body) }
+      else { this._setBody([]) };
+    };
     
     // FIXME: This should be defined *on the list*. Not on the JS `Object`.
     this.scope = paws.scope.beget();
