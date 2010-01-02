@@ -68,6 +68,10 @@ return (function(){ var list;
   // Stores another `list` in the position *after* the last element
   list.append = function (other) { this.set(this.length() + 1, other) };
   
+  // Appends a definition
+  list.assign = function (key, value) {
+    this.append(paws.definition.beget({ key : value })) };
+  
   // `list` *is* our root `infrastructure list`. Thus, *it* needs to be
   // initialized properly.
   list.constructor();
