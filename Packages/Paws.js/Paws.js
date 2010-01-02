@@ -8,18 +8,18 @@ return (function(){ var paws;
   //        `infrastructure tuple` won’t properly inherit from `infrastructure
   //        list`, and so on and so forth.
   
-        paws.list = from.relative('list.js').export({ paws : paws }).wait();
-       paws.tuple = from.relative('tuple.js').export({ paws : paws }).wait();
-        paws.bool = from.relative('bool.js').export({ paws : paws }).wait();
+        paws.list = from.relative('Things/list.js').export({ paws : paws }).wait();
+       paws.tuple = from.relative('Things/tuple.js').export({ paws : paws }).wait();
+        paws.bool = from.relative('Things/bool.js').export({ paws : paws }).wait();
      paws['true'] = paws.bool['true'];
     paws['false'] = paws.bool['false'];
      paws['null'] = paws.bool['null'];
-     paws.numeric = from.relative('numeric.js').export({ paws : paws }).wait();
-      paws.string = from.relative('string.js').export({ paws : paws }).wait();
-  paws.definition = from.relative('definition.js').export({ paws : paws }).wait();
+     paws.numeric = from.relative('Things/numeric.js').export({ paws : paws }).wait();
+      paws.string = from.relative('Things/string.js').export({ paws : paws }).wait();
+  paws.definition = from.relative('Things/definition.js').export({ paws : paws }).wait();
   
-       paws.scope = from.relative('scope.js').export({ paws : paws }).wait();
-     paws.routine = from.relative('routine.js').export({ paws : paws }).wait();
+       paws.scope = from.relative('Things/scope.js').export({ paws : paws }).wait();
+     paws.routine = from.relative('Things/routine.js').export({ paws : paws }).wait();
   
   return paws;
 })();
