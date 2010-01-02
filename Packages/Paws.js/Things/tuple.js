@@ -19,14 +19,14 @@ return (function(){ var tuple;
     if (typeof content !== 'undefined') {
       for (var a = content, l = a.length, i = 0, element = a[i];
                i < l; element = a[++i]) {
-        paws.list.set.apply(this, [i, element]) } };
+        paws.list.set.apply(this, [paws.numeric.beget(i), element]) } };
   };
   
   // Simply informs the user that tuples cannot be modified.
   //--
   // FIXME: `infrastructure tuple` cannot be extended in libspace via
   //        inheritance, for obvious reasons. Construct a workaround.
-  tuple.set = function (index, listObject) {
+  tuple.set = function () {
     throw(tuple.errors.immutable);
   };
   

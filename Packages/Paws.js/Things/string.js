@@ -66,7 +66,7 @@ return (function(){ var string, table, inheritedBeget;
   
   // Returns the length of the native string
   string.characters = function () {
-    return this._primitiveLength()
+    return paws.numeric.beget(this._primitiveLength())
   };
   
   string.constructor('');
