@@ -35,6 +35,11 @@ return (function(){ var list;
                i < l; element = a[++i]) { this.set(i, element) } };
   };
   
+  
+  // ==================
+  // = JavaScript API =
+  // ==================
+  
   // Hard-fetchs an element from the datastore, by numeric index. Does *not*
   // negotiate lookups in *any* way.
   //--
@@ -102,6 +107,35 @@ return (function(){ var list;
     // FIXME: How exactly are we handling return values from native routines?
     return lookup.apply(this, paws.string.beget('lookup'));
   };
+  
+  // Exposes a JavaScript function in libspace.
+  // 
+  // This will wrap the JavaScript function in a `paws.routine`, and expose it
+  // to lookups and calls on the libspace list.
+  // 
+  // If no `pawsName` is provided, one will be constructed from the `jsName`.
+  // Specifically, `camelCase` will be converted to `dot.case`, with the
+  // exception of abbreviations and acronyms, such as `whatDoesWTFMean`:
+  // `what.does.WTF.mean`.
+  //--
+  // FIXME: Obtuse, ugly, downright *mean* code. Srsly, FIX. ME.
+  list.expose = function (jsName, pawsName) {
+    if (typeof pawsName === 'undefined') {
+      pawsName = jsName.replace(
+        /([^A-Z])([A-Z])(?=[A-Z])|([^A-Z])([A-Z])(?=[^A-Z])|([A-Z])([A-Z])(?=[^A-Z])/g,
+        function (_, a1, a2, b1, b2, c1, c2) {
+          return (a1 || b1 || c1)+'.'+(a2 || (b2 || c2).toLowerCase()) }) };
+    
+    this.assign(paws.string.beget(pawsName), paws.routine.beget(this[jsName]));
+  };
+  
+  
+  // ============
+  // = Paws API =
+  // ============
+  
+  
+  /* -- --- -- -!- -- --- -- */
   
   // `list` *is* our root `infrastructure list`. Thus, *it* needs to be
   // initialized properly.
