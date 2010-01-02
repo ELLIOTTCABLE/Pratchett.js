@@ -19,7 +19,7 @@ return (function(){ var tuple;
     if (typeof content !== 'undefined') {
       for (var a = content, l = a.length, i = 0, element = a[i];
                i < l; element = a[++i]) {
-        paws.list.set.apply(this, [i + 1, element]) } };
+        paws.list.set.apply(this, [i, element]) } };
   };
   
   // Simply informs the user that tuples cannot be modified.

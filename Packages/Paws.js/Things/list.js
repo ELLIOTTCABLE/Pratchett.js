@@ -32,7 +32,7 @@ return (function(){ var list;
     if (typeof blueprint         !== 'undefined' &&
         typeof blueprint.content !== 'undefined' ) {
       for (var a = blueprint.content, l = a.length, i = 0, element = a[i];
-               i < l; element = a[++i]) { this.set(i + 1, element) } };
+               i < l; element = a[++i]) { this.set(i, element) } };
   };
   
   // Hard-fetchs an element from the datastore, by numeric index. Does *not*
@@ -40,9 +40,7 @@ return (function(){ var list;
   //--
   // TODO: `undefined` results from the store should map into
   //       `infrastructure null` responses.
-  list.get = function (index) {
-    return this._get(index)
-  };
+  list.get = function (index) { return this._get(index + 1) };
   
   // Hard-sets an element in the datastore, by numeric index. Only accepts
   // `paws.list` descendants of some sort; you cannot archive objects not
@@ -50,9 +48,9 @@ return (function(){ var list;
   //--
   // TODO: `infrastructure null` should map into a `delete` operation on the
   //       store.
-  list.set = function (index, listObject) {
-    if (list.isPrototypeOf(listObject) || list === listObject) {
-      return this._set(index, listObject) }
+  list.set = function (index, other) {
+    if (list.isPrototypeOf(other) || list === other) {
+      return this._set(index + 1, other) }
     else { throw(list.errors.invalidChild) }
   };
   
@@ -61,9 +59,7 @@ return (function(){ var list;
   // This is not akin to the JavaScript `length` property; it is the index of
   // the last item in the list, and the number of user-defined objects in the
   // list. It is 1-indexed, and does not count the naughty list.
-  list.length = function () {
-    return this._length - 1
-  };
+  list.length = function () { return this._length - 1 };
   
   // Stores another `list` in the position *after* the last element
   list.append = function (other) { this.set(this.length() + 1, other) };
@@ -71,6 +67,41 @@ return (function(){ var list;
   // Appends a definition
   list.assign = function (key, value) {
     this.append(paws.definition.beget({ key : value })) };
+  
+  // The core hard-lookup on a definition list.
+  // 
+  // This function takes an `infrastructure string` (or other libspace list),
+  // not a native.
+  // 
+  // The intracacies of the interactions between this and the libspace
+  // `lookup`s are extremely important:
+  // 
+  // - This function will *always* be called to lookup `metalookup` on the
+  //   naughty
+  // - This function will initially be wrapped into a native routine as
+  //   the primary `lookup` (also stored on the naughty)
+  // - Thus, this function will *also* be wrapped into the initial
+  //   `metalookup` as a native
+  //--
+  // TODO: Numeric lookups
+  list.hardLookup = function (key) {
+    for (var l = this.length(), i = 1, element = this.get(i);
+             i <= l; element = this.get(++i)) {
+      if (paws.definition.isPrototypeOf(element) && element[1] === key) {
+        return element[2] } }
+  };
+  
+  // A convenience method to traverse the ‘lookup chain’ from the JavaScript
+  // API. This method is unrelated to the lookup chain itself.
+  list.lookup = function (key) { var naughty, metalookup, lookup;
+    naughty = this.get(0);
+    metalookup = naughty.hardLookup(paws.string.beget('metalookup'));
+                        // It’s probably worth pointing out, that this is
+                        // `routine.apply()`, not `Function.prototype.apply()`
+    lookup = metalookup.apply(this, paws.string.beget('lookup'));
+    // FIXME: How exactly are we handling return values from native routines?
+    return lookup.apply(this, paws.string.beget('lookup'));
+  };
   
   // `list` *is* our root `infrastructure list`. Thus, *it* needs to be
   // initialized properly.
