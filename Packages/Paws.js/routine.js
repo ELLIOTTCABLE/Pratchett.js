@@ -14,6 +14,8 @@ return (function(){ var routine;
           this.body = blueprint.body }
       else {
           this.body = ['routine', []] } };
+    
+    this.scope = paws.scope.beget();
   };
   
   // ‘Runs’ a routine; either farming out the (native) implementation, or

@@ -17,6 +17,8 @@ return (function(){ var paws;
      paws.numeric = from.relative('numeric.js').export({ paws : paws }).wait();
       paws.string = from.relative('string.js').export({ paws : paws }).wait();
   paws.definition = from.relative('definition.js').export({ paws : paws }).wait();
+  
+       paws.scope = from.relative('scope.js').export({ paws : paws }).wait();
      paws.routine = from.relative('routine.js').export({ paws : paws }).wait();
   
   return paws;
