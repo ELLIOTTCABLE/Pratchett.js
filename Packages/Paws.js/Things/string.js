@@ -21,12 +21,12 @@ return (function(){ var string, table, inheritedBeget;
   
   string.beget = function (blueprint) { var memoized;
     // This would normally be preformed in the `constructor`, but we need to
-    // pull out `nate` to check for a memoized version.
-    if (typeof blueprint === 'string') { blueprint = { nate : blueprint } };
+    // pull out `primitive` to check for a memoized version.
+    if (typeof blueprint === 'string') { blueprint = { primitive : blueprint } };
     
-    if (typeof blueprint      !== 'undefined' &&
-        typeof blueprint.nate !== 'undefined' ) {
-      memoized = table[ (new(String)(blueprint.nate)).valueOf() ];
+    if (typeof blueprint           !== 'undefined' &&
+        typeof blueprint.primitive !== 'undefined' ) {
+      memoized = table[ (new(String)(blueprint.primitive)).valueOf() ];
       if (typeof memoized !== 'undefined') { return memoized };
     };
     
@@ -36,45 +36,42 @@ return (function(){ var string, table, inheritedBeget;
   string.constructor = function (blueprint) { var that;
     paws.tuple.constructor.apply(this, arguments);
     
-    // This is the unique per-object lexical scope in which to store our
-    // private data
     that = this;
-    (function(){ var nate;
-      // These are private methods. Do not use them; use `string.nate()` and
-      // `string.nateLength()` instead.
-      that._nate = function () { return nate };
-      that._setNate = function (val) { var natePrimative;
-        if (typeof nate !== 'undefined') {
-          delete table[nate.valueOf()] };
+    (function(){ var primitive;
+      // These are private methods. Do not use them; use `string.primitive()`
+      // and `string.characters()` instead.
+      that._primitive = function () { return primitive };
+      that._setPrimitive = function (val) {
+        if (typeof primitive !== 'undefined') {
+          delete table[primitive] };
         
-        nate = new(String)(val);
+        primitive = new(String)(val).valueOf();
         
-        natePrimative = nate.valueOf();
-        if (typeof table[natePrimative] !== 'undefined') {
+        if (typeof table[primitive] !== 'undefined') {
           throw(string.errors.preexistent) };
-        table[natePrimative] = this;
+        table[primitive] = this;
       };
-      that._nateLength = function () { return nate.length };
+      that._primitiveLength = function () { return primitive.length };
     })();
     
-    if (typeof blueprint      !== 'undefined' &&
-        typeof blueprint.nate !== 'undefined' ) {
-      this._setNate(blueprint.nate) };
+    if (typeof blueprint           !== 'undefined' &&
+        typeof blueprint.primitive !== 'undefined' ) {
+      this._setPrimitive(blueprint.primitive) };
   };
   
-  // Retreives the natively-implemented nate
-  string.nate = function () {
-    return this._nate()
+  // Returns the primitive associated with this lists’s native implementation
+  string.primitive = function () {
+    return this._primitive()
   };
   
   // Returns the length of the native string
-  string.nateLength = function () {
-    return this._nateLength()
+  string.characters = function () {
+    return this._primitiveLength()
   };
   
   // `list` *is* our root `infrastructure list`. Thus, *it* needs to be
   // initialized properly.
-  string.constructor({ nate : '' });
+  string.constructor('');
   
   return string;
 })()

@@ -13,31 +13,30 @@ return (function(){ var bool;
   bool.constructor = function (blueprint) { var that;
     paws.tuple.constructor.apply(this, arguments);
     
-    // This is the unique per-object lexical scope in which to store our
-    // private data
     that = this;
-    (function(){ var nate;
-      // These are private methods. Do not use them; use `bool.nate()` instead.
-      that._nate = function () { return nate };
-      that._setNate = function (val) { nate = new(Boolean)(val).valueOf() };
+    (function(){ var primitive;
+      // These are private methods. Do not use them; use `bool.primitive()`
+      // instead.
+      that._primitive = function () { return primitive };
+      that._setPrimitive = function (val) { primitive = new(Boolean)(val).valueOf() };
     })();
     
-    if (typeof blueprint      !== 'undefined' &&
-        typeof blueprint.nate !== 'undefined' ) {
-      this._setNate(blueprint.nate) };
+    if (typeof blueprint           !== 'undefined' &&
+        typeof blueprint.primitive !== 'undefined' ) {
+      this._setPrimitive(blueprint.primitive) };
   };
   
-  // Retreives the natively-implemented nate
-  bool.nate = function () {
-    return this._nate()
+  // Returns the primitive associated with this lists’s native implementation
+  bool.primitive = function () {
+    return this._primitive()
   };
   
   (function(){ var undefined;
-    bool.constructor({ nate : undefined });
+    bool.constructor({ primitive : undefined });
     
-    bool['true'] = bool.beget({ nate : true });
-    bool['false'] = bool.beget({ nate : false });
-    bool['void'] = bool.beget({ nate : null });
+    bool['true'] = bool.beget({ primitive : true });
+    bool['false'] = bool.beget({ primitive : false });
+    bool['void'] = bool.beget({ primitive : null });
   })();
   
   bool.beget = function () { throw(bool.errors.unique) };

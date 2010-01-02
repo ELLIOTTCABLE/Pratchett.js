@@ -8,9 +8,9 @@ return (function(){ var routine;
                             "or an abstracted syntax tree")
   };
   
-  // Constructs a `paws.routine`, given a routine blueprint. If a `nate`
+  // Constructs a `paws.routine`, given a routine blueprint. If a `body`
   // element is available on the blueprint, that will be used as the
-  // `routine.nate`. The same is true of `body`.
+  // routine’s implementation (be it an AST or native `Function`).
   routine.constructor = function (blueprint) { var that;
     paws.list.constructor.apply(this, arguments);
     
