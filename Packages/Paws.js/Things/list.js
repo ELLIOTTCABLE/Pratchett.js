@@ -127,14 +127,16 @@ return (function(){ var list;
   // Specifically, `camelCase` will be converted to `dot.case`, with the
   // exception of abbreviations and acronyms, such as `whatDoesWTFMean`:
   // `what.does.WTF.mean`.
-  list.expose = function (jsName, pawsName) {
+  list.expose = function (jsName, pawsName) { var routine;
     if (typeof pawsName === 'undefined') {
       pawsName = jsName.replace(
         /([^A-Z])([A-Z])(?=[A-Z])|(.)([A-Z])(?=[^A-Z])/g,
         function (_, a1, a2, b1, b2) {
           return (a1 || b1) +'.'+ (a2 || b2.toLowerCase()) }) };
     
-    this.assign(paws.string.beget(pawsName), paws.routine.beget(this[jsName]));
+    this.assign(paws.string.beget(pawsName),
+      routine = paws.routine.beget(this[jsName]));
+    return routine;
   };
   
   
