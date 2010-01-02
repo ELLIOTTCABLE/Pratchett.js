@@ -6,7 +6,7 @@ return (function(){ var definition, rootDefinition;
   definition = paws.tuple.beget({ content : rootDefinition });
   
   definition.errors = {
-    invalidName: new(Error)("The first element of a definition must be an" +
+    invalidName: new(Error)("The first element of a definition must be an " +
                             "`infrastructure string`"),
     invalidStructure: new(Error)("A definition must contain either two or " +
                                  "three elements: name, value, and an " +
