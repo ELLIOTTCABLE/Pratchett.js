@@ -41,7 +41,7 @@ return (function(){ var routine;
       
     })();
     
-    this._bind(paws.bool.void);
+    this._bind(paws.bool['void']);
     
     if (typeof blueprint      !== 'undefined') {
       if (typeof blueprint === 'function') { this._setBody(blueprint) }

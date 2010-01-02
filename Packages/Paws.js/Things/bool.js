@@ -37,7 +37,7 @@ return (function(){ var bool;
     
     bool['true'] = bool.beget({ nate : true });
     bool['false'] = bool.beget({ nate : false });
-    bool.void = bool.beget({ nate : null });
+    bool['void'] = bool.beget({ nate : null });
   })();
   
   bool.beget = function () { throw(bool.errors.unique) };

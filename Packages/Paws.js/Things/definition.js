@@ -1,7 +1,7 @@
 return (function(){ var definition, rootDefinition;
   rootDefinition = [
     paws.string.beget({ nate : '' }),
-    paws.bool.void
+    paws.bool['void']
   ];
   definition = paws.tuple.beget({ content : rootDefinition });
   
