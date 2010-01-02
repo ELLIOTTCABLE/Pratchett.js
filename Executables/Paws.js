@@ -33,4 +33,3 @@ var ast = ['routine', ['statement'
 ]];
 
 var rootRoutine = paws.routine.beget({ body : ast });
-    rootRoutine     .run();
