@@ -113,6 +113,16 @@ return (function(){ var list;
   // This will wrap the JavaScript function in a `paws.routine`, and expose it
   // to lookups and calls on the libspace list.
   // 
+  // Note: native functions wrapped into routines are only given one
+  // meaningful arugment; that the argument is a `paws.list` descendant; and
+  // that if a return value is provided, and the last argument was a
+  // `paws.routine`, then that routine will be called with your return value
+  // as the argument.
+  // 
+  // Said breifly, your function should ‘act’ like a `routine`: take a `list`
+  // descendant, return a `list` descendant or nothing at all. Otherwise
+  // things may break.
+  // 
   // If no `pawsName` is provided, one will be constructed from the `jsName`.
   // Specifically, `camelCase` will be converted to `dot.case`, with the
   // exception of abbreviations and acronyms, such as `whatDoesWTFMean`:
