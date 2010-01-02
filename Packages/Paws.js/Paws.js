@@ -16,7 +16,7 @@ return (function(){ var paws, things;
 ,   'definition'
 ,   'scope'
 ,   'routine'
-  ]
+  ];
   
   for (var a = things, l = a.length, i = 0, element = a[i];
            i < l; element = a[++i]) {
