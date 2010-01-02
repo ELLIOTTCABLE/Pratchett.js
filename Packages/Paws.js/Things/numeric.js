@@ -36,16 +36,16 @@ return (function(){ var numeric, table, inheritedBeget;
       // These are private methods. Do not use them; use `numeric.nate()`
       // instead.
       that._nate = function () { return nate };
-      that._setNate = function (val) { var natePrimative;
+      that._setNate = function (val) { var natePrimitive;
         if (typeof nate !== 'undefined') {
           delete table[nate.valueOf()] };
         
         nate = new(Number)(val);
         
         natePrimative = nate.valueOf();
-        if (typeof table[natePrimative] !== 'undefined') {
+        if (typeof table[natePrimitive] !== 'undefined') {
           throw(numeric.errors.preexistent) };
-        table[natePrimative] = this;
+        table[natePrimitive] = this;
       };
     })();
     
