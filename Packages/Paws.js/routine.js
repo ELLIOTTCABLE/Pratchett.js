@@ -15,14 +15,25 @@ return (function(){ var routine;
       else {
           this.body = ['routine', []] } };
     
+    // FIXME: This should be defined *on the list*. Not on the JS `Object`.
     this.scope = paws.scope.beget();
+    // FIXME: This should be private
+    this.binding = paws['null'];
   };
   
-  // ‘Runs’ a routine; either farming out the (native) implementation, or
+  // Executes a routine; either farming out the (native) implementation, or
   // passing the AST to `routine.interpret()`.
-  routine.run = function () {
-    if (typeof this.nate !== 'undefined') { this.nate.apply(this, arguments) }
-                                     else { this.interpret(arguments) }
+  // 
+  // Native implementations will be called with `this` as the bound object,
+  // and given `argument` as their first argument. The `paws.routine` object
+  // itself will be handed over as the second argument, if the function needs
+  // it.
+  //-
+  // TODO: Automatically handle native-returns from native routines
+  routine.call = function (argument) {
+    if (typeof this.nate !== 'undefined') {
+      this.nate.apply(this.binding, [argument, this]) }
+    else { this.interpret(argument) }
   };
   
   return routine;
