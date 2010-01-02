@@ -1,6 +1,6 @@
 var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
 
-return (function(){ var paws;
+return (function(){ var paws, things;
   paws = new(Object);
   
   // FIXME: Huge, annoying problem. Since inheritance is implemented libspace,
@@ -8,15 +8,20 @@ return (function(){ var paws;
   //        `infrastructure tuple` won’t properly inherit from `infrastructure
   //        list`, and so on and so forth.
   
-        paws.list = from.relative('Things/list.js').export({ paws : paws }).wait();
-       paws.tuple = from.relative('Things/tuple.js').export({ paws : paws }).wait();
-        paws.bool = from.relative('Things/bool.js').export({ paws : paws }).wait();
-     paws.numeric = from.relative('Things/numeric.js').export({ paws : paws }).wait();
-      paws.string = from.relative('Things/string.js').export({ paws : paws }).wait();
-  paws.definition = from.relative('Things/definition.js').export({ paws : paws }).wait();
+  things = ['list'
+,   'tuple'
+,   'bool'
+,   'numeric'
+,   'string'
+,   'definition'
+,   'scope'
+,   'routine'
+  ]
   
-       paws.scope = from.relative('Things/scope.js').export({ paws : paws }).wait();
-     paws.routine = from.relative('Things/routine.js').export({ paws : paws }).wait();
+  for (var a = things, l = a.length, i = 0, element = a[i];
+           i < l; element = a[++i]) {
+    paws[element] = from.relative('Things/'+element+'.js')
+      .export({ paws : paws }).wait() };
   
   return paws;
 })();
