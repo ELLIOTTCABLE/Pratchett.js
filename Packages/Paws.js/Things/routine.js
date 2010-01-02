@@ -41,7 +41,7 @@ return (function(){ var routine;
       
     })();
     
-    this._bind(paws.bool['null']);
+    this._bind(paws.bool.void);
     
     if (typeof blueprint      !== 'undefined' &&
         typeof blueprint.body !== 'undefined') { this._setBody(blueprint.body) }

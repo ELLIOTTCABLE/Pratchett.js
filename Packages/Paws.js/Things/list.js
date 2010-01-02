@@ -39,14 +39,14 @@ return (function(){ var list;
   // negotiate lookups in *any* way.
   //--
   // TODO: `undefined` results from the store should map into
-  //       `infrastructure null` responses.
+  //       `infrastructure void` responses.
   list.get = function (index) { return this._get(index + 1) };
   
   // Hard-sets an element in the datastore, by numeric index. Only accepts
   // `paws.list` descendants of some sort; you cannot archive objects not
   // accessible from libspace into this store.
   //--
-  // TODO: `infrastructure null` should map into a `delete` operation on the
+  // TODO: `infrastructure void` should map into a `delete` operation on the
   //       store.
   list.set = function (index, other) {
     if (list.isPrototypeOf(other) || list === other) {
