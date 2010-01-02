@@ -65,5 +65,7 @@ return (function(){ var routine;
   // TODO: Automatically handle native-returns from native routines
   routine.call = function (argument) { this._call(argument) };
   
+  routine.constructor();
+  
   return routine;
 })()

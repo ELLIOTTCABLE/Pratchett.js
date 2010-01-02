@@ -44,9 +44,6 @@ return (function(){ var definition, rootDefinition;
     paws.tuple.constructor.apply(this, arguments);
   };
   
-  // `tuple` *is* `infrastructure tuple`. Thus, *it* needs to be initialized
-  // properly.
-  //--
   // FIXME: Is running `paws.tuple.constructor` twice dangerous? Because we
   //        already ran it above, when `beget()`ing `paws.definition` from
   //        `paws.tuple`.

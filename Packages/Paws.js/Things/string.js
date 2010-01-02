@@ -69,8 +69,6 @@ return (function(){ var string, table, inheritedBeget;
     return this._primitiveLength()
   };
   
-  // `list` *is* our root `infrastructure list`. Thus, *it* needs to be
-  // initialized properly.
   string.constructor('');
   
   return string;

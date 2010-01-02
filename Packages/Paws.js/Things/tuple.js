@@ -23,15 +23,13 @@ return (function(){ var tuple;
   };
   
   // Simply informs the user that tuples cannot be modified.
-  // 
+  //--
   // FIXME: `infrastructure tuple` cannot be extended in libspace via
   //        inheritance, for obvious reasons. Construct a workaround.
   tuple.set = function (index, listObject) {
     throw(tuple.errors.immutable);
   };
   
-  // `tuple` *is* `infrastructure tuple`. Thus, *it* needs to be initialized
-  // properly.
   tuple.constructor();
   
   return tuple;

@@ -147,8 +147,6 @@ return (function(){ var list;
   
   /* -- --- -- -!- -- --- -- */
   
-  // `list` *is* our root `infrastructure list`. Thus, *it* needs to be
-  // initialized properly.
   list.constructor();
   
   return list;
