@@ -23,7 +23,7 @@ return (function(){ var definition, rootDefinition;
       if (blueprint.content instanceof Array) {
         
         if (!paws.string.isPrototypeOf(blueprint.content[0]) &&
-            !paws.string === blueprint.content[0]) {
+             paws.string !== blueprint.content[0]) {
           throw(definition.errors.invalidName) };
         if (blueprint.content.length > 3 || blueprint.content.length < 2) {
           throw(definition.errors.invalidStructure) };
