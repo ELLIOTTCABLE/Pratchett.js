@@ -18,7 +18,9 @@ return (function(){ var bool;
       // These are private methods. Do not use them; use `bool.primitive()`
       // instead.
       that._primitive = function () { return primitive };
-      that._setPrimitive = function (val) { primitive = new(Boolean)(val).valueOf() };
+      that._setPrimitive = function (val) {
+        primitive = (typeof val === 'boolean') ?
+          new(Boolean)(val).valueOf() : val };
     })();
     
     if (typeof blueprint           !== 'undefined' &&
