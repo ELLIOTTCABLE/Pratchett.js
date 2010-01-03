@@ -6,7 +6,7 @@ return (function(){ var scope;
   };
   
   scope.constructor = function (blueprint) {
-    paws.tuple.constructor.apply(this, arguments);
+    paws.list.constructor.apply(this, arguments);
     
     if (typeof blueprint           !== 'undefined' &&
         typeof blueprint.enclosing !== 'undefined') {
@@ -14,6 +14,8 @@ return (function(){ var scope;
         throw(scope.errors.invalidEnclosing) };
       this.enclosing = blueprint.enclosing;
     };
+    
+    this.assign(paws.string.beget('locals'), this);
   };
   
   scope.constructor();

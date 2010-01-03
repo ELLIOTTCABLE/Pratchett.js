@@ -50,8 +50,7 @@ return (function(){ var routine;
       else { this._setBody([]) };
     };
     
-    // FIXME: This should be defined *on the list*. Not on the JS `Object`.
-    this.scope = paws.scope.beget();
+    this.assign(paws.string.beget('scope'), paws.scope.beget());
   };
   
   
