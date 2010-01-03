@@ -59,6 +59,11 @@ return (function(){ var string, table, inheritedBeget;
       this._setPrimitive(blueprint.primitive) };
   };
   
+  
+  // ==================
+  // = JavaScript API =
+  // ==================
+  
   // Returns the primitive associated with this lists’s native implementation
   string.primitive = function () {
     return this._primitive()

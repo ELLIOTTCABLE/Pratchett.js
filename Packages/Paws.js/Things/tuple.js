@@ -22,6 +22,11 @@ return (function(){ var tuple;
         paws.list.set.apply(this, [paws.numeric.beget(i), element]) } };
   };
   
+  
+  // ==================
+  // = JavaScript API =
+  // ==================
+  
   // Simply informs the user that tuples cannot be modified.
   //--
   // FIXME: `infrastructure tuple` cannot be extended in libspace via

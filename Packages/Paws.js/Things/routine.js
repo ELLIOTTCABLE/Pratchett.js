@@ -54,6 +54,11 @@ return (function(){ var routine;
     this.scope = paws.scope.beget();
   };
   
+  
+  // ==================
+  // = JavaScript API =
+  // ==================
+  
   // Executes a routine; either farming out the (native) implementation, or
   // passing the AST to `routine.interpret()`.
   // 

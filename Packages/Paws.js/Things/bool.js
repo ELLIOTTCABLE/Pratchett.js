@@ -26,6 +26,11 @@ return (function(){ var bool;
       this._setPrimitive(blueprint.primitive) };
   };
   
+  
+  // ==================
+  // = JavaScript API =
+  // ==================
+  
   // Returns the primitive associated with this lists’s native implementation
   bool.primitive = function () {
     return this._primitive()
