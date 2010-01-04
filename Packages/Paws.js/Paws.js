@@ -1,4 +1,6 @@
-var poopy = from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
+from.absolute('/Users/elliottcable/Code/poopy.js/lib/poopy.js').wait();
+from.absolute('/Users/elliottcable/Code/Spackle.js/lib/Spackle.js').wait()
+  .spackle();
 
 return (function(){ var paws, things;
   paws = new(Object);

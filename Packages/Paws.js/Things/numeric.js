@@ -4,8 +4,10 @@ return (function(){ var numeric, table, inheritedBeget;
   numeric = paws.tuple.beget();
   
   numeric.errors = {
-    preexistent: new(Error)("That numeric already exists in the system; " +
-                            "numeric must be globally unique")
+    preexistent: new(Error)("That `numeric` already exists in the system; " +
+                            "`numeric`s must be globally unique"),
+    isNotANumber: new(Error)("`numeric`s cannot be created with non-numeric " +
+                             "values")
   };
   
   // `infrastructure numeric` objects are intended to be globally unique, a lá
@@ -20,9 +22,10 @@ return (function(){ var numeric, table, inheritedBeget;
     
     if (typeof blueprint           !== 'undefined' &&
         typeof blueprint.primitive !== 'undefined' ) {
-      memoized = table[ (new(Number)(blueprint.primitive)).valueOf() ];
-      if (typeof memoized !== 'undefined') { return memoized };
-    };
+      if (Number.isANumber(blueprint.primitive)) {
+        memoized = table[ (new(Number)(blueprint.primitive)).valueOf() ];
+        if (typeof memoized !== 'undefined') { return memoized }; }
+      else { throw(numeric.errors.isNotANumber) } };
     
     return Object.prototype.beget.apply(this, arguments);
   };

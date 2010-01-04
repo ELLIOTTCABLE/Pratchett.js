@@ -11,8 +11,11 @@ return (function(){ var string, table, inheritedBeget;
   string = paws.tuple.beget();
   
   string.errors = {
-    preexistent: new(Error)("That string already exists in the system; " +
-                            "strings must be globally unique")
+    preexistent: new(Error)("That `string` already exists in the system; " +
+                            "`string`s must be globally unique"),
+    isNotAString: new(Error)("`string`s cannot be created with non-string-" +
+                             "primitive values")
+    
   };
   
   // `infrastructure string` objects are intended to be globally unique, a lá
@@ -26,9 +29,10 @@ return (function(){ var string, table, inheritedBeget;
     
     if (typeof blueprint           !== 'undefined' &&
         typeof blueprint.primitive !== 'undefined' ) {
-      memoized = table[ (new(String)(blueprint.primitive)).valueOf() ];
-      if (typeof memoized !== 'undefined') { return memoized };
-    };
+      if (String.isAString(blueprint.primitive)) {
+        memoized = table[ (new(String)(blueprint.primitive)).valueOf() ];
+        if (typeof memoized !== 'undefined') { return memoized }; }
+      else { throw(string.errors.isNotAString) } };
     
     return Object.prototype.beget.apply(this, arguments);
   };
