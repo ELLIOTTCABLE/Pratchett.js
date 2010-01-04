@@ -70,7 +70,7 @@ return (function(){ var list;
   // This is not akin to the JavaScript `length` property; it is the index of
   // the last item in the list, and the number of user-defined objects in the
   // list. It is 1-indexed, and does not count the naughty list.
-  list.length = function () { return paws.numeric.beget(this._length - 1) };
+  list.length = function () { return paws.numeric.beget(this._length() - 1) };
   
   // Stores another `list` in the position *after* the last element
   list.append = function (other) {
