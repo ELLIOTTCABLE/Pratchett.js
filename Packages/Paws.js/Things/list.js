@@ -5,6 +5,14 @@ return (function(){ var list;
     invalidChild: new(Error)("Lists may only contain lists as children")
   };
   
+  list.beget = function (blueprint) { var result;
+    result = Object.prototype.beget.apply(this, arguments);
+    paws._inspect(blueprint, 'blueprint');
+    paws._inspect(result, 'begat');
+    return result;
+  };
+  
+  
   list.constructor = function (blueprint) { var that, naughty;
     // This is the unique per-object lexical scope in which to store our
     // private data
@@ -14,6 +22,7 @@ return (function(){ var list;
       
       // These are private methods. Do not use them; use `list.get()`,
       // `list.set()`, and `list.length()` instead.
+      that._store = function () { return store };
       that._get = function (i) { return store[i] };
       that._set = function (i, val) { store[i] = val };
       that._length = function () { return store.length };
@@ -35,6 +44,12 @@ return (function(){ var list;
                i < l; element = a[++i]) {
         this.set(paws.numeric.beget(i), element) } };
   };
+  
+  list._lens = function (eyes, styles) {
+    return eyes.stylize('(' + this._store().map(function (item) {
+      return item._get(0) === item ? '=' :
+        eyes.stringify(item, styles) }).join(', ') + ')',
+      styles.list, styles) };
   
   
   // ==================
@@ -78,7 +93,7 @@ return (function(){ var list;
   
   // Appends a definition
   list.assign = function (key, value) {
-    this.append(paws.definition.beget({ key : value })) };
+    this.append(paws.definition.beget([key, value])) };
   
   // The core hard-lookup on a definition list.
   // 

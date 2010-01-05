@@ -5,6 +5,16 @@ from.absolute('/Users/elliottcable/Code/Spackle.js/lib/Spackle.js').wait()
 return (function(){ var paws, things;
   paws = new(Object);
   
+  // Debugger
+  paws._inspect = require('/Users/elliottcable/Code/src/eyes.js/lib/eyes')
+                    .inspector({ styles: { all: null, key: null
+,                     list:    'cyan'
+,                     tuple:   'blue'
+,                     string:  'green'
+,                     number:  'magenta'
+,                     special: 'yellow', bool: 'yellow'
+                    }} );
+  
   // FIXME: Huge, annoying problem. Since inheritance is implemented libspace,
   //        none of the primatives will provide inheritance. That is,
   //        `infrastructure tuple` won’t properly inherit from `infrastructure

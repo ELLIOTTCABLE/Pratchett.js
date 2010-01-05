@@ -34,7 +34,7 @@ return (function(){ var string, table, inheritedBeget;
         if (typeof memoized !== 'undefined') { return memoized }; }
       else { throw(string.errors.isNotAString) } };
     
-    return Object.prototype.beget.apply(this, arguments);
+    return paws.list.beget.apply(this, arguments);
   };
   
   string.constructor = function (blueprint) { var that;
@@ -62,6 +62,10 @@ return (function(){ var string, table, inheritedBeget;
         typeof blueprint.primitive !== 'undefined' ) {
       this._setPrimitive(blueprint.primitive) };
   };
+  
+  string._lens = function (eyes, styles) {
+    return eyes.stylize("'" + this._primitive().toString() + "'",
+      styles.string, styles) };
   
   
   // ==================

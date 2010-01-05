@@ -44,6 +44,13 @@ return (function(){ var definition, rootDefinition;
     paws.tuple.constructor.apply(this, arguments);
   };
   
+  // This should look like, either: `'foo':(…)` or `'foo':(…):(…)`.
+  definition._lens = function (eyes, styles) {
+    return eyes.stylize(this._store().map(function (item) {
+      return item._get(0) === item ? '=' :
+        eyes.stringify(item, styles) }).join(':'),
+      styles.tuple, styles) };
+  
   // FIXME: Is running `paws.tuple.constructor` twice dangerous? Because we
   //        already ran it above, when `beget()`ing `paws.definition` from
   //        `paws.tuple`.

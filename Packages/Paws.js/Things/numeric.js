@@ -27,7 +27,7 @@ return (function(){ var numeric, table, inheritedBeget;
         if (typeof memoized !== 'undefined') { return memoized }; }
       else { throw(numeric.errors.isNotANumber) } };
     
-    return Object.prototype.beget.apply(this, arguments);
+    return paws.list.beget.apply(this, arguments);
   };
   
   numeric.constructor = function (blueprint) { var that;
@@ -54,6 +54,9 @@ return (function(){ var numeric, table, inheritedBeget;
         typeof blueprint.primitive !== 'undefined' ) {
       this._setPrimitive(blueprint.primitive) };
   };
+  
+  numeric._lens = function (eyes, styles) {
+    return eyes.stylize(this._primitive().toString(), styles.number, styles) };
   
   
   // ==================

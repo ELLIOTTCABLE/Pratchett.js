@@ -28,6 +28,18 @@ return (function(){ var bool;
       this._setPrimitive(blueprint.primitive) };
   };
   
+  bool._lens = function (eyes, styles) { var name;
+    // TODO: Clean this up
+    switch (this._primitive()) {
+      case true:  name = 'true';  break;
+      case false: name = 'false'; break;
+      case null:  name = 'void';  break;
+      default:    name = 'bool';  break;
+    };
+    return eyes.stylize(name, styles.bool, styles);
+  };
+  
+  
   
   // ==================
   // = JavaScript API =
