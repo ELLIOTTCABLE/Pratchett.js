@@ -24,8 +24,7 @@ return (function(){ var tuple;
   
   tuple._lens = function (eyes, styles) {
     return eyes.stylize('<' + this._store().map(function (item) {
-      return item._get(0) === item ? '=' :
-        eyes.stringify(item, styles) }).join(', ') + '>',
+      return eyes.stringify(item, styles) }).join(', ') + '>',
       styles.tuple, styles) };
   
   

@@ -47,8 +47,7 @@ return (function(){ var definition, rootDefinition;
   // This should look like, either: `'foo':(…)` or `'foo':(…):(…)`.
   definition._lens = function (eyes, styles) {
     return eyes.stylize(this._store().map(function (item) {
-      return item._get(0) === item ? '=' :
-        eyes.stringify(item, styles) }).join(':'),
+      return eyes.stringify(item, styles) }).join(':'),
       styles.tuple, styles) };
   
   // FIXME: Is running `paws.tuple.constructor` twice dangerous? Because we

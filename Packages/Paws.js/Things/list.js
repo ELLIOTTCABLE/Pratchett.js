@@ -28,12 +28,10 @@ return (function(){ var list;
       that._length = function () { return store.length };
     })();
     
-    if (typeof blueprint                   === 'undefined' ||
-               blueprint.initializeNaughty !== false ) {
-      naughty = list.beget({ initializeNaughty : false });
-      naughty._set(0, naughty);
-         that._set(0, naughty);
-    };
+    if (typeof blueprint           !== 'undefined' &&
+               blueprint.isNaughty === true) {
+      naughty = this } else { naughty = list.beget({ isNaughty : true }) };
+    this._set(0, naughty);
     
     // TODO: Preform the extensive checks to see if `blueprint.content` is an
     //       array; if not, treat it as a hash (i.e. turn each key/value pair
@@ -46,9 +44,8 @@ return (function(){ var list;
   };
   
   list._lens = function (eyes, styles) {
-    return eyes.stylize('(' + this._store().map(function (item) {
-      return item._get(0) === item ? '=' :
-        eyes.stringify(item, styles) }).join(', ') + ')',
+    return eyes.stylize('(' + this._store().map(function (item) { 
+      return eyes.stringify(item, styles) }).join(', ') + ')',
       styles.list, styles) };
   
   

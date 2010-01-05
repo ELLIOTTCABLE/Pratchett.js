@@ -8,8 +8,8 @@ return (function(){ var paws, things;
   // Debugger
   paws._inspect = require('/Users/elliottcable/Code/src/eyes.js/lib/eyes')
                     .inspector({ styles: { all: null, key: null
-,                     list:    'cyan'
-,                     tuple:   'blue'
+,                     list:    null
+,                     tuple:   'cyan'
 ,                     string:  'green'
 ,                     number:  'magenta'
 ,                     special: 'yellow', bool: 'yellow'
