@@ -53,6 +53,10 @@ return (function(){ var routine;
     this.assign(paws.string.beget('scope'), paws.scope.beget());
   };
   
+  routine._lens = function (eyes, styles) {
+    return eyes.stylize('{}' + paws.list._lens.apply(this, arguments),
+      styles.special, styles) };
+  
   
   // ==================
   // = JavaScript API =
