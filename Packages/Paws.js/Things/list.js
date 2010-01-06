@@ -90,7 +90,7 @@ return (function(){ var list;
   
   // Appends a definition
   list.assign = function (key, value) {
-    this.append(paws.definition.beget([key, value])) };
+    this.append(paws.definition.beget({ content: [key, value] })) };
   
   // The core hard-lookup on a definition list.
   // 
