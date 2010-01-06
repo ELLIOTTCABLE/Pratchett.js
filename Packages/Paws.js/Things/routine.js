@@ -19,25 +19,17 @@ return (function(){ var routine;
       // These are private methods. Do not use them; use their public-API
       // equivalents instead.
       that._binding = function () { return binding };
-      that._bind = function (list) { 
-        if (!paws.list.isPrototypeOf(list)) {
-          throw(routine.errors.invalidBinding) };
-        binding = list;
-      };
+      that._bind = function (val) { binding = val  };
       
       that._setBody = function (val) {
         if (!val instanceof Array && typeof val !== 'function') {
-          throw(routine.errors.invalidBody) }
+          throw(routine.errors.invalidBody) };
         body = val;
       };
       that._call = function (argument) {
-        if (!paws.list.isPrototypeOf(argument)) {
-          throw(routine.errors.invalidArgument) };
-        
         if (typeof body === 'function') {
           body.apply(binding, [argument, that]) }
-        else { /* FIXME: What? */ };
-      };
+        else { /* FIXME: What? */ } };
       
     })();
     
@@ -62,6 +54,14 @@ return (function(){ var routine;
   // = JavaScript API =
   // ==================
   
+  // Binds this to a list, such that that list operates on that list as `this`
+  routine.bind = function (other) {
+    if (!paws.list.isPrototypeOf(other)) {
+      throw(routine.errors.invalidBinding) };
+    
+    this._bind(other);
+  };
+  
   // Executes a routine; either farming out the (native) implementation, or
   // passing the AST to `routine.interpret()`.
   // 
@@ -71,7 +71,12 @@ return (function(){ var routine;
   // it.
   //-
   // TODO: Automatically handle native-returns from native routines
-  routine.call = function (argument) { this._call(argument) };
+  routine.call = function (argument) {
+    if (!paws.list.isPrototypeOf(argument)) {
+      throw(routine.errors.invalidArgument) };
+    
+    this._call(argument);
+  };
   
   routine.constructor();
   
