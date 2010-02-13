@@ -2,7 +2,8 @@
  * here: <http://odin.himinbi.org/bytewise_ebnf/ebnf_spec.html> (although some
  * of the more esoteric features, such as ‘named groups’ [which break the
  * context-free rule of EBNF grammars] and byte specifications in string
- * literals)
+ * literals). That syntax is based on ISO-14977, Extended BNF:
+ * <http://www.cl.cam.ac.uk/~mgk25/iso-14977.pdf>.
  * 
  * Second, due to the compile-time interpretation rules, it is impossible to
  * describe the operator set in this document. Instead, these special
