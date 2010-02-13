@@ -1,0 +1,56 @@
+(* First off, this document conforms to the Bytewise EBNF language described
+ * here: <http://odin.himinbi.org/bytewise_ebnf/ebnf_spec.html> (although some
+ * of the more esoteric features, such as ‘named groups’ [which break the
+ * context-free rule of EBNF grammars] and byte specifications in string
+ * literals)
+ * 
+ * Second, due to the compile-time interpretation rules, it is impossible to
+ * describe the operator set in this document. Instead, these special
+ * extensions each match any entry in the corresponding deterministic compile-
+ * time table:
+ * - `? left-associative unary operator ?`
+ * - `? right-associative unary operator ?`
+ * - `? left-associative binary operator ?`
+ * - `? right-associative binary operator ?`
+ * 
+ * Finally, precedence flows from top to bottom (that is, the more precedent
+ * rules are later). I’m fairly sure that’s not standard Backus-Naur, but I’m
+ * writing this document for humans, not for existing EBNF parsers. This
+ * allows to place the more conceptually-atomic units of syntax earlier, and
+ * override them with more complex rules later (for instance, I can place
+ * `word` first, without specifying that a `word` cannot end in a semicolon—
+ * because wherever a semi)
+ *)
+
+(* The basic conceptual unit of the Paws grammar is the ‘word.’ It consists
+ * of any number of consecutive visible, printable characters (thus excluding
+ * control characters, whitespace, and so on, but including all other
+ * character sets and punctuation.)
+ *)
+word            := [[:graph:]]{1,∞}                                           ;
+
+(* Most common Paws operations are ‘space operations.’ This involves the
+ * lookup of the ‘word’ on the right of the ‘space operator’, on the result of
+ * the ‘materialization’ on the left.
+ *)
+space operator  := [[:space:]]{1,∞}                                           ;
+space operation := expression, space operator, word                           ;
+
+(* An ‘expression’ in Paws, is something which can, possibly, be materialized.
+ * That is, it has the *possibility* of having some sort of inherent meaning
+ * or intrinsic semantic value; of directly mapping to a “result value” of
+ * some sort.
+ *)
+expression      := space operation | "(", (expression | statement), ")"       ;
+
+(* A ‘statement’ is a complete, standalone ‘expression.’ The overall
+ * ‘expression’ will never be materialized at the completion of the
+ * ‘statement’; only sub-elements necessarily material to the execution of the
+ * ‘statement’ will be.
+ *)
+statement       := expression, (";", [[:space:]]{0,∞} | "\n")                 ;
+
+(* The ‘document’ is the overall unit of syntax. A ‘document’ contains any
+ * number of sequential ‘statements.’
+ *)
+document        := statement{0,∞}                                             ;
