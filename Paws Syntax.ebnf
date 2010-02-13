@@ -28,30 +28,103 @@
  * control characters, whitespace, and so on, but including all other
  * character sets and punctuation.)
  *)
-word            := [[:graph:]]{1,∞}                                           ;
+word        := grapheme{1,∞}                                                 ;
+identifier  := word | sentence                                               ;
+
+(* It’s important to note how simple the ‘sentence’ syntax is; only the
+ * simplest of escapes is supported. If you want to do anything more complex
+ * with weird nested quotes and backslashes, you should be using separate
+ * strings and concatenation. Also note that the forward slashes are double-
+ * escaped literally in *this document*, according to the rules.
+ * 
+ * Also note that the handling of escapes is intentionally simple: This syntax
+ * *treats* `“\u”` as an ‘escaped character’ in a string, but the interpreter
+ * does not. That is the exact equivalent of `“\\u”`; the only place wherein
+ * a forward slash is *actually meaningful*, in the *interpreter*, is prior to
+ * another forward slash, or prior to the appropriate closing quote for the
+ * respective sentence type.
+ *)
+escaped character       := "\\", [^]                                         ;
+double-quoted sentence  := '"', (escaped character | [^\\"]){0,∞}, '"'       ;
+single-quoted sentence  := "'", (escaped character | [^\\']){0,∞}, "'"       ;
+
+(* Unicode curly-quotes are *fully supported* by Paws, in that they are
+ * intelligently paired by the parser. A closing curly-quote in a quoted
+ * ‘sentence,’ as long as it’s properly paired, doesn’t necessarily end said
+ * ‘sentence.’
+ * 
+ * For instance, the following is a perfectly valid, single ‘sentence:’
+ * 
+ *     “He said: “We’re going!””
+ *)
+curly double-quoted sentence  := "“", (curly double-quoted sentence          |
+  escaped character | [^\\”]){0,∞}, "”"                                      ;
+curly single-quoted sentence  := '‘', (curly single-quoted sentence          |
+  escaped character | [^\\’]){0,∞}, '’'                                      ;
+
+sentence  :=
+        single-quoted sentence |       double-quoted sentence                |
+  curly single-quoted sentence | curly double-quoted sentence                ;
 
 (* Most common Paws operations are ‘space operations.’ This involves the
  * lookup of the ‘word’ on the right of the ‘space operator’, on the result of
- * the ‘materialization’ on the left.
+ * the ‘expression’ on the left.
  *)
-space operator  := [[:space:]]{1,∞}                                           ;
-space operation := expression, space operator, word                           ;
+space operator  := whitespace                                                ;
+space operation := expression, space operator, identifier                    ;
+
+(* Operators in Paws are fully dynamic, however, there are a small number that
+ * are specially handled. Those are directly defined in the syntax; they
+ * override default naming rules (for instance, `foo,` is ‘word,
+ * separating operator’ instead of a single ‘word’ with the `string`-content
+ * “foo,”). These include:
+ * 
+ * - “~”, not directly preceded by an identifier
+ * - “,”, not directly followed by an identifier
+ * - “|”, not directly followed by an identifier
+ * - “:”, not directly followed by an identifier
+ * 
+ * Most Paws operators are Unicode outside of the ASCII range; however,
+ * because Paws aims to fully *support* plain-ASCII programming, if perhaps to
+ * avoid encouraging it, all of these interpreter-supported, *hardcoded*
+ * operators, are from the plain ASCII subset. This implies that a purely-
+ * ASCII standard library *could* eventually be developed.
+ *)
+separating operator   := "," | "|" | ":"                                     ;
+separating operation  :=
+  expression, optional whitespace, separating operator, whitespace           ;
+
+enlisting operator  := "~"                                                   ;
+enlisting operation := enlisting operator, optional whitespace, expression   ;
 
 (* An ‘expression’ in Paws, is something which can, possibly, be materialized.
  * That is, it has the *possibility* of having some sort of inherent meaning
  * or intrinsic semantic value; of directly mapping to a “result value” of
  * some sort.
  *)
-expression      := space operation | "(", (expression | statement), ")"       ;
+operation   :=
+  expression, (space operation | separating operation | enlisting operation) ;
+expression  :=
+  identifier | operation | "(", (expression | statement), ")"                ;
 
 (* A ‘statement’ is a complete, standalone ‘expression.’ The overall
  * ‘expression’ will never be materialized at the completion of the
  * ‘statement’; only sub-elements necessarily material to the execution of the
  * ‘statement’ will be.
  *)
-statement       := expression, (";", [[:space:]]{0,∞} | "\n")                 ;
+statement :=
+  expression, optional whitespace, (";", optional whitespace | "\n")         ;
 
 (* The ‘document’ is the overall unit of syntax. A ‘document’ contains any
  * number of sequential ‘statements.’
  *)
-document        := statement{0,∞}                                             ;
+document  := statement{0,∞}                                                  ;
+
+(*********************}
+| Supporting elements |
+{*********************)
+
+grapheme            := [[:graph:]]                                           ;
+
+whitespace          := [[:space:]]{1,∞}                                      ;
+optional whitespace := [[:space:]]{0,∞}                                      ;
