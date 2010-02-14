@@ -92,34 +92,32 @@ space operation = expression, space operator, identifier;
  *)
 separating operator  = "," | "|" | ":";
 separating operation =
-  expression, optional whitespace, separating operator, whitespace;
+  expression, optional whitespace, separating operator, whitespace, expression;
 
 enlisting operator  = "~";
 enlisting operation = enlisting operator, optional whitespace, expression;
 
-operation =
-  expression, (space operation | separating operation | enlisting operation);
+operation = (space operation | separating operation | enlisting operation);
 
 (* An ‘expression’ in Paws, is something which can, possibly, be materialized.
  * That is, it has the *possibility* of having some sort of inherent meaning
  * or intrinsic semantic value; of directly mapping to a “result value” of
  * some sort.
  *)
-parenthetical expression = "(", expression, ")";
-expression =
-  statement{0,∞}, (identifier | operation | parenthetical expression);
+parenthetical expression = "(", optional statements, ")";
+expression               = (identifier | operation | parenthetical expression);
 
 (* A ‘statement’ is a complete, standalone ‘expression.’ The overall
  * ‘expression’ will never be materialized at the completion of the
  * ‘statement’; only sub-elements necessarily material to the execution of the
- * ‘statement’ will be.
+ * ‘expression’ will be.
  *)
 statement = expression, optional whitespace, (";", optional whitespace | "\n");
 
 (* The ‘document’ is the overall unit of syntax. A ‘document’ contains any
  * number of sequential ‘statements.’
  *)
-document = statement{0,∞};
+document = optional statements;
 
 (* *******************}
 | Supporting elements |
@@ -129,3 +127,9 @@ grapheme            = [[:graph:]];
 
 whitespace          = [[:space:]]{1,∞};
 optional whitespace = [[:space:]]{0,∞};
+
+(* Anywhere a series of statements is valid, a series of statements followed
+ * by an unterminated statement (which is, essentially, just an expression) is
+ * also valid.
+ *)
+optional statements = statement{0,∞}, expression{0,1};
