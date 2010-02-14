@@ -97,15 +97,17 @@ separating operation  :=
 enlisting operator  := "~"                                                   ;
 enlisting operation := enlisting operator, optional whitespace, expression   ;
 
+operation   :=
+  expression, (space operation | separating operation | enlisting operation) ;
+
 (* An ‘expression’ in Paws, is something which can, possibly, be materialized.
  * That is, it has the *possibility* of having some sort of inherent meaning
  * or intrinsic semantic value; of directly mapping to a “result value” of
  * some sort.
  *)
-operation   :=
-  expression, (space operation | separating operation | enlisting operation) ;
-expression  :=
-  identifier | operation | "(", (expression | statement), ")"                ;
+parenthetical expression  := "(", expression, ")"                            ;
+expression                := statement{0,∞},
+  (identifier | operation | parenthetical expression)                        ;
 
 (* A ‘statement’ is a complete, standalone ‘expression.’ The overall
  * ‘expression’ will never be materialized at the completion of the
