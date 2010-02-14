@@ -14,6 +14,13 @@
  * - `? left-associative binary operator ?`
  * - `? right-associative binary operator ?`
  * 
+ * In addition, we can’t regularly describe the semantics of meaningful
+ * indentation, thus we use the following extension to represent the series of
+ * ‘whitespace’ (see the definition under ‘Supporting elements’ near the end
+ * of this document) characters *exactly equal* to the those preceding the
+ * current line (that is, the line being processed when the token is needed):
+ * - `? indentation ?`
+ * 
  * Finally, precedence flows from top to bottom (that is, the more precedent
  * rules are later). I’m fairly sure that’s not standard Backus-Naur, but I’m
  * writing this document for humans, not for existing EBNF parsers. This
@@ -66,6 +73,41 @@ sentence =
         single-quoted sentence |       double-quoted sentence |
   curly single-quoted sentence | curly double-quoted sentence;
 
+(* Routines are a series of statements.
+ *--
+ * FIXME: This doesn’t handle multiple indentation-series ending
+ *        simultaneously, for instance:
+ *        
+ *            scope
+ *               scope
+ *                foo
+ *            bar
+ *        
+ *        In that example, the `\n    foo\n` after the second `scope`
+ *        ‘identifier’ would not be appropriately recognized as an ‘implicit
+ *        routine literal’, because at least `\n   ` would be expected.
+ * FIXME: An implicit routine literal doesn’t properly end a statement; that
+ *        is, a newline normally ends a statement, but the following code
+ *        would be parsed instead as a *single* statement:
+ *        
+ *            if([ a = b ])
+ *              foo
+ *            bar
+ *        
+ *        That means that `bar` would be looked up on the result of the `if()`
+ *        call, as if the statement looked like this:
+ *        
+ *            if([ a = b ]) {
+ *              foo
+ *            } bar;
+ *)
+explicit routine literal = "{", optional statements, "}";
+implicit routine literal = "\n",
+  ? indentation ?, whitespace, optional statements, "\n",
+  ? indentation ?;
+
+routine literal = explicit routine literal | implicit routine literal;
+
 (* Most common Paws operations are ‘space operations.’ This involves the
  * lookup of the ‘word’ on the right of the ‘space operator’, on the result of
  * the ‘expression’ on the left.
@@ -105,7 +147,8 @@ operation = (space operation | separating operation | enlisting operation);
  * some sort.
  *)
 parenthetical expression = "(", optional statements, ")";
-expression               = (identifier | operation | parenthetical expression);
+expression = (identifier | explicit routine literal | operation |
+  parenthetical expression);
 
 (* A ‘statement’ is a complete, standalone ‘expression.’ The overall
  * ‘expression’ will never be materialized at the completion of the
@@ -114,10 +157,11 @@ expression               = (identifier | operation | parenthetical expression);
  *)
 statement = expression, optional whitespace, (";", optional whitespace | "\n");
 
-(* The ‘document’ is the overall unit of syntax. A ‘document’ contains any
- * number of sequential ‘statements.’
+(* The ‘source unit’ is the overall unit of syntax. A ‘source unit’ contains
+ * any number of sequential ‘statements.’ In this way, it is identical to a
+ * ‘routine.’
  *)
-document = optional statements;
+source unit = optional statements;
 
 (* *******************}
 | Supporting elements |
