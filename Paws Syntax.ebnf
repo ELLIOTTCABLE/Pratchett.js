@@ -28,8 +28,8 @@
  * control characters, whitespace, and so on, but including all other
  * character sets and punctuation.)
  *)
-word        = grapheme{1,∞};
-identifier  = word | sentence;
+word       = grapheme{1,∞};
+identifier = word | sentence;
 
 (* It’s important to note how simple the ‘sentence’ syntax is; only the
  * simplest of escapes is supported. If you want to do anything more complex
@@ -44,9 +44,9 @@ identifier  = word | sentence;
  * another forward slash, or prior to the appropriate closing quote for the
  * respective sentence type.
  *)
-escaped character       = "\\", [^];
-double-quoted sentence  = '"', (escaped character | [^\\"]){0,∞}, '"';
-single-quoted sentence  = "'", (escaped character | [^\\']){0,∞}, "'";
+escaped character      = "\\", [^];
+double-quoted sentence = '"', (escaped character | [^\\"]){0,∞}, '"';
+single-quoted sentence = "'", (escaped character | [^\\']){0,∞}, "'";
 
 (* Unicode curly-quotes are *fully supported* by Paws, in that they are
  * intelligently paired by the parser. A closing curly-quote in a quoted
@@ -57,12 +57,12 @@ single-quoted sentence  = "'", (escaped character | [^\\']){0,∞}, "'";
  * 
  *     “He said: “We’re going!””
  *)
-curly double-quoted sentence  = "“", (curly double-quoted sentence |
+curly double-quoted sentence = "“", (curly double-quoted sentence |
   escaped character | [^\\”]){0,∞}, "”";
-curly single-quoted sentence  = '‘', (curly single-quoted sentence |
+curly single-quoted sentence = '‘', (curly single-quoted sentence |
   escaped character | [^\\’]){0,∞}, '’';
 
-sentence  =
+sentence =
         single-quoted sentence |       double-quoted sentence |
   curly single-quoted sentence | curly double-quoted sentence;
 
@@ -90,8 +90,8 @@ space operation = expression, space operator, identifier;
  * operators, are from the plain ASCII subset. This implies that a purely-
  * ASCII standard library *could* eventually be developed.
  *)
-separating operator   = "," | "|" | ":";
-separating operation  =
+separating operator  = "," | "|" | ":";
+separating operation =
   expression, optional whitespace, separating operator, whitespace;
 
 enlisting operator  = "~";
@@ -105,7 +105,7 @@ operation =
  * or intrinsic semantic value; of directly mapping to a “result value” of
  * some sort.
  *)
-parenthetical expression  = "(", expression, ")";
+parenthetical expression = "(", expression, ")";
 expression =
   statement{0,∞}, (identifier | operation | parenthetical expression);
 
@@ -114,13 +114,12 @@ expression =
  * ‘statement’; only sub-elements necessarily material to the execution of the
  * ‘statement’ will be.
  *)
-statement =
-  expression, optional whitespace, (";", optional whitespace | "\n");
+statement = expression, optional whitespace, (";", optional whitespace | "\n");
 
 (* The ‘document’ is the overall unit of syntax. A ‘document’ contains any
  * number of sequential ‘statements.’
  *)
-document  = statement{0,∞};
+document = statement{0,∞};
 
 (* *******************}
 | Supporting elements |
