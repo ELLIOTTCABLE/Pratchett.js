@@ -109,11 +109,20 @@ implicit routine literal = "\n",
 routine literal = explicit routine literal | implicit routine literal;
 
 (* Most common Paws operations are ‘space operations.’ This involves the
- * lookup of the ‘word’ on the right of the ‘space operator’, on the result of
- * the ‘expression’ on the left.
+ * lookup of the ‘word’ on the right of the space, on the result of
+ * the ‘expression’ on the left. Instead of a normal ‘identifier’ on the
+ * right, a ‘parenthetical expression’ may be used, in which case an
+ * “indirected lookup” is preformed. Generally, this means the result of the
+ * ‘parenthetical expression’ are looked up, instead of the ‘identifier’
+ * itself.
+ * 
+ * In the case of routines, a ‘space operation’ may trigger an execution. A
+ * ‘routine literal’ may follow a ‘space operation,’ in which case it will be
+ * applied to such a call or lookup.
  *)
-space operator  = whitespace;
-space operation = expression, space operator, identifier;
+space operation = expression,
+  (whitespace, identifier | optional whitespace, parenthetical expression),
+  (optional whitespace, routine literal){0,∞};
 
 (* Operators in Paws are fully dynamic, however, there are a small number that
  * are specially handled. Those are directly defined in the syntax; they
