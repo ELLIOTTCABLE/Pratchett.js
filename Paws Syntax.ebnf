@@ -16,8 +16,8 @@
  * 
  * In addition, we can’t regularly describe the semantics of meaningful
  * indentation, thus we use the following extension to represent the series of
- * ‘whitespace’ (see the definition under ‘Supporting elements’ near the end
- * of this document) characters *exactly equal* to the those preceding the
+ * ‘space’ (see the definition under ‘Supporting elements’ near the end of
+ * this document) characters *exactly equal* to the those preceding the
  * current line (that is, the line being processed when the token is needed):
  * - `? indentation ?`
  * 
@@ -103,7 +103,7 @@ sentence =
  *)
 explicit routine literal = "{", optional statements, "}";
 implicit routine literal = "\n",
-  ? indentation ?, whitespace, optional statements, "\n",
+  ? indentation ?, space, optional statements, "\n",
   ? indentation ?;
 
 routine literal = explicit routine literal | implicit routine literal;
@@ -121,8 +121,8 @@ routine literal = explicit routine literal | implicit routine literal;
  * applied to such a call or lookup.
  *)
 space operation = expression,
-  (whitespace, identifier | optional whitespace, parenthetical expression),
-  (optional whitespace, routine literal){0,∞};
+  (space, identifier | optional space, parenthetical expression),
+  (optional space, routine literal){0,∞};
 
 (* Operators in Paws are fully dynamic, however, there are a small number that
  * are specially handled. Those are directly defined in the syntax; they
@@ -143,10 +143,10 @@ space operation = expression,
  *)
 separating operator  = "," | "|" | ":";
 separating operation =
-  expression, optional whitespace, separating operator, whitespace, expression;
+  expression, optional space, separating operator, space, expression;
 
 enlisting operator  = "~";
-enlisting operation = enlisting operator, optional whitespace, expression;
+enlisting operation = enlisting operator, optional space, expression;
 
 operation = (space operation | separating operation | enlisting operation);
 
@@ -164,7 +164,7 @@ expression = (identifier | explicit routine literal | operation |
  * ‘statement’; only sub-elements necessarily material to the execution of the
  * ‘expression’ will be.
  *)
-statement = expression, optional whitespace, (";", optional whitespace | "\n");
+statement = expression, optional space, (";", optional space | "\n");
 
 (* The ‘source unit’ is the overall unit of syntax. A ‘source unit’ contains
  * any number of sequential ‘statements.’ In this way, it is identical to a
@@ -176,10 +176,10 @@ source unit = optional statements;
 | Supporting elements |
 {******************* *)
 
-grapheme            = [[:graph:]];
+grapheme       = [[:graph:]];
 
-whitespace          = [[:space:]]{1,∞};
-optional whitespace = [[:space:]]{0,∞};
+space          = [[:space:]]{1,∞};
+optional space = [[:space:]]{0,∞};
 
 (* Anywhere a series of statements is valid, a series of statements followed
  * by an unterminated statement (which is, essentially, just an expression) is
