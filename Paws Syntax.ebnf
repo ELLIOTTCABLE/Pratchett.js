@@ -56,10 +56,10 @@ single-quoted sentence = "'", (escaped character | [^\\']){0,∞}, "'";
  * 
  *     “He said: “We’re going!””
  *)
-curly double-quoted sentence = "“", (curly double-quoted sentence |
-  escaped character | [^\\”]){0,∞}, "”";
-curly single-quoted sentence = '‘', (curly single-quoted sentence |
-  escaped character | [^\\’]){0,∞}, '’';
+curly double-quoted sentence = '“', (curly double-quoted sentence |
+  escaped character | [^\\”]){0,∞}, '”';
+curly single-quoted sentence = "‘", (curly single-quoted sentence |
+  escaped character | [^\\’]){0,∞}, "’";
 
 sentence =
         single-quoted sentence |       double-quoted sentence |
