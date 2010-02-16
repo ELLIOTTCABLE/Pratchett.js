@@ -5,15 +5,6 @@
  * literals). That syntax is based on ISO-14977, Extended BNF:
  * <http://www.cl.cam.ac.uk/~mgk25/iso-14977.pdf>.
  * 
- * Second, due to the compile-time interpretation rules, it is impossible to
- * describe the operator set in this document. Instead, these special
- * extensions each match any entry in the corresponding deterministic compile-
- * time table:
- * - `? left-associative unary operator ?`
- * - `? right-associative unary operator ?`
- * - `? left-associative binary operator ?`
- * - `? right-associative binary operator ?`
- * 
  * In addition, we can’t regularly describe the semantics of meaningful
  * indentation, thus we use the following extension to represent the series of
  * ‘space’ (see the definition under ‘Supporting elements’ near the end of
@@ -26,8 +17,9 @@
  * writing this document for humans, not for existing EBNF parsers. This
  * allows to place the more conceptually-atomic units of syntax earlier, and
  * override them with more complex rules later (for instance, I can place
- * `word` first, without specifying that a `word` cannot end in a semicolon—
- * because wherever a semi)
+ * ‘word’ first, without specifying that a ‘word’ cannot end in a semicolon—
+ * because wherever a semicolon would appear, it will instead be parsed
+ * according to the ‘statement’ rules below.)
  *)
 
 (* The basic conceptual unit of the Paws grammar is the ‘word.’ It consists
