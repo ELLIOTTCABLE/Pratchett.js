@@ -43,7 +43,7 @@ identifier = word | sentence;
  * another forward slash, or prior to the appropriate closing quote for the
  * respective sentence type.
  *)
-escaped character      = "\\", [^];
+escaped character      = "\\", character;
 double-quoted sentence = '"', (escaped character | [^\\"]){0,∞}, '"';
 single-quoted sentence = "'", (escaped character | [^\\']){0,∞}, "'";
 
@@ -168,7 +168,12 @@ source unit = optional statements;
 | Supporting elements |
 {******************* *)
 
-grapheme       = [[:graph:]];
+(* This is a huge hack; I don’t know how to represent ‘any character’ in EBNF,
+ * so instead, I say ‘anything that is a grapheme, or anything that is not a
+ * grapheme.’
+ *)
+character = [^[:graph:]] | [[:graph:]];
+grapheme  = [[:graph:]];
 
 space          = [[:space:]]{1,∞};
 optional space = [[:space:]]{0,∞};
