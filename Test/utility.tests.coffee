@@ -9,4 +9,4 @@ describe "Paws' utilities", ->
    describe '#runInNewContext', ->
       him = utilities.runInNewContext
       it 'should return a value', ->
-         expect(him '42').to.be.ok()
+         expect(him '42').to.be 42
