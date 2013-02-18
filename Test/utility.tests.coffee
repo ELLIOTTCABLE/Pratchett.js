@@ -6,7 +6,7 @@ describe "Paws' utilities", ->
    it 'should exist', ->
       expect(utilities).to.be.ok()
    
+   run = utilities.runInNewContext
    describe '#runInNewContext', ->
-      him = utilities.runInNewContext
       it 'should return a value', ->
-         expect(him '42').to.be 42
+         expect(run '42').to.be 42
