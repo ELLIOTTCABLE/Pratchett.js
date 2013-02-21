@@ -10,3 +10,7 @@ describe "Paws' utilities", ->
    describe '#runInNewContext', ->
       it 'should return a value', ->
          expect(run '42').to.be 42
+      
+      it 'should use a new JavaScript execution-context', ->
+         expect(run 'Object').to.not.be(Object)
+         expect(run 'new Object').to.not.be.an(Object)
