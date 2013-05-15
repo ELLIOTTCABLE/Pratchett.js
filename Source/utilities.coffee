@@ -60,6 +60,8 @@ utilities =
    # FIXME: The runtime choice between the two implementations is unnecessary
    # TODO: Release this as its own micro-library
    subclass: do ->
+      noop = ->
+      
       # The first approach, and most flexible of all, is to create `Function` instances with the
       # native `Function` constructor from our own context, and then directly modify the
       # `[[Prototype]]` field thereof with the `__proto__` pseudo-property provided by many
@@ -72,7 +74,7 @@ utilities =
                body = arguments.callee._runtimeBody ? runtimeBody ? noop
                body[if intactArguments then 'call' else 'apply'] this, arguments
             that.__proto__ = constructor.prototype
-            return constructorBody.apply(that, arguments) || that
+            return (constructorBody ? noop).apply(that, arguments) ? that
          
          constructor.prototype = do ->
             C = new Function; C.prototype = parent.prototype; new C
@@ -107,7 +109,7 @@ utilities =
             that = new parent("
                return (arguments.callee._runtimeBody || "+parent.name+".runtimeBody || function(){})
                   [intactArguments ? 'call':'apply'](this, arguments)")
-            constructorBody.apply(that, arguments) || that
+            (constructorBody ? noop).apply(that, arguments) ? that
          
          constructor.prototype = parent.prototype
          constructor.prototype.constructor = constructor

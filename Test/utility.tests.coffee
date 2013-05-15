@@ -1,10 +1,11 @@
 expect = require 'expect.js'
 
-describe "Paws' utilities", ->
+describe "Paws' utilities:", ->
    
    utilities = require '../Source/utilities'
    it 'should exist', ->
       expect(utilities).to.be.ok()
+   
    
    run = utilities.runInNewContext
    describe '#runInNewContext', ->
@@ -40,13 +41,23 @@ describe "Paws' utilities", ->
          iframes = window.document.getElementsByTagName 'iframe'
          expect(iframes).to.be.empty()
    
-   sub = utilities.subclass
    
+   sub = utilities.subclass
    subclassTests = (canHaveAccessors) -> utilities.hasPrototypeAccessors(canHaveAccessors); ->
       
-      it 'should return constructors', ->
+      it 'should return functions', ->
          expect(sub Function).to.be.a 'function'
-         # $.notEqual(Fanction, Function)
-   
+         expect(sub Function).to.not.be Function
+      
+      it 'should return operable constructors', ->
+         Fan = sub Function
+         expect(new Fan).to.be.a Fan
+      
+      if (canHaveAccessors)
+         it 'should instantiate descendants into the local context\'s inheritance-tree', ->
+            Fan = sub Function
+            expect(new Fan).to.be.an Object
+            expect(new Fan).to.be.a  Function
+      
    describe '#subclass (via __proto__)', subclassTests true if utilities.hasPrototypeAccessors()
    describe '#subclass (via a foreign context)', subclassTests false
