@@ -103,12 +103,16 @@ utilities =
       # (All that ... along with the fact that I know of absolutely *no way* to circumvent this.)
       fromOtherContext = (parent, constructorBody, runtimeBody, intactArguments) ->
          parent = utilities.runInNewContext parent.name
-         parent.runtimeBody = runtimeBody
+         parent._subclassSemaphore =
+            runtimeBody: runtimeBody
+            intactArguments: intactArguments
          
          constructor = ->
             that = new parent("
-               return (arguments.callee._runtimeBody || "+parent.name+".runtimeBody || function(){})
-                  [intactArguments ? 'call':'apply'](this, arguments)")
+               return (arguments.callee._runtimeBody
+                    || "+parent.name+"._subclassSemaphore.runtimeBody
+                    || function(){})
+                  ["+parent.name+"._subclassSemaphore.intactArguments ? 'call':'apply'](this, arguments)")
             (constructorBody ? noop).apply(that, arguments) ? that
          
          constructor.prototype = parent.prototype

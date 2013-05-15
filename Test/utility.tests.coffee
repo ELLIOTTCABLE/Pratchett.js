@@ -60,5 +60,23 @@ describe "Paws' utilities:", ->
             expect(new Fan).to.be.an Object
             expect(new Fan).to.be.a  Function
       
+      it 'should support a function-body for the constructor', ->
+         Fan = sub Function, (stuff) -> this.stuff = stuff; this
+         expect(new Fan('foo').stuff).to.be 'foo'
+      
+      it 'should support a function-body for the descendant', ->
+         Fan = sub Function,
+            ->
+            (arg) -> arg + 'bar'
+         expect( (new Fan)('foo') ).to.be 'foobar'
+      
+      it 'should maintain the prototype-chain as expected', ->
+         Fan = sub Function
+         Fan.prototype.method = (foo) -> this.foo = foo
+         
+         fan = new Fan
+         expect(-> fan.method 'bar').to.not.throwError()
+         expect(fan.foo).to.be 'bar'
+      
    describe '#subclass (via __proto__)', subclassTests true if utilities.hasPrototypeAccessors()
    describe '#subclass (via a foreign context)', subclassTests false
