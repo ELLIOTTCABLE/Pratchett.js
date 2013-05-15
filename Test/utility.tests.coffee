@@ -14,3 +14,8 @@ describe "Paws' utilities", ->
       it 'should use a new JavaScript execution-context', ->
          expect(run 'Object').to.not.be(Object)
          expect(run 'new Object').to.not.be.an(Object)
+   
+   if process.browser then describe '#runInNewContext (client)', ->
+      it 'should not leave trash in the DOM', ->
+         iframes = window.document.getElementsByTagName 'iframe'
+         expect(iframes).to.be.empty()

@@ -11,6 +11,7 @@ utilities =
             source: source
          
          $frame = window.document.createElement 'iframe'
+         $frame.style.display = 'none'
          body(html(window.document)).insertBefore $frame
          $window = $frame.contentWindow
          
@@ -18,6 +19,8 @@ utilities =
          $script = $window.document.createElement 'script'
          $script.text = "window.__fromSemaphore.result = eval(window.__fromSemaphore.source)"
          body(html($window.document)).insertBefore $script
+         
+         body(html(window.document)).removeChild $frame
          
          return semaphore.result
       
