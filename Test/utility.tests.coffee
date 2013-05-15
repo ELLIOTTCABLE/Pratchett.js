@@ -43,7 +43,8 @@ describe "Paws' utilities:", ->
    
    
    sub = utilities.subclass
-   subclassTests = (canHaveAccessors) -> utilities.hasPrototypeAccessors(canHaveAccessors); ->
+   subclassTests = (canHaveAccessors) -> ->
+      beforeEach -> utilities.hasPrototypeAccessors(canHaveAccessors)
       
       it 'should return functions', ->
          expect(sub Function).to.be.a 'function'
