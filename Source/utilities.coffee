@@ -14,6 +14,7 @@ utilities =
          $frame.style.display = 'none'
          body(html(window.document)).insertBefore $frame
          $window = $frame.contentWindow
+        #$window.document.close()
          
          $window.__fromSemaphore = semaphore
          $script = $window.document.createElement 'script'
