@@ -39,3 +39,14 @@ describe "Paws' utilities", ->
       it 'should not leave trash in the DOM', ->
          iframes = window.document.getElementsByTagName 'iframe'
          expect(iframes).to.be.empty()
+   
+   sub = utilities.subclass
+   
+   subclassTests = (canHaveAccessors) -> utilities.hasPrototypeAccessors(canHaveAccessors); ->
+      
+      it 'should return constructors', ->
+         expect(sub Function).to.be.a 'function'
+         # $.notEqual(Fanction, Function)
+   
+   describe '#subclass (via __proto__)', subclassTests true if utilities.hasPrototypeAccessors()
+   describe '#subclass (via a foreign context)', subclassTests false
