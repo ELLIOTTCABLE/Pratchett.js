@@ -17,6 +17,16 @@ describe "Paws' utilities", ->
       it 'should return functions', ->
          expect(run 'Function').to.be.a 'function'
       
+      it 'should expose the passed sandbox', ->
+         sandbox = {foo: new Object}
+         expect(run '(function(){ return foo })()', sandbox).to.be sandbox.foo
+      
+      it 'should mirror updates to values in the passed sandbox', ->
+         sandbox = new Object
+         run '(function(){ foo = 456 })()', sandbox
+         expect(sandbox.foo).to.be 456
+      
+      
       it 'should use a new JavaScript execution-context', ->
          # FIXME: The following test currently fails on Testling, for reasons unknown.
          expect(run 'Object').to.not.be Object
