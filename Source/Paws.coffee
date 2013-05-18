@@ -3,10 +3,14 @@
 require('./additional.coffee') module.exports =
    paws = new Object
 
+uuid = require 'uuid'
+
 paws.utilities       = require('./utilities.coffee').infect global
 paws.Unit   = Unit   = require './Unit.coffee'
 paws.Script = Script = require './Script.coffee'
 
 paws.Thing = Thing = parameterizable class Thing
    constructor: ->
+      @id = uuid.v4() 
+      
       return this
