@@ -14,5 +14,8 @@ paws.Thing = Thing = parameterizable class Thing
       it = construct this
       
       it.id = uuid.v4()
+      it.metadata = new Array
+      
+      it.metadata.unshift undefined if it._?.noughtify != no
       
       return it
