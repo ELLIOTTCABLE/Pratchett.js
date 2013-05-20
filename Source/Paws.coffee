@@ -11,6 +11,8 @@ paws.Script = Script = require './Script.coffee'
 
 paws.Thing = Thing = parameterizable class Thing
    constructor: ->
-      @id = uuid.v4() 
+      it = construct this
       
-      return this
+      it.id = uuid.v4()
+      
+      return it
