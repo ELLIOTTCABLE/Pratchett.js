@@ -22,3 +22,10 @@ describe 'Parser', ->
     expect(expr.contents).to.be.a(Paws.Label)
     expect(expr.contents.alien.toString()).to.be('hello')
 
+  it 'should parse multiple labels', ->
+    expr = parser.parse('hello world').next
+    expect(expr.contents).to.be.a(Paws.Label)
+    expect(expr.contents.alien.toString()).to.be('hello')
+    expect(expr.next.contents).to.be.a(Paws.Label)
+    expect(expr.next.contents.alien.toString()).to.be('world')
+
