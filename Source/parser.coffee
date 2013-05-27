@@ -1,6 +1,14 @@
 `require = require('./cov_require.js')(require)`
 Paws = require './Paws.coffee'
 
+class Expression
+  constructor: (@contents, @next) ->
+  
+  append: (expr) ->
+    curr = this
+    curr = curr.next while curr.next
+    curr.next = expr
+
 class Parser
   labelCharacters = /[^(){} \n]/ # Not currently supporting quote-delimited labels
 
@@ -22,13 +30,19 @@ class Parser
       res += @text[@i++]
     res && new Paws.Label(res)
 
-  parse: ->
-    @label()
+  expr: ->
+    res = new Expression
+    while sub = (@label())
+      res.append(new Expression(sub))
+    res
 
-module.exports = parser =
+  parse: ->
+    @expr()
+
+module.exports =
   parse: (text) ->
     parser = new Parser(text)
     parser.parse()
   
-  Expression: class Expression
+  Expression: Expression
 

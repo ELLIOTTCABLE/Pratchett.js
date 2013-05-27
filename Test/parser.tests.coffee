@@ -10,9 +10,10 @@ describe 'Parser', ->
     expect(parser.parse).to.be.a('function')
     expect(parser.Expression).to.be.ok()
 
-  it 'should parse a label', ->
-    ast = parser.parse('hello')
-    expect(ast).to.be.ok()
-    expect(ast).to.be.a(Paws.Label)
-    expect(ast.alien.toString()).to.be('hello')
+  it 'should parse a label expression', ->
+    expr = parser.parse('hello').next
+    expect(expr).to.be.ok()
+    expect(expr).to.be.a(parser.Expression)
+    expect(expr.contents).to.be.a(Paws.Label)
+    expect(expr.contents.alien.toString()).to.be('hello')
 
