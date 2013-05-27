@@ -1,9 +1,6 @@
 `require = require('./cov_require.js')(require)`
 Paws = require './Paws.coffee'
 
-class Paws.Execution
-   constructor: (@body) ->
-
 class SourceRange
    constructor: (@source, @begin, @end) ->
 
@@ -56,7 +53,7 @@ class Parser
          @with_range(new constructor(it), start)
 
    paren: -> @braces('()', (it) -> it)
-   scope: -> @braces('{}', Paws.Execution)
+   scope: -> @braces('{}', Paws.Native)
 
    expr: ->
       start = @i

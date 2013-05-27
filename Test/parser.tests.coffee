@@ -38,7 +38,7 @@ describe 'Parser', ->
 
    it 'should parse Execution', ->
       expr = parser.parse('{hello world}').next
-      expect(expr.contents).to.be.a(Paws.Execution)
+      expect(expr.contents).to.be.a(Paws.Native)
 
    it 'should keep track of locations', ->
       expr = parser.parse('hello world')
@@ -88,5 +88,5 @@ describe 'Parser', ->
       contains_same(exe)
       expect(exe.source_range.slice()).to.be('{b  }')
 
-      expect(exe.contents.body.source_range.slice()).to.be('b  ')
+      expect(exe.contents.position.source_range.slice()).to.be('b  ')
 
