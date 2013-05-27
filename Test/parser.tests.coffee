@@ -40,3 +40,29 @@ describe 'Parser', ->
     expr = parser.parse('{hello world}').next
     expect(expr.contents).to.be.a(Paws.Execution)
 
+  it 'should keep track of locations', ->
+    expr = parser.parse('hello world')
+    expect(expr.source_range).to.be.a(parser.SourceRange)
+    expect(expr.source_range.begin).to.be(0)
+    expect(expr.source_range.end).to.be(11)
+
+    hello = expr.next
+    expect(hello.source_range).to.be.a(parser.SourceRange)
+    expect(hello.source_range.begin).to.be(0)
+    expect(hello.source_range.end).to.be(5)
+
+    hello_label = hello.contents
+    expect(hello_label.source_range).to.be.a(parser.SourceRange)
+    expect(hello_label.source_range.begin).to.be(0)
+    expect(hello_label.source_range.end).to.be(5)
+
+    world = expr.next.next
+    expect(world.source_range).to.be.a(parser.SourceRange)
+    expect(world.source_range.begin).to.be(5)
+    expect(world.source_range.end).to.be(11)
+
+    world_label = world.contents
+    expect(world_label.source_range).to.be.a(parser.SourceRange)
+    expect(world_label.source_range.begin).to.be(5)
+    expect(world_label.source_range.end).to.be(11)
+
