@@ -21,9 +21,11 @@ class Parser
     @i = 0
 
   with_range: (expr, begin, end) ->
-    expr.source_range = new SourceRange(@text, begin, end || @i)
-    if expr.contents? && !expr.contents.soure_range?
-      expr.contents.source_range = expr.source_range
+    if expr.contents?.source_range?
+      expr.source_range = expr.contents.source_range
+    else
+      expr.source_range = new SourceRange(@text, begin, end || @i)
+      expr.contents.source_range = expr.source_range if expr.contents?
     expr
 
   character: (char) ->
@@ -39,7 +41,7 @@ class Parser
     res = ''
     while @text[@i] && labelCharacters.test(@text[@i])
       res += @text[@i++]
-    res && new Paws.Label(res)
+    res && @with_range(new Paws.Label(res), start)
 
   braces: (delim, constructor) ->
     start = @i

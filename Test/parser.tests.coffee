@@ -58,11 +58,11 @@ describe 'Parser', ->
 
     world = expr.next.next
     expect(world.source_range).to.be.a(parser.SourceRange)
-    expect(world.source_range.begin).to.be(5)
+    expect(world.source_range.begin).to.be(6)
     expect(world.source_range.end).to.be(11)
 
     world_label = world.contents
     expect(world_label.source_range).to.be.a(parser.SourceRange)
-    expect(world_label.source_range.begin).to.be(5)
+    expect(world_label.source_range.begin).to.be(6)
     expect(world_label.source_range.end).to.be(11)
 
