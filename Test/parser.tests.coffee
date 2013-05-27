@@ -36,3 +36,7 @@ describe 'Parser', ->
     expect(expr.next.contents).to.be.a(parser.Expression)
     expect(expr.next.contents.next.contents).to.be.a(Paws.Label)
 
+  it 'should parse Execution', ->
+    expr = parser.parse('{hello world}').next
+    expect(expr.contents).to.be.a(Paws.Execution)
+

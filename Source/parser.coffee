@@ -1,6 +1,8 @@
 `require = require('./cov_require.js')(require)`
 Paws = require './Paws.coffee'
 
+class Paws.Execution
+
 class Expression
   constructor: (@contents, @next) ->
   
@@ -40,10 +42,11 @@ class Parser
       new constructor(it)
 
   paren: -> @braces('()', (it) -> it)
+  scope: -> @braces('{}', Paws.Execution)
 
   expr: ->
     res = new Expression
-    while sub = (@label() || @paren())
+    while sub = (@label() || @paren() || @scope())
       res.append(new Expression(sub))
     res
 
