@@ -30,9 +30,20 @@ class Parser
       res += @text[@i++]
     res && new Paws.Label(res)
 
+  braces: (delim, constructor) ->
+    start = @i
+    if @whitespace() &&
+        @character(delim[0]) &&
+        (it = @expr()) &&
+        @whitespace() &&
+        @character(delim[1])
+      new constructor(it)
+
+  paren: -> @braces('()', (it) -> it)
+
   expr: ->
     res = new Expression
-    while sub = (@label())
+    while sub = (@label() || @paren())
       res.append(new Expression(sub))
     res
 
