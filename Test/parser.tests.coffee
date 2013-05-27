@@ -66,3 +66,27 @@ describe 'Parser', ->
     expect(world_label.source_range.begin).to.be(6)
     expect(world_label.source_range.end).to.be(11)
 
+  it 'should keep track of tricky locations', ->
+    expr = parser.parse(' h(  a{b  } )')
+
+    contains_same = (expr) ->
+      expect(expr.source_range.slice()).to.be(expr.contents.source_range.slice())
+
+    hello = expr.next
+    contains_same(hello)
+    expect(hello.source_range.slice()).to.be('h')
+
+    list = hello.next
+    contains_same(list)
+    expect(list.source_range.slice()).to.be('(  a{b  } )')
+
+    a = list.contents.next
+    contains_same(a)
+    expect(a.source_range.slice()).to.be('a')
+
+    exe = a.next
+    contains_same(exe)
+    expect(exe.source_range.slice()).to.be('{b  }')
+
+    expect(exe.contents.body.source_range.slice()).to.be('b  ')
+

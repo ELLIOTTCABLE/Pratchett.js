@@ -2,9 +2,12 @@
 Paws = require './Paws.coffee'
 
 class Paws.Execution
+  constructor: (@body) ->
 
 class SourceRange
   constructor: (@source, @begin, @end) ->
+
+  slice: -> @source.slice(@begin, @end)
 
 class Expression
   constructor: (@contents, @next) ->
@@ -50,7 +53,7 @@ class Parser
         (it = @expr()) &&
         @whitespace() &&
         @character(delim[1])
-      new constructor(it)
+      @with_range(new constructor(it), start)
 
   paren: -> @braces('()', (it) -> it)
   scope: -> @braces('{}', Paws.Execution)
