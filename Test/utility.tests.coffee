@@ -21,6 +21,14 @@ describe "Paws' utilities:", ->
          expect(composed object).to.be object
    
    
+   describe 'constructify()', ->
+      it 'basically works', ->
+         expect(constructify).to.be.ok()
+         expect(-> constructify ->).to.not.throwException()
+         Ctor = constructify ->
+         expect(-> new Ctor).to.not.throwException()
+   
+   
    describe 'parameterizable()', ->
       utilities.parameterizable class Twat
          constructor: -> return this
