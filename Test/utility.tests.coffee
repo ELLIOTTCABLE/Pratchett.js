@@ -45,16 +45,14 @@ describe "Paws' utilities:", ->
          expect(new Ctor().called).to.be.ok()
       
       it "returns the return-value of the body, if it isn't nullish", ->
-         Ctor = constructify (rv) ->
-            return rv
+         Ctor = constructify (rv) -> return rv
          obj = new Object
          expect(new Ctor(obj)).to.be obj
          expect(    Ctor(obj)).to.be obj
       it 'returns the new instance, otherwise', ->
-         Ctor = constructify (rv) ->
-            return 123
-         expect(new Ctor)  .to.not.be 123
-         expect(    Ctor()).to.not.be 123
+         Ctor = constructify (rv) -> return 123
+         expect(new Ctor)  .not.to.be 123
+         expect(    Ctor()).not.to.be 123
          expect(new Ctor)  .to.be.a Ctor
          expect(    Ctor()).to.be.a Ctor
       
