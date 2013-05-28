@@ -25,6 +25,7 @@ describe "Paws' utilities:", ->
       it 'basically works', ->
          expect(constructify).to.be.ok()
          expect(-> constructify ->).to.not.throwException()
+         expect(constructify ->).to.be.a 'function'
          Ctor = constructify ->
          expect(-> new Ctor).to.not.throwException()
       
@@ -38,6 +39,13 @@ describe "Paws' utilities:", ->
          expect(Ctor()).to.be.a Ctor
          expect(new Ctor().constructor).to.be Ctor
          expect(Ctor().constructor).to.be Ctor
+      
+      it 'executes the function-body passed to it, on new instances', ->
+         Ctor = constructify -> @called = yes
+         expect(new Ctor().called).to.be.ok()
+      
+      # TODO: Test that the return-value of body is returned, and test that the `this` is returned
+      #       if there's no return-value
    
    
    describe 'parameterizable()', ->

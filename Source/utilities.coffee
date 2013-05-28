@@ -18,13 +18,16 @@ utilities =
    modifier: passthrough (result, args) -> result ? args[0]
    
    
-   constructify: (klass) ->
+   constructify: (body) ->
       Wrapper = ->
+         
          unless this instanceof Wrapper
             (F = -> @constructor = Wrapper; return this).prototype = Wrapper.prototype; it = new F
             return Wrapper.apply it, arguments
+         
+         body.apply this, arguments
+         
          return this
-      
       return Wrapper
    
    
