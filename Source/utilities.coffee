@@ -18,17 +18,21 @@ utilities =
    modifier: passthrough (result, args) -> result ? args[0]
    
    
-   constructify: (body) ->
-      Wrapper = ->
-         
-         unless this instanceof Wrapper
-            (F = -> @constructor = Wrapper; return this).prototype = Wrapper.prototype; it = new F
-            return Wrapper.apply it, arguments
-         
-         body.apply this, arguments
-         
-         return this
-      return Wrapper
+   constructify: (opts) ->
+      inner = (body) ->
+         Wrapper = ->
+            
+            unless this instanceof Wrapper
+               (F = -> @constructor = Wrapper; return this).prototype = Wrapper.prototype; it = new F
+               return Wrapper.apply it, arguments
+            
+            body.apply this, arguments
+            
+            return this
+         return Wrapper
+      
+      return inner(opts) if typeof opts == 'function'
+      return inner
    
    
    # This is a “tag” that's intended to be inserted before CoffeeScript class-definitions:

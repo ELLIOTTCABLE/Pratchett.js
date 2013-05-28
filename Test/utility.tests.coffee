@@ -46,6 +46,9 @@ describe "Paws' utilities:", ->
       
       # TODO: Test that the return-value of body is returned, and test that the `this` is returned
       #       if there's no return-value
+      
+      it 'can take options', ->
+         expect(-> constructify(foo: 'bar') ->).to.not.throwException()
    
    
    describe 'parameterizable()', ->
