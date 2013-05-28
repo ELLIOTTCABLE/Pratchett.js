@@ -65,6 +65,10 @@ describe "Paws' utilities:", ->
          expect(-> (func = -> it = new Ctor)() ).to.not.throwException()
          expect(it).to.have.property 'caller'
          expect(it.caller).to.be func
+      it 'can be configured to *always* return the instance', ->
+         Ctor = constructify(return: this) -> return new Array
+         expect(new Ctor()).not.to.be.an 'array'
+         expect(    Ctor()).not.to.be.an 'array'
    
    
    describe 'parameterizable()', ->

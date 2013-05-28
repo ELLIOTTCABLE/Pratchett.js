@@ -28,7 +28,8 @@ utilities =
             
             rv = body[ if opts.arguments == 'intact' then 'call' else 'apply' ] this, arguments
             
-            return if typeof rv == 'object' then rv else this
+            rv = this if typeof rv != 'object' or opts.return
+            return rv
          return Wrapper
       
       return inner(opts) if typeof opts == 'function'
