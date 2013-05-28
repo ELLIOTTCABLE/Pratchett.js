@@ -28,10 +28,16 @@ describe "Paws' utilities:", ->
          Ctor = constructify ->
          expect(-> new Ctor).to.not.throwException()
       
+      it 'returns a *new* function, not the constructor-body passed to it', ->
+         body = ->
+         Ctor = constructify body
+         expect(constructify).to.not.be body
       it "causes constructors it's called on to always return instances", ->
          Ctor = constructify ->
          expect(new Ctor).to.be.a Ctor
          expect(Ctor()).to.be.a Ctor
+         expect(new Ctor().constructor).to.be Ctor
+         expect(Ctor().constructor).to.be Ctor
    
    
    describe 'parameterizable()', ->
