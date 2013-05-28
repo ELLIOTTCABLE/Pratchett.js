@@ -26,9 +26,9 @@ utilities =
                (F = -> @constructor = Wrapper; return this).prototype = Wrapper.prototype; it = new F
                return Wrapper.apply it, arguments
             
-            body[ if opts.arguments == 'intact' then 'call' else 'apply' ] this, arguments
+            rv = body[ if opts.arguments == 'intact' then 'call' else 'apply' ] this, arguments
             
-            return this
+            return if typeof rv == 'object' then rv else this
          return Wrapper
       
       return inner(opts) if typeof opts == 'function'

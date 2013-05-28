@@ -35,17 +35,28 @@ describe "Paws' utilities:", ->
          expect(constructify).to.not.be body
       it "causes constructors it's called on to always return instances", ->
          Ctor = constructify ->
-         expect(new Ctor).to.be.a Ctor
-         expect(Ctor()).to.be.a Ctor
+         expect(new Ctor)  .to.be.a Ctor
+         expect(    Ctor()).to.be.a Ctor
          expect(new Ctor().constructor).to.be Ctor
-         expect(Ctor().constructor).to.be Ctor
+         expect(    Ctor().constructor).to.be Ctor
       
       it 'executes the function-body passed to it, on new instances', ->
          Ctor = constructify -> @called = yes
          expect(new Ctor().called).to.be.ok()
       
-      # TODO: Test that the return-value of body is returned, and test that the `this` is returned
-      #       if there's no return-value
+      it "returns the return-value of the body, if it isn't nullish", ->
+         Ctor = constructify (rv) ->
+            return rv
+         obj = new Object
+         expect(new Ctor(obj)).to.be obj
+         expect(    Ctor(obj)).to.be obj
+      it 'returns the new instance, otherwise', ->
+         Ctor = constructify (rv) ->
+            return 123
+         expect(new Ctor)  .to.not.be 123
+         expect(    Ctor()).to.not.be 123
+         expect(new Ctor)  .to.be.a Ctor
+         expect(    Ctor()).to.be.a Ctor
       
       it 'can take options', ->
          expect(-> constructify(foo: 'bar') ->).to.not.throwException()
