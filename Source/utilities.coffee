@@ -18,6 +18,8 @@ utilities =
    modifier: passthrough (result, args) -> result ? args[0]
    
    
+   constructify: ->
+   
    
    # This is a “tag” that's intended to be inserted before CoffeeScript class-definitions:
    # 
