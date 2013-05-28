@@ -49,6 +49,13 @@ describe "Paws' utilities:", ->
       
       it 'can take options', ->
          expect(-> constructify(foo: 'bar') ->).to.not.throwException()
+      it 'can pass the `arguments` object intact', ->
+         Ctor = constructify(arguments: 'intact') (args) ->
+            @caller = args.callee.caller
+         it = null; func = null
+         expect(-> (func = -> it = new Ctor)() ).to.not.throwException()
+         expect(it).to.have.property 'caller'
+         expect(it.caller).to.be func
    
    
    describe 'parameterizable()', ->
