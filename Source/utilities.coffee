@@ -30,6 +30,26 @@ utilities =
             
             rv = this if typeof rv != 'object' or opts.return
             return rv
+         
+         # Wow. Okay. So, CoffeeScript wraps *our* wrapper in another wrapper, that then calls us
+         # (understandably). This means that our `Wrapper` is no longer the *actual type* we're
+         # trying to construct (that is, the nominal “constructor function” whose prototype we're
+         # trying to construct.)
+         #
+         # My approach to solving this is to replace *our wrapper*'s prototype with
+         # CoffeeScript's-wrapper's prototype, the first time it *looks* like we're getting called
+         # from a CoffeeScript wrapper.
+         #
+         # Unfortunately, my method for testing for “CoffeeScript-wrapper-ness” in the caller, is
+         # rather fragile. I don't know how else to reliably go about this, right now.
+         #
+         # TODO: This is surely the most fragile thing ever conceived. Contact the Guinness.
+         Wrapper.apply = apply = ->
+            if apply.caller.name? and arguments[1].callee?
+               Wrapper.prototype = apply.caller.prototype
+            delete Wrapper.apply
+            return Wrapper.apply.apply Wrapper, arguments
+         
          return Wrapper
       
       return inner(opts) if typeof opts == 'function'
