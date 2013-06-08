@@ -45,12 +45,14 @@ utilities =
          #
          # TODO: This is surely the most fragile thing ever conceived. Contact the Guinness.
          before_interceptor = ->
-            if before_interceptor.caller.name? and arguments[1].callee?
+            cs_wrapper = before_interceptor.caller
+            if cs_wrapper.name?.length > 0 and arguments[1].callee == cs_wrapper
                Wrapper.prototype = before_interceptor.caller.prototype
             Wrapper.apply = after_interceptor
             return Function::apply.apply Wrapper, arguments
          after_interceptor = ->
-            if after_interceptor.caller.name? and arguments[1].callee?
+            cs_wrapper = after_interceptor.caller
+            if cs_wrapper.name?.length > 0 and arguments[1].callee == cs_wrapper
                (if process?.stderr?
                then process.stderr.write.bind process.stderr
                else console.log) """
