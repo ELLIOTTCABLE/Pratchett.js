@@ -44,12 +44,26 @@ utilities =
          # rather fragile. I don't know how else to reliably go about this, right now.
          #
          # TODO: This is surely the most fragile thing ever conceived. Contact the Guinness.
-         Wrapper.apply = apply = ->
-            if apply.caller.name? and arguments[1].callee?
-               Wrapper.prototype = apply.caller.prototype
-            delete Wrapper.apply
-            return Wrapper.apply.apply Wrapper, arguments
+         before_interceptor = ->
+            if before_interceptor.caller.name? and arguments[1].callee?
+               Wrapper.prototype = before_interceptor.caller.prototype
+            Wrapper.apply = after_interceptor
+            return Function::apply.apply Wrapper, arguments
+         after_interceptor = ->
+            if after_interceptor.caller.name? and arguments[1].callee?
+               (if process?.stderr?
+               then process.stderr.write.bind process.stderr
+               else console.log) """
+                  Oh-oh! It looks like a CoffeeScript constructor-wrapper has tried to call a
+                         constructor that you've called `constructify()` on, *after* you've
+                         otherwise called that function yourself. Due to the (unfortunately,
+                         extremely fragile) approach that we take to handle CoffeeScript's
+                         unfortunate indirection, you'll have to refactor your code so that
+                         CoffeeScript's constructor is *always* called first. \n"""
+               throw new ReferenceError "CoffeeScript wrapper called after other constructor invocations"
+            return Function::apply.apply Wrapper, arguments
          
+         Wrapper.apply = before_interceptor
          return Wrapper
       
       return inner(opts) if typeof opts == 'function'

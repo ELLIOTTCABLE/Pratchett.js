@@ -59,6 +59,13 @@ describe "Paws' utilities:", ->
          expect(new Klass)  .to.be.a Klass
          expect(    Klass()).to.be.a Klass
       
+      it 'uses a really hacky system that requires you not to call the wrapper before CoffeeScript does', ->
+         Ctor = null
+         class Klass
+            constructor: Ctor = constructify -> console.log 'constructed ...'; return this
+         Ctor()
+         expect(-> new Klass).to.throwException()
+      
       it 'executes the function-body passed to it, on new instances', ->
          Ctor = constructify -> @called = yes
          expect(new Ctor().called).to.be.ok()
