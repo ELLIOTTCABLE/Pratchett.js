@@ -57,7 +57,9 @@ utilities =
             # CoffeeScript wrapper itself, our caller.
             if cs_wrapper.name?.length > 0 and arguments[1].callee == cs_wrapper
                Wrapper.prototype = before_interceptor.caller.prototype
-            Wrapper.apply = after_interceptor
+               Wrapper.apply = Function::apply
+            else
+               Wrapper.apply = after_interceptor
             return Function::apply.apply Wrapper, arguments
          after_interceptor = ->
             cs_wrapper = after_interceptor.caller
