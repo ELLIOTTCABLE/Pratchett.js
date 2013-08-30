@@ -14,16 +14,12 @@ paws.Script = Script = require './Script.coffee'
 # Core data-types
 # ---------------
 paws.Thing = Thing = parameterizable class Thing
-   constructor: (elements...) ->
-      it = construct this
+   constructor: constructify(return:@) (elements...) ->
+      @id = uuid.v4()
+      @metadata = new Array
+      @push elements... if elements.length
       
-      it.id = uuid.v4()
-      it.metadata = new Array
-      it.push elements... if elements.length
-      
-      it.metadata.unshift undefined if it._?.noughtify != no
-      
-      return it
+      @metadata.unshift undefined if @_?.noughtify != no
    
    # Creates a copy of the `Thing` it is called on. Alternatively, can be given an extant `Thing`
    # copy this `Thing` *to*, over-writing that `Thing`'s metadata. In the process, the
@@ -84,8 +80,7 @@ paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
       if _.isArray(it)
          return it.map (el) => @from el
    
-   # TODO: `construct()` (or `constructify()`) this
-   constructor: (@to, @isResponsible = false) ->
+   constructor: constructify (@to, @isResponsible = false) ->
    
    clone: -> new Relation @to, @isResponsible
    
@@ -94,11 +89,9 @@ paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
 
 
 paws.Label = Label = class Label extends Thing
-   constructor: (string) ->
-      it = construct this
-      it.alien = new String string
-      it.alien.native = this
-      return it
+   constructor: constructify(return:@) (@alien) ->
+      @alien = new String @alien
+      @alien.native = this
    
    clone: (to) ->
       to ?= new Label
@@ -109,3 +102,20 @@ paws.Label = Label = class Label extends Thing
    compare: (to) ->
       to instanceof Label and
       to.alien.valueOf() == @alien.valueOf()
+
+
+paws.Execution = Execution = class Execution extends Thing
+   constructor: constructify (first) ->
+      unless this instanceof Alien or this instanceof Native
+         return (if typeof first == 'function' then Alien else Native).apply this, arguments
+      
+      @pristine = yes
+      @locals = new Thing # TODO: `name` this “locals”
+      @locals.push Thing.pair 'locals', @locals.irresponsible()
+      @      .push Thing.pair 'locals', @locals.responsible()
+
+paws.Alien = Alien = class Alien extends Execution
+   constructor: constructify(return:@) (@bits...) -> @alien = yes
+
+paws.Native = Native = class Native extends Execution
+   constructor: constructify(return:@) (@position) -> @stack = new Array
