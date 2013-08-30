@@ -94,8 +94,7 @@ paws.Label = Label = class Label extends Thing
       @alien.native = this
    
    clone: (to) ->
-      to ?= new Label
-      super to
+      super (to ?= new Label)
       to.alien = @alien
       to.alien.native
       return to
