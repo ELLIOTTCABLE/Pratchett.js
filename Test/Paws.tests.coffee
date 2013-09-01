@@ -157,10 +157,20 @@ describe 'The Paws API:', ->
       describe '(alien, nukespace code)', ->
          it 'should take a series of procedure-bits', ->
             a = (->); b = (->); c = (->)
+
             expect(-> new Execution a, b, c).to.not.throwException()
             expect(   new Execution a, b, c).to.be.an Alien
+            
             expect(  (new Execution a, b, c).bits).to.have.length 3
             expect(  (new Execution a, b, c).bits).to.eql [a, b, c]
       
-      describe.skip '(native, libspace code)', ->
-         it 'should be tested', ->
+      describe '(native, libspace code)', ->
+         parser = require "../Source/parser.coffee"
+         
+         it 'should take a position', ->
+            expr = new parser.Expression
+            
+            expect(-> new Execution expr).to.not.throwException()
+            expect(   new Execution expr).to.be.an Native
+            
+            expect(  (new Execution expr).position).to.be.ok()
