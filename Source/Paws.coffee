@@ -114,7 +114,7 @@ paws.Execution = Execution = class Execution extends Thing
       @      .push Thing.pair 'locals', @locals.responsible()
 
 paws.Alien = Alien = class Alien extends Execution
-   constructor: constructify(return:@) (@bits...) -> @alien = yes
+   constructor: constructify(return:@) (@bits...) ->
 
 paws.Native = Native = class Native extends Execution
    constructor: constructify(return:@) (@position) -> @stack = new Array
