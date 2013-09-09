@@ -116,6 +116,10 @@ paws.Execution = Execution = class Execution extends Thing
 
 paws.Alien = Alien = class Alien extends Execution
    constructor: constructify(return:@) (@bits...) ->
+   
+   complete: -> !this.bits.length
 
 paws.Native = Native = class Native extends Execution
    constructor: constructify(return:@) (@position) -> @stack = new Array
+   
+   complete: -> not this.position? and !this.stack.length
