@@ -154,7 +154,7 @@ describe 'The Paws API:', ->
          expect(exe.locals.at(1).valueish()   ).to.be exe.locals
          expect(exe.locals.at(1).metadata[2].isResponsible).to.be false
       
-      describe '(alien, nukespace code)', ->
+      describe '(Alien / nukespace code)', ->
          it 'should take a series of procedure-bits', ->
             a = (->); b = (->); c = (->)
 
@@ -164,7 +164,7 @@ describe 'The Paws API:', ->
             expect(  (new Execution a, b, c).bits).to.have.length 3
             expect(  (new Execution a, b, c).bits).to.eql [a, b, c]
       
-      describe '(native, libspace code)', ->
+      describe '(Native / libspace code)', ->
          parser = require "../Source/parser.coffee"
          
          it 'should take a position', ->
