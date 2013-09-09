@@ -165,10 +165,10 @@ describe 'The Paws API:', ->
             expect(  (new Execution a, b, c).bits).to.eql [a, b, c]
       
       describe '(Native / libspace code)', ->
-         parser = require "../Source/parser.coffee"
+         Expression = Paws.parser.Expression
          
          it 'should take a position', ->
-            expr = new parser.Expression
+            expr = new Expression
             
             expect(-> new Execution expr).to.not.throwException()
             expect(   new Execution expr).to.be.an Native
