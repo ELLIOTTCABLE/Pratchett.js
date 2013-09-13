@@ -141,6 +141,21 @@ describe 'The Paws API:', ->
          expect(foo.alien).to.be.a String
          expect(foo.alien.valueOf()).to.be 'foo' # temporary hack. see: http://git.io/expect.js-57
       
+      describe '#clone', ->
+         it 'retains metadata', ->
+            foo = new Label 'foo'
+            pair = Thing.pair('abc', new Label '123')
+            
+            foo.push pair
+            clone = foo.clone()
+            expect(clone.at(1)).to.be pair
+         
+         it 'copies alien-data', ->
+            foo = new Label 'foo'
+            
+            clone = foo.clone()
+            expect(clone.alien.valueOf()).to.be 'foo'
+      
       it 'should compare as equal, when containing the same String', ->
          foo1 = new Label 'foo'
          foo2 = new Label 'foo'
