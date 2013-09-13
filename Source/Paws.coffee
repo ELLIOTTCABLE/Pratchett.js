@@ -118,10 +118,10 @@ Paws.Execution = Execution = class Execution extends Thing
    # This will never be called directly, as the Execution constructor ensures that actual instances
    # of raw Execution are impossible, and both Alien and Native wrap this.
    clone: (to)->
+      super to
       to.pristine = @pristine
       
       to.locals = @locals
-      to.push Thing.pair 'locals', @locals.responsible()
 
 Paws.Alien = Alien = class Alien extends Execution
    constructor: constructify(return:@) (@bits...)->
