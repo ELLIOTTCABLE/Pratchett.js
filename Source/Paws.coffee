@@ -121,6 +121,14 @@ Paws.Execution = Execution = class Execution extends Thing
       results = @find 'locals'
       results[results.length - 1].valueish()
    
+   # This method of the `Execution` types will copy all data relevant to advancement of the
+   # execution to a `Execution` instance. This includes the pristine-state, any `Alien`'s `bits`, or
+   # a `Native`'s `stack` and `position`. A clone made thus can be advanced just as the original
+   # would have been, without affecting the original's advancement-state.
+   # 
+   # Of note: along with all the other data copied from the old instance, the new clone will inherit
+   # the original `locals`. This is intentional.
+   # 
    #---
    # NOTE: This will never be called directly, as the Execution constructor ensures that actual
    #       instances of raw Execution are impossible, and both Alien and Native wrap this.
