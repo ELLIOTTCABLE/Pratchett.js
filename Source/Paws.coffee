@@ -137,6 +137,10 @@ Paws.Alien = Alien = class Alien extends Execution
                @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], rv
                here.stage caller, this
          
+         @bits[0] = (caller, here)->
+            @bits = @bits.map (bit)=> _.partial bit, caller
+            here.stage caller, this
+         
          @bits[arity] = Function.apply(null, ['Paws', 'func', 'caller'].concat(
             Array(arity + 1).join('_').split(''), 'here', """
                var rv = func.apply({ caller: caller, this: this
