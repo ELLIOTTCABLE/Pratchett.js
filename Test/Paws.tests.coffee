@@ -95,6 +95,15 @@ describe 'The Paws API:', ->
             expect(result).to.be thing2
             expect(thing2.metadata).to.not.be old_metadata
       
+      it 'compares by identity', ->
+         thing1 = new Label 'foo'
+         thing2 = new Label 'foo'
+         
+         expect(Thing::compare.call thing1, thing1).to.be     true
+         expect(Thing::compare.call thing1, thing2).to.not.be true
+      
+      
+      
       # FIXME: Seperate JavaScript-side convenience API tests from algorithmic tests
       describe '#find', ->
          first = new Thing; second = new Thing; third = new Thing
