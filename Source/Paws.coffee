@@ -127,13 +127,14 @@ Paws.Alien = Alien = class Alien extends Execution
       to.bits = @bits.slice 0
       return to
 
+   # FIXME: Replace the holdover ES5 methods in this with IE6-compat LoDash functions
    @synchronous: (func) ->
       body = ->
          arity = func.length
          
          @bits = new Array(arity).join().split(',').map ->
             return (caller, rv, here)->
-              #@bits.last = @bits.last.curry rv
+               # FIXME: Pretty this up with prototype extensions. (#last, anybody?)
                @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], rv
                here.stage caller, this
          
@@ -141,6 +142,7 @@ Paws.Alien = Alien = class Alien extends Execution
             @bits = @bits.map (bit)=> _.partial bit, caller
             here.stage caller, this
          
+         # FIXME: Remove the `Paws` pass, if it's unnecessary
          @bits[arity] = Function.apply(null, ['Paws', 'func', 'caller'].concat(
             Array(arity + 1).join('_').split(''), 'here', """
                var rv = func.apply({ caller: caller, this: this
