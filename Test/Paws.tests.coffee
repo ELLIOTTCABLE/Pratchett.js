@@ -209,6 +209,20 @@ describe 'The Paws API:', ->
                it 'can be successfully called', ->
                   exe = synchronous (a, b, c)->
                   expect(-> call exe, a.rv).to.not.throwException()
+               
+               it 'call the passed function exactly once, when exhausted', ->
+                  some_function = sinon.spy (a, b, c)->
+                  exe = synchronous some_function
+                  
+                  call exe, new Label 123
+                  exe.bits.shift()
+                  
+                  call exe, new Label 456
+                  exe.bits.shift()
+                  
+                  call exe, new Label 789
+                  
+                  expect(some_function.callCount).to.be 1
       
       describe '(Native / libspace code)', ->
          Expression = Paws.parser.Expression
