@@ -191,6 +191,8 @@ describe 'The Paws API:', ->
                   caller: new Execution
                   rv:     new Label 'foo'
                   world: { stage: sinon.spy() }
+               call = (exe, rv)->
+                  exe.bits[0].call exe, a.caller, rv, a.world
                
                it 'are Functions', ->
                   exe = synchronous (a, b, c)->
@@ -206,7 +208,7 @@ describe 'The Paws API:', ->
                
                it 'can be successfully called', ->
                   exe = synchronous (a, b, c)->
-                  expect(-> exe.bits[0].call exe, a.caller, a.rv, a.world ).to.not.throwException()
+                  expect(-> call exe, a.rv).to.not.throwException()
       
       describe '(Native / libspace code)', ->
          Expression = Paws.parser.Expression
