@@ -111,17 +111,22 @@ Paws.Execution = Execution = class Execution extends Thing
          return (if typeof first == 'function' then Alien else Native).apply this, arguments
       
       @pristine = yes
-      @locals = new Thing # TODO: `name` this “locals”
-      @locals.push Thing.pair 'locals', @locals.irresponsible()
-      @      .push Thing.pair 'locals', @locals.responsible()
+      locals = new Thing # TODO: `name` this “locals”
+      locals.push Thing.pair 'locals', locals.irresponsible()
+      this  .push Thing.pair 'locals', locals.responsible()
    
-   # This will never be called directly, as the Execution constructor ensures that actual instances
-   # of raw Execution are impossible, and both Alien and Native wrap this.
+   #---
+   # Convenience method to find the oldest 'locals' member on this `Execution`
+   locals: ->
+      results = @find 'locals'
+      results[results.length - 1].valueish()
+   
+   #---
+   # NOTE: This will never be called directly, as the Execution constructor ensures that actual
+   #       instances of raw Execution are impossible, and both Alien and Native wrap this.
    clone: (to)->
       super to
       to.pristine = @pristine
-      
-      to.locals = @locals
 
 Paws.Alien = Alien = class Alien extends Execution
    constructor: constructify(return:@) (@bits...)->
