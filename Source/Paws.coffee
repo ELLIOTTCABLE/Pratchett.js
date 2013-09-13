@@ -135,7 +135,7 @@ Paws.Alien = Alien = class Alien extends Execution
             return (caller, rv, here)->
               #@bits.last = @bits.last.curry rv
                @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], rv
-              #here.stage caller, this
+               here.stage caller, this
          
          @bits[arity] = Function.apply(null, ['Paws', 'func', 'caller'].concat(
             Array(arity + 1).join('_').split(''), 'here', """
