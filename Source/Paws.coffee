@@ -137,7 +137,7 @@ Paws.Alien = Alien = class Alien extends Execution
               #here.stage caller, this
          
         #@bits.first = (caller, here)->
-        #   @bits = @bits.map (sub)=> sub.curry caller
+        #   @bits = @bits.map (bit)=> bit.curry caller
         #   here.stage caller, this
         #
         #@bits[arity] = Function.apply(null, ['Paws', 'func', 'caller'].concat(
