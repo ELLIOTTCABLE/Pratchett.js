@@ -198,13 +198,13 @@ describe 'The Paws API:', ->
                   expect(exe.bits[1]).to.be.a Function
                   expect(exe.bits[2]).to.be.a Function
                
-               it 'are given a caller, RV, and world', ->
+               it 'can be given a caller, RV, and world', ->
                   exe = synchronous (a, b, c)->
                   expect(exe.bits[0].length).to.be 3
                   expect(exe.bits[1].length).to.be 3
                  #expect(exe.bits[2].length).to.be 3
                
-               it 'can be called', ->
+               it 'can be successfully called', ->
                   exe = synchronous (a, b, c)->
                   expect(-> exe.bits[0].call exe, a.caller, a.rv, a.world ).to.not.throwException()
       
