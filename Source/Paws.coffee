@@ -134,7 +134,7 @@ Paws.Alien = Alien = class Alien extends Execution
          @bits = new Array(arity).join().split(',').map ->
             return (caller, rv, here)->
               #@bits.last = @bits.last.curry rv
-               @bits.last = _.partial @bits[@bits.length - 1], rv
+               @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], rv
               #here.stage caller, this
          
         #@bits.first = (caller, here)->
