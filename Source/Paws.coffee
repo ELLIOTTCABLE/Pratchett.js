@@ -127,6 +127,27 @@ Paws.Alien = Alien = class Alien extends Execution
       to.bits = @bits.slice 0
       return to
 
+   @synchronous: (func) ->
+      body = ->
+         arity = func.length
+         
+         @bits = new Array(arity).join().split(',').map ->
+            return (caller, rv, here)->
+              #@bits.last = @bits.last.curry rv
+              #here.stage caller, this
+         
+        #@bits.first = (caller, here)->
+        #   @bits = @bits.map (sub)=> sub.curry caller
+        #   here.stage caller, this
+        #
+        #@bits[arity] = Function.apply(null, ['Paws', 'func', 'caller'].concat(
+        #   Array(arity + 1).join('_').split(''), 'here', """
+        #      
+        #   """)).curry Paws, func
+         
+         return this
+      body.apply new Execution(->)
+
 Paws.Native = Native = class Native extends Execution
    constructor: constructify(return:@) (@position)-> @stack = new Array
    

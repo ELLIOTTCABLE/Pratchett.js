@@ -170,6 +170,32 @@ describe 'The Paws API:', ->
             
             ex.bits.length = 0
             expect(ex.complete()).to.be true
+         
+         describe '##synchronous', ->
+            synchronous = Alien.synchronous
+            it 'accepts a function', ->
+               expect(   synchronous).to.be.ok()
+               expect(-> synchronous ->).to.not.throwException()
+            
+            it 'results in a new Alien', ->
+               expect(synchronous ->).to.be.an Alien
+            
+            it 'adds bits corresponding to the arity of the function', ->
+               expect( (synchronous (a, b)->)       .bits).to.have.length 2
+               expect( (synchronous (a, b, c, d)->) .bits).to.have.length 4
+            
+            describe 'produces bits that ...', ->
+               it 'are Functions', ->
+                  exe = synchronous (a, b, c)->
+                  expect(exe.bits[0]).to.be.a Function
+                  expect(exe.bits[1]).to.be.a Function
+                  expect(exe.bits[2]).to.be.a Function
+               
+               it 'are given a caller, RV, and world', ->
+                  exe = synchronous (a, b, c)->
+                  expect(exe.bits[0].length).to.be 3
+                  expect(exe.bits[1].length).to.be 3
+                 #expect(exe.bits[2].length).to.be 3
       
       describe '(Native / libspace code)', ->
          Expression = Paws.parser.Expression
