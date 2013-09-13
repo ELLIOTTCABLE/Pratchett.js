@@ -182,8 +182,8 @@ describe 'The Paws API:', ->
                expect(synchronous ->).to.be.an Alien
             
             it 'adds bits corresponding to the arity of the function', ->
-               expect( (synchronous (a, b)->)       .bits).to.have.length 2
-               expect( (synchronous (a, b, c, d)->) .bits).to.have.length 4
+               expect( (synchronous (a, b)->)       .bits).to.have.length 3
+               expect( (synchronous (a, b, c, d)->) .bits).to.have.length 5
             
             describe 'produces bits that ...', ->
                a = null
