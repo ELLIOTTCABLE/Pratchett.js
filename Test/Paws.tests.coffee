@@ -1,5 +1,6 @@
 `                                                                                                                 /*|*/ require = require('../Library/cov_require.js')(require)`
 expect = require 'expect.js'
+sinon  = require 'sinon'
 
 # TODO: Replace all the 'should' language with more direct 'will' language
 #       (i.e. “it should return ...” becomes “it returns ...”
@@ -185,6 +186,12 @@ describe 'The Paws API:', ->
                expect( (synchronous (a, b, c, d)->) .bits).to.have.length 4
             
             describe 'produces bits that ...', ->
+               a = null
+               beforeEach -> a =
+                  caller: new Execution
+                  rv:     new Label 'foo'
+                  world: { stage: sinon.spy() }
+               
                it 'are Functions', ->
                   exe = synchronous (a, b, c)->
                   expect(exe.bits[0]).to.be.a Function
@@ -196,6 +203,10 @@ describe 'The Paws API:', ->
                   expect(exe.bits[0].length).to.be 3
                   expect(exe.bits[1].length).to.be 3
                  #expect(exe.bits[2].length).to.be 3
+               
+               it 'can be called', ->
+                  exe = synchronous (a, b, c)->
+                  expect(-> exe.bits[0].call exe, a.caller, a.rv, a.world ).to.not.throwException()
       
       describe '(Native / libspace code)', ->
          Expression = Paws.parser.Expression
