@@ -132,6 +132,7 @@ Paws.Execution = Execution = class Execution extends Thing
    #---
    # NOTE: This will never be called directly, as the Execution constructor ensures that actual
    #       instances of raw Execution are impossible, and both Alien and Native wrap this.
+   # FIXME: ‘Cloning’ locals ... *isn't*, here. I need to figure out what I want to do with this.
    clone: (to)->
       super to
       to.pristine = @pristine
