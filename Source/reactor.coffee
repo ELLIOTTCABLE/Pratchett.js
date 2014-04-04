@@ -26,16 +26,29 @@ advance = (exe)->
 reactor.Unit = Unit = class Unit
    constructor: constructify(return:@) ->
       @queue = new Array
-      @table = new AccessTable
+      @table = new Table
 
-# This acts as a `Unit`'s store of access knowledge: `Executions` are matched to the `Mask`s they've
+# This acts as a `Unit`'s store of access knowledge: `Executions` are matched to the `Thing`s they've
 # successfully requested a form of access to.
 #
-# I'd *really* like to see a better data-structure; but my knowledge of such things is insufficient
-# to apply a truly appropriate one. For now, just a simple mapping of roots (via `Mask`s) to
-# accessors (`Executions`).
-class OwnershipTable
+# I'd *really* like to see a better data-structure; but my knowledge of such things is insufficient to
+# apply a truly appropriate one. For now, just a simple mapping of `Thing`s to accessors (`Executions`).
+reactor.Table = Table = class Table
    constructor: ->
+      @content = new Array
+   
+   give: (accessor, thing...)->
+      association = _(@content).find [accessor]
+      if not association?
+         @content.push(association = [accessor, new Array])
+      
+      association[1].push thing...
+      return association
+   
+   get: (accessor)-> _(@content).find([accessor])?[1]
+   
+   remove: (accessor)->
+      delete @content[ _(@content).findIndex [accessor] ]
 
 reactor.schedule = 
    reactor.awaitingTicks++
