@@ -7,5 +7,5 @@ Paws.utilities.infect global, Paws
 
 describe 'The Paws reactor:', ->
    reactor = Paws.reactor
-   it 'should be defined', ->
+   it 'should exist', ->
       expect(reactor).to.be.ok()

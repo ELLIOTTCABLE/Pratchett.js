@@ -1,6 +1,5 @@
 `                                                                                                                 /*|*/ require = require('../Library/cov_require.js')(require)`
 (Paws = require './Paws.coffee').utilities.infect global
-infect global, Paws
 
 module.exports =
 reactor = new Object
@@ -14,11 +13,9 @@ advance = (exe)->
    
    if this instanceof Alien
       @pristine = no
-      return _.bind @bits.splice(0, 1)[0], this
-      
+      return _.bind @bits.shift(), this
    
-reactor.advance = (exe)-> advance.apply(exe)
-
+   # NYI
 
 # The Unitary design (i.e. distribution) isn't complete, at all. At the moment, a `Unit` is just a
 # place to store the action-queue and access-table.
