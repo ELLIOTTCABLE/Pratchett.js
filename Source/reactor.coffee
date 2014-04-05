@@ -17,17 +17,6 @@ advance = (exe)->
    
    # NYI
 
-# The Unitary design (i.e. distribution) isn't complete, at all. At the moment, a `Unit` is just a
-# place to store the action-queue and access-table.
-#
-# Theoretically, this should be enough to, at least, run two Units *at once*, even if there's
-# currently no design for the ways I want to allow them to interact.
-# More on that later.
-reactor.Unit = Unit = class Unit
-   constructor: constructify(return:@) ->
-      @queue = new Array
-      @table = new Table
-
 # This acts as a `Unit`'s store of access knowledge: `Executions` are matched to the `Thing`s they've
 # successfully requested a form of access to.
 #
@@ -49,6 +38,17 @@ reactor.Table = Table = class Table
    
    remove: (accessor)->
       delete @content[ _(@content).findIndex [accessor] ]
+
+# The Unitary design (i.e. distribution) isn't complete, at all. At the moment, a `Unit` is just a
+# place to store the action-queue and access-table.
+#
+# Theoretically, this should be enough to, at least, run two Units *at once*, even if there's
+# currently no design for the ways I want to allow them to interact.
+# More on that later.
+reactor.Unit = Unit = class Unit
+   constructor: constructify(return:@) ->
+      @queue = new Array
+      @table = new Table
 
 reactor.schedule = 
    reactor.awaitingTicks++
