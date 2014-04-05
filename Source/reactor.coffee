@@ -49,6 +49,28 @@ reactor.Unit = Unit = class Unit
    constructor: constructify(return:@) ->
       @queue = new Array
       @table = new Table
+   
+   # Given some `Thing` roots, flatten out the nodes (more `Thing`s) of the sub-graph ‘owned’ by those
+   # roots at the time this function is called into a simple set.
+   # 
+   # The return-value from this function is an `Array`, but with three added functions:
+   # 
+   #  - `#concat`: Overriding `Array#concat`, this will add the passed Arrays' elements to this one.
+   #  - `#conflictsWith`: Returns `true`, if any `Thing` included by this mask, is also included in any
+   #    of the passed masks.
+   #  - `#contains`: `true` if *every* `Thing` included by this mask is also incloded in those passed
+   @mask: (roots...)->
+      recursivelyMask = (mask, root)->
+         mask.push root
+         _(root.metadata).filter().filter('isResponsible').pluck('to').reduce recursivelyMask, mask
+         return mask
+      
+      mask = _.chain(roots).reduce(recursivelyMask, new Array).uniq().value()
+      
+      mask.concat =  chain (masks...)-> @push _.flatten(masks)...
+      mask.conflictsWith = (masks...)-> _(masks).flatten().some (thing)=> _(this).contains thing
+      mask.contains =      (masks...)-> _(this).difference(_.flatten masks).isEmpty()
+      return mask
 
 reactor.schedule = 
    reactor.awaitingTicks++
