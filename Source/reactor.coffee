@@ -53,6 +53,17 @@ reactor.Table = Table = class Table
    
    remove: (accessor)->
       delete @content[ _(@content).findIndex accessor: accessor ]
+   
+   # Returns `true` if a given `Mask` is fully contained by the set of responsibility that a given
+   # `accessor` has already been given.
+   has: (accessor, mask)->
+      mask.containedBy @get(accessor)...
+   
+   # Returns `true` if a given `Mask` conflicts with any of the responsibility given to *other*
+   # accessors.
+   canHave: (accessor, mask)->
+      not _(@content).reject(accessor: accessor).some (entry)->
+         mask.conflictsWith entry.masks...
 
 # The Unitary design (i.e. distribution) isn't complete, at all. At the moment, a `Unit` is just a
 # place to store the action-queue and access-table.

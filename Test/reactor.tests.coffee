@@ -109,3 +109,35 @@ describe 'The Paws reactor:', ->
          expect(table.get another_xec).to.contain mask_Y
          expect(table.get another_xec).to.not.contain mask_A
          expect(table.get another_xec).to.not.contain mask_B
+      
+      # FIXME: Not well-exercised.
+      describe '#has', ->
+         it 'should be able to tell if a given Mask already belongs to a given Execution', ->
+            table = new Table
+            an_xec = new Execution
+            
+            parent_thing = Thing.construct {something: new Thing, something_else: new Thing}
+            a_mask = new Mask Thing.construct {child: parent_thing}
+            
+            table.give an_xec, a_mask
+            expect(table.has an_xec, new Mask parent_thing).to.be true
+      
+      describe '#canHave', ->
+         it 'should reject a Mask responsible for a Thing that belongs to another Execution', ->
+            table = new Table
+            an_xec = new Execution
+            another_xec = new Execution
+            
+            parent_thing = Thing.construct {something: new Thing, something_else: new Thing}
+            a_mask = new Mask Thing.construct {child: parent_thing}
+            
+            table.give another_xec, a_mask
+            expect(table.canHave an_xec, new Mask parent_thing).to.be false
+         
+         it 'should not be affected by unrelated responsibility held by the Table', ->
+            table = new Table
+            an_xec = new Execution
+            another_xec = new Execution
+            
+            table.give another_xec, new Mask new Thing
+            expect(table.canHave an_xec, new Mask new Thing).to.be true
