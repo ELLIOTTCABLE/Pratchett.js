@@ -10,50 +10,6 @@ describe 'The Paws reactor:', ->
    it 'should exist', ->
       expect(reactor).to.be.ok()
    
-   describe 'Ownership Table', ->
-      Table = reactor.Table
-      it 'should exist', ->
-         expect(Table).to.be.ok()
-      
-      it 'should store a Thing for a given Execution', ->
-         table = new Table
-         
-         an_xec = new Execution
-         a_thing = new Thing
-         
-         expect(-> table.give an_xec, a_thing).not.to.throwError()
-         expect(table.get(an_xec)).to.contain a_thing
-      
-      it 'should store multiple Things for a given Execution', ->
-         table = new Table
-         
-         an_xec = new Execution
-         a_thing = new Thing
-         expect(-> table.give an_xec, a_thing).not.to.throwError()
-         expect(table.get(an_xec)).to.contain a_thing
-         
-         another_thing = new Thing
-         expect(-> table.give an_xec, another_thing).not.to.throwError()
-         expect(table.get(an_xec)).to.contain another_thing
-         expect(table.get(an_xec)).to.contain a_thing
-      
-      it 'should separately store Things for multiple Executions', ->
-         table = new Table
-         
-         an_xec = new Execution
-         [thing_A, thing_B] = [new Thing, new Thing]
-         table.give an_xec, thing_A, thing_B
-         expect(table.get(an_xec)).to.contain thing_A
-         expect(table.get(an_xec)).to.contain thing_B
-         
-         another_xec = new Execution
-         [thing_X, thing_Y] = [new Thing, new Thing]
-         table.give another_xec, thing_X, thing_Y
-         expect(table.get(another_xec)).to.contain thing_X
-         expect(table.get(another_xec)).to.contain thing_Y
-         expect(table.get(another_xec)).to.not.contain thing_A
-         expect(table.get(another_xec)).to.not.contain thing_B
-   
    describe 'Mask', ->
       Mask = reactor.Mask
       
@@ -107,3 +63,49 @@ describe 'The Paws reactor:', ->
             a_mask = new Mask Thing.construct {child: parent_thing}
             another_mask = new Mask parent_thing
             expect(a_mask.containedBy another_mask).to.be false
+   
+   describe 'a responsibility Table', ->
+      Table = reactor.Table
+      Mask = reactor.Mask
+      
+      it 'should exist', ->
+         expect(Table).to.be.ok()
+      
+      it 'should store a Mask for a given Execution', ->
+         table = new Table
+         
+         an_xec = new Execution
+         a_mask = new Mask new Thing
+         
+         expect(-> table.give an_xec, a_mask).not.to.throwError()
+         expect(table.get an_xec).to.contain a_mask
+      
+      it 'should store multiple Masks for a given Execution', ->
+         table = new Table
+         
+         an_xec = new Execution
+         a_mask = new Mask new Thing
+         expect(-> table.give an_xec, a_mask).not.to.throwError()
+         expect(table.get an_xec).to.contain a_mask
+         
+         another_mask = new Mask new Thing
+         expect(-> table.give an_xec, another_mask).not.to.throwError()
+         expect(table.get an_xec).to.contain another_mask
+         expect(table.get an_xec).to.contain a_mask
+      
+      it 'should separately store Masks for multiple Executions', ->
+         table = new Table
+         
+         an_xec = new Execution
+         [mask_A, mask_B] = [new Mask(new Thing), new Mask(new Thing)]
+         table.give an_xec, mask_A, mask_B
+         expect(table.get an_xec).to.contain mask_A
+         expect(table.get an_xec).to.contain mask_B
+         
+         another_xec = new Execution
+         [mask_X, mask_Y] = [new Mask(new Thing), new Mask(new Thing)]
+         table.give another_xec, mask_X, mask_Y
+         expect(table.get another_xec).to.contain mask_X
+         expect(table.get another_xec).to.contain mask_Y
+         expect(table.get another_xec).to.not.contain mask_A
+         expect(table.get another_xec).to.not.contain mask_B

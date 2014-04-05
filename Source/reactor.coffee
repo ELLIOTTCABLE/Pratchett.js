@@ -32,27 +32,27 @@ reactor.Mask = Mask = class Mask
       
       _(this.flatten()).difference(others).isEmpty()
 
-# This acts as a `Unit`'s store of access knowledge: `Executions` are matched to the `Thing`s they've
+# This acts as a `Unit`'s store of access knowledge: `Executions` are matched to the `Mask`s they've
 # successfully requested a form of access to.
 #
 # I'd *really* like to see a better data-structure; but my knowledge of such things is insufficient to
-# apply a truly appropriate one. For now, just a simple mapping of `Thing`s to accessors (`Executions`).
+# apply a truly appropriate one. For now, just a simple mapping of `Mask`s to accessors (`Executions`).
 reactor.Table = Table = class Table
    constructor: ->
       @content = new Array
    
-   give: (accessor, thing...)->
-      association = _(@content).find [accessor]
-      if not association?
-         @content.push(association = [accessor, new Array])
+   give: (accessor, masks...)->
+      entry = _(@content).find accessor: accessor
+      if not entry?
+         @content.push(entry = { accessor: accessor, masks: new Array })
       
-      association[1].push thing...
-      return association
+      entry.masks.push masks...
+      return entry
    
-   get: (accessor)-> _(@content).find([accessor])?[1]
+   get: (accessor)-> _(@content).find(accessor: accessor)?.masks
    
    remove: (accessor)->
-      delete @content[ _(@content).findIndex [accessor] ]
+      delete @content[ _(@content).findIndex accessor: accessor ]
 
 # The Unitary design (i.e. distribution) isn't complete, at all. At the moment, a `Unit` is just a
 # place to store the action-queue and access-table.
