@@ -54,49 +54,56 @@ describe 'The Paws reactor:', ->
          expect(table.get(another_xec)).to.not.contain thing_A
          expect(table.get(another_xec)).to.not.contain thing_B
    
-   describe 'Unit utilities', ->
-      Unit = reactor.Unit
+   describe 'Mask', ->
+      Mask = reactor.Mask
       
-      describe '##mask', ->
-         it 'should always return a least the roots passed in', ->
-            [a_thing, another_thing] = [new Thing, new Thing]
-            expect(Unit.mask a_thing, another_thing).to.contain a_thing
-            expect(Unit.mask a_thing, another_thing).to.contain another_thing
+      describe '#flatten', ->
+         it 'should always return at least the root', ->
+            a_mask = new Mask(a_thing = new Thing)
+            expect(a_mask.flatten()).to.contain a_thing
          
-         it 'should include anything owned by those roots', ->
+         it 'should include anything owned by that root', ->
             [a_thing, another_thing] = [new Thing, new Thing]
-            root_thing = Thing.construct {something: a_thing, something_else: another_thing}
-            expect(Unit.mask root_thing).to.contain a_thing
-            expect(Unit.mask root_thing).to.contain another_thing
+            a_mask = new Mask Thing.construct {something: a_thing, something_else: another_thing}
+            expect(a_mask.flatten()).to.contain a_thing
+            expect(a_mask.flatten()).to.contain another_thing
          
-         it 'should include anything owned, recursively, by those roots', ->
+         it 'should include anything owned, recursively, by that roots', ->
             [a_thing, another_thing] = [new Thing, new Thing]
             parent_thing = Thing.construct {something: a_thing, something_else: another_thing}
-            root_thing = Thing.construct {child: parent_thing}
-            expect(Unit.mask root_thing).to.contain parent_thing
-            expect(Unit.mask root_thing).to.contain a_thing
-            expect(Unit.mask root_thing).to.contain another_thing
+            a_mask = new Mask Thing.construct {child: parent_thing}
+            expect(a_mask.flatten()).to.contain parent_thing
+            expect(a_mask.flatten()).to.contain a_thing
+            expect(a_mask.flatten()).to.contain another_thing
+      
+      # FIXME: This is insufficiently exercised.
+      describe '#conflictsWith', ->
+         it 'should indicate whether passed a mask currently contains some of the same items', ->
+            a_mask = new Mask Thing.construct(things = {a: new Thing, b: new Thing})
+            expect(a_mask.conflictsWith new Mask things.a).to.be true
+            expect(a_mask.conflictsWith new Mask new Thing).to.be false
+      
+      describe '#containedBy', ->
+         it 'should return true if the only item is contained by a passed Mask', ->
+            a_mask       = new Mask Thing.construct(things = {a: new Thing, b: new Thing})
+            another_mask = new Mask things.a
+            expect(another_mask.containedBy a_mask).to.be true
          
-         it 'should expose ephemeral methods on its resultant values', ->
-            mask = Unit.mask new Thing
-            expect(mask).to.have.property 'concat'
-            expect(mask.concat)       .to.be.a 'function'
-            expect(mask.conflictsWith).to.be.a 'function'
-            expect(mask.contains)     .to.be.a 'function'
+         it 'should return true if all items are contained by a passed Mask', ->
+            [a_thing, another_thing] = [new Thing, new Thing]
+            parent_thing = Thing.construct {something: new Thing, something_else: new Thing}
+            a_mask = new Mask Thing.construct {child: parent_thing}
+            another_mask = new Mask parent_thing
+            expect(another_mask.containedBy a_mask).to.be true
          
-         describe '#concat', ->
-            it 'should combine passed arguments into the mask', ->
-               first_mask  = Unit.mask Thing.construct(things = {a: new Thing, b: new Thing})
-               second_mask = Unit.mask Thing.construct(more_things = {m: new Thing, n: new Thing})
-               third_mask  = Unit.mask Thing.construct(final_things = {x: new Thing, y: new Thing})
-               
-               first_mask.concat second_mask, third_mask
-               _([things.a, things.b, more_things.m,
-                 more_things.n, final_things.x, final_things.y]).forEach (thing)->
-                  expect(first_mask).to.contain thing
-               
-         describe '#conflictsWith', ->
-            it 'should return false when passed conflicting things', ->
-               mask = Unit.mask Thing.construct(things = {a: new Thing, b: new Thing})
-               expect(mask.conflictsWith Unit.mask things.a).to.be true
-               expect(mask.conflictsWith Unit.mask new Thing).to.be false
+         it 'should return true if all items are contained by one or another of the passed Masks'
+            # NYI: Is this even possible? If it contains the root node of a given mask, then it must
+            #      contain all nodes. In fact, I should take advantage of that in my climbing algorithm ...
+         
+         it 'should return false if any item is *not* contained by one of the passed Masks', ->
+            # XXX: Ditto above. It's possible that *only* roots can possibly be not-contained. Hm ...
+            [a_thing, another_thing] = [new Thing, new Thing]
+            parent_thing = Thing.construct {something: new Thing, something_else: new Thing}
+            a_mask = new Mask Thing.construct {child: parent_thing}
+            another_mask = new Mask parent_thing
+            expect(a_mask.containedBy another_mask).to.be false

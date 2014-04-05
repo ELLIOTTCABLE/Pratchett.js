@@ -4,18 +4,33 @@
 module.exports =
 reactor = new Object
 
-# At some point, I want to refactor this function (originally, a method of Execution, that I decided
-# was more in-kind with the rest of `reactor` instead of with anything implemented within the rest
-# of the data-types, and so moved here) to be A) simpler, and B) integrated tighter with the rest of
-# the reactor. For now, however, it's a direct port from `µpaws.js`.
-advance = (exe)->
-   return if @complete()
+# A Mask is a lens through which one can use a `Thing` as a delinator of a particular sub-graph of the
+# running program's object-graph.
+reactor.Mask = Mask = class Mask
+   constructor: constructify(return:@) (@root)->
    
-   if this instanceof Alien
-      @pristine = no
-      return _.bind @bits.shift(), this
+   # Given the `Thing`-y root, flatten out the nodes (more `Thing`s) of the sub-graph ‘owned’ by that
+   # root (at the time this function is called) into a simple unique-set. Acheived by climbing the graph.
+   flatten: ()->
+      recursivelyMask = (set, root)->
+         set.push root
+         _(root.metadata).filter().filter('isResponsible').pluck('to').reduce recursivelyMask, set
+      
+      _.uniq recursivelyMask new Array, @root
    
-   # NYI
+   # Explores other `Mask`'s graphs, returning `true` if this `Mask` encapsulates any of the same nodes.
+   conflictsWith: (others...)->
+      others = others.reduce ((others, other)->
+         others.concat other.flatten() ), new Array
+      
+      _(others).some (thing)=> _(this.flatten()).contains thing
+   
+   # Explores other `Mask`'s graphs, returning `true` if they include *all* of this `Mask`'s nodes.
+   containedBy: (others...)->
+      others = others.reduce ((others, other)->
+         others.concat other.flatten() ), new Array
+      
+      _(this.flatten()).difference(others).isEmpty()
 
 # This acts as a `Unit`'s store of access knowledge: `Executions` are matched to the `Thing`s they've
 # successfully requested a form of access to.
@@ -49,28 +64,19 @@ reactor.Unit = Unit = class Unit
    constructor: constructify(return:@) ->
       @queue = new Array
       @table = new Table
+
+# At some point, I want to refactor this function (originally, a method of Execution, that I decided
+# was more in-kind with the rest of `reactor` instead of with anything implemented within the rest
+# of the data-types, and so moved here) to be A) simpler, and B) integrated tighter with the rest of
+# the reactor. For now, however, it's a direct port from `µpaws.js`.
+advance = (exe)->
+   return if @complete()
    
-   # Given some `Thing` roots, flatten out the nodes (more `Thing`s) of the sub-graph ‘owned’ by those
-   # roots at the time this function is called into a simple set.
-   # 
-   # The return-value from this function is an `Array`, but with three added functions:
-   # 
-   #  - `#concat`: Overriding `Array#concat`, this will add the passed Arrays' elements to this one.
-   #  - `#conflictsWith`: Returns `true`, if any `Thing` included by this mask, is also included in any
-   #    of the passed masks.
-   #  - `#contains`: `true` if *every* `Thing` included by this mask is also incloded in those passed
-   @mask: (roots...)->
-      recursivelyMask = (mask, root)->
-         mask.push root
-         _(root.metadata).filter().filter('isResponsible').pluck('to').reduce recursivelyMask, mask
-         return mask
-      
-      mask = _.chain(roots).reduce(recursivelyMask, new Array).uniq().value()
-      
-      mask.concat =  chain (masks...)-> @push _.flatten(masks)...
-      mask.conflictsWith = (masks...)-> _(masks).flatten().some (thing)=> _(this).contains thing
-      mask.contains =      (masks...)-> _(this).difference(_.flatten masks).isEmpty()
-      return mask
+   if this instanceof Alien
+      @pristine = no
+      return _.bind @bits.shift(), this
+   
+   # NYI
 
 reactor.schedule = 
    reactor.awaitingTicks++
