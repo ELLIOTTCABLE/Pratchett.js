@@ -141,3 +141,39 @@ describe 'The Paws reactor:', ->
             
             table.give another_xec, new Mask new Thing
             expect(table.canHave an_xec, new Mask new Thing).to.be true
+   
+   describe 'Execution#advance', ->
+      parse = Paws.parser.parse
+      Execution::advance = reactor._advance
+      
+      it 'should not modify a completed Alien'
+      it 'should flag a modified Alien as un-pristine'
+      it 'should advance the bits of an Alien'
+      
+      it 'should not modify a completed Native', ->
+         completed_native = new Native undefined
+         expect(completed_native.complete()).to.be.ok()
+         
+         expect(completed_native.advance(new Thing)).to.be undefined
+      
+      it 'should not choke on a simple expression', ->
+         an_xec = new Native parse 'abc def'
+         expect(-> an_xec.advance() ).to.not.throwError()
+      
+      it 'should generate a simple combination against a previous result', ->
+         root = parse 'abc def'; abc = root.next; def = abc.next
+         an_xec = new Native root
+         
+         result = new Thing
+         an_xec.advance null # Tested below, ignored here.
+         combo = an_xec.advance result
+         expect(combo.subject).to.be result
+         expect(combo.message).to.be def.contents
+         
+      it 'should combine against locals at the beginning of an Execution', ->
+         root = parse 'abc'; abc = root.next
+         an_xec = new Native root
+         
+         combo = an_xec.advance null
+         expect(combo.subject).to.be an_xec.locals()
+         expect(combo.message).to.be abc.contents
