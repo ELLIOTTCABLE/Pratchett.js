@@ -138,7 +138,7 @@ advance = (response)->
       {contents, next} = @position
       @position = next.contents
       # DOCME: wat is this:
-      @stack.push value: contents, next: next.next
+      @stack.push value: @locals(), next: next.next
    
    upcoming = @position
    unless upcoming.next?
