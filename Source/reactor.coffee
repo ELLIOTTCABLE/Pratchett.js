@@ -116,7 +116,7 @@ advance = (response)->
          return new Combination value, response
       
       {contents, next} = @position
-      unless @position instanceof parser.Expression
+      unless @position.contents instanceof parser.Expression
          # The upcoming node being neither the end of an expression, nor the beginning of a new one,
          # then it must be a Thing. We combine that against the response passed-in.
          @position = next
