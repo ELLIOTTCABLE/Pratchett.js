@@ -1,9 +1,11 @@
 `                                                                                                                 /*|*/ require = require('../Library/cov_require.js')(require)`
-(Paws = require './Paws.coffee').utilities.infect global
+require('./utilities.coffee').infect global
+
+Paws = require './data.coffee'
 infect global, Paws
 
 module.exports =
-reactor = new Object
+   reactor = new Object
 
 # A Mask is a lens through which one can use a `Thing` as a delinator of a particular sub-graph of the
 # running program's object-graph.
