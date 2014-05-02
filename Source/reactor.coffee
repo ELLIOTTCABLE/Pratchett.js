@@ -52,10 +52,10 @@ reactor.Table = Table = class Table
       entry.masks.push masks...
       return entry
    
-   get: (accessor)-> _(@content).find(accessor: accessor)?.masks
+   get: (accessor)-> _(@content).find(accessor: accessor)?.masks ? new Array
    
    remove: (accessor)->
-      delete @content[ _(@content).findIndex accessor: accessor ]
+      _(@content).remove accessor: accessor
    
    # Returns `true` if a given `Mask` is fully contained by the set of responsibility that a given
    # `accessor` has already been given.
