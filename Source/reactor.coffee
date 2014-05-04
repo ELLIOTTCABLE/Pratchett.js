@@ -241,5 +241,5 @@ reactor.Unit = Unit = parameterizable class Unit
    interval: 50         # in milliseconds; default of 1/20th of a second.
    interval = 0
    
-   start: -> interval ||=           setInterval @realize.bind(this), @interval
-   stop:  -> interval || interval = clearInterval interval
+   start: -> interval ||= setInterval @realize.bind(this), @interval
+   stop:  -> if interval then clearInterval(interval) and interval = undefined
