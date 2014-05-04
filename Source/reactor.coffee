@@ -84,7 +84,7 @@ reactor.Combination = Combination = class Combination
 Paws.Thing::receiver = new Alien (rv, world)->
    [_, caller, subject, message] = rv.toArray()
    results = subject.find message
-   world.stage caller, results[0] if results[0]
+   world.stage caller, results[0].valueish() if results[0]
 
 # `Execution`'s default-receiver preforms a “call”-patterned staging; that is, cloning the subject
 # `Execution`, staging that clone, and leaving the caller unstaged.
