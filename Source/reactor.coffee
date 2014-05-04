@@ -175,7 +175,7 @@ reactor._advance = advance
 # Theoretically, this should be enough to, at least, run two Units *at once*, even if there's
 # currently no design for the ways I want to allow them to interact.
 # More on that later.
-reactor.Unit = Unit = class Unit
+reactor.Unit = Unit = parameterizable class Unit
    constructor: constructify(return:@) ->
       @queue = new Array
       @table = new Table
