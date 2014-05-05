@@ -209,7 +209,7 @@ reactor.Unit = Unit = parameterizable class Unit
       return yes unless combo = advance.call stagee, result
       
       # If the staging has passed #next, then it's safe to grant it the ownership it's requesting
-      @table.give stagee, requestedMask
+      @table.give stagee, requestedMask if requestedMask
       
       # If we're looking at an alien, then we received a bit-function from #advance
       if typeof combo == 'function'
