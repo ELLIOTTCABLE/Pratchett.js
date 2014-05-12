@@ -73,11 +73,25 @@ parameterizable class Interactive
       
       SIGTERM = =>
          @here.stop()
-         @readline.write @readline.clear_style
          @readline.write "\x1b[2K\x1b[0G" # Zero cursor.
+         @readline.write @readline.clear_style
+         @readline.close()
          process.stdin.destroy()
       @readline.on 'close', SIGTERM
       process.on 'SIGTERM', SIGTERM
+      
+      SIGTSTP = =>
+         process.once 'SIGCONT', =>
+            @readline.input.pause()
+            @readline.input.resume()
+            @readline._setRawMode true
+            @readline._refreshLine()
+         
+         @readline.write @readline.clear_style
+         @readline._setRawMode false
+         process.kill process.pid, 'SIGTSTP'
+         
+      @readline.on 'SIGTSTP', SIGTSTP
       
       Paws.alert "Successive lines will be evaluated as executions, with shared `locals`."
       Paws.alert "   (#{T.bold '⌃d'} to close the input-stream; "+
@@ -122,19 +136,49 @@ parameterizable class Interactive
    .rename '<interact: resume prompt>'
    
    
+   # --- ---- --- /!\ --- ---- --- #
+   
    # This is all a huge, fragile, horrible, monkey-patching hack.
    hackReadline: ->
-      
       exportz = readline
+      
       _refreshLine = @readline._refreshLine
       @readline._refreshLine = =>
          [clearScreenDown, exportz.clearScreenDown] = [exportz.clearScreenDown, haxClearScreenDown]
          _refreshLine.apply @readline
          exportz.clearScreenDown = clearScreenDown
       
+      # This ensures our custom line-styles get applied every time the line is refreshed
       haxClearScreenDown = (stream)=>
          stream.write '\x1b[0J'
          stream.write T.column_address(0)
          stream.write T.sgr(7)+(new Array(T.columns+1).join ' ')
          stream.write T.column_address(0)
          stream.write @readline.line_style
+      
+      _ttyWrite = @readline._ttyWrite
+      # These replace the usual behavior of pausing the input-stream (which means all input while
+      # paused is buffered, and will eventually be dumped back out), and simply *ignores* all input
+      # until unpaused. No buffering.
+      @readline.pause = ->
+         return if @paused
+         @_ttyWrite = haxTtyWrite
+         @paused = true
+         @emit 'pause'
+         return this
+      
+      @readline.resume = ->
+         return unless @paused
+         @_ttyWrite = _ttyWrite
+         @paused = false
+         @emit 'resume'
+         return this
+      
+      haxTtyWrite = (s, key)->
+         if key.ctrl
+            switch key.name
+               when 'c' then @emit 'SIGINT'     # ^c (interrupt)
+               when 'd' then @close             # ^d (EOF)
+               when 'z'                         # ^z (process backgrounding)
+                  return if process.platform == 'win32'
+                  @emit 'SIGTSTP'
