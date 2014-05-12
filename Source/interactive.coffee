@@ -18,8 +18,10 @@ parameterizable class Interactive
       #      be moved to start().
       @readline = readline.createInterface
          input: @_?.input ? process.stdin, output: @_?.output ? process.stdout
-      
       @readline.setPrompt @_?.prompt ? ':: '
+      @readline.line_style = T.sgr 7
+      @readline.clear_style = T.sgr 27
+      @hackReadline()
       
       @error_renderer = @_?.error_renderer
       unless @error_renderer?
@@ -37,15 +39,15 @@ parameterizable class Interactive
    
    prompt: -> @readline.prompt()
    
-   
    start: ->
-      #process.title = 'paws.js: interact'
+      process.title = 'paws.js (interact)'
       @here.start()
       
       shortcircuit = undefined # ???
       @readline.on 'line', (line)=>
          return shortcircuit = false if shortcircuit # ???
          return @readline.prompt() unless line.length
+         @readline.write @readline.clear_style
          
          # FIXME: Input during the processing is currently all processed immediately after a prompt
          #        is next shown. This is rather icky when the user ^C's a ton, and then externally
@@ -71,6 +73,7 @@ parameterizable class Interactive
       
       SIGTERM = =>
          @here.stop()
+         @readline.write @readline.clear_style
          @readline.write "\x1b[2K\x1b[0G" # Zero cursor.
          process.stdin.destroy()
       @readline.on 'close', SIGTERM
@@ -118,5 +121,20 @@ parameterizable class Interactive
       @prompt()
    .rename '<interact: resume prompt>'
    
-   # Generates an `Execution` that will print information about the `Thing` passed to it
-   # (presumably, the final result of a line of code typed into the `Interactive`.)
+   
+   # This is all a huge, fragile, horrible, monkey-patching hack.
+   hackReadline: ->
+      
+      exportz = readline
+      _refreshLine = @readline._refreshLine
+      @readline._refreshLine = =>
+         [clearScreenDown, exportz.clearScreenDown] = [exportz.clearScreenDown, haxClearScreenDown]
+         _refreshLine.apply @readline
+         exportz.clearScreenDown = clearScreenDown
+      
+      haxClearScreenDown = (stream)=>
+         stream.write '\x1b[0J'
+         stream.write T.column_address(0)
+         stream.write T.sgr(7)+(new Array(T.columns+1).join ' ')
+         stream.write T.column_address(0)
+         stream.write @readline.line_style
