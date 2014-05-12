@@ -1,6 +1,7 @@
 `                                                                                                                 /*|*/ require = require('../Library/cov_require.js')(require)`
 Paws = require './Paws.coffee'
 Paws.infect global
+T = Paws.debugging.tput
 
 PrettyError = require('pretty-error')
 
@@ -75,10 +76,9 @@ parameterizable class Interactive
       @readline.on 'close', SIGTERM
       process.on 'SIGTERM', SIGTERM
       
-      t = Paws.debugging.tput
       Paws.alert "Successive lines will be evaluated as executions, with shared `locals`."
-      Paws.alert "   (#{t.bold '⌃d'} to close the input-stream; "+
-                     "#{t.bold '⌃c'} to synchronously force new prompt)"
+      Paws.alert "   (#{T.bold '⌃d'} to close the input-stream; "+
+                     "#{T.bold '⌃c'} to synchronously force new prompt)"
       @prompt()
    
    
