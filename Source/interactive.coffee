@@ -28,6 +28,11 @@ parameterizable class Interactive
       # TODO: Inject aliens.
       @here = new reactor.Unit
       @shared_locals = (new Execution).locals
+      
+      inspector = new Alien (result)->
+         process.stdout.write Paws.inspect(result) + "\n"
+      .rename '<interact: inspect result>'
+      @shared_locals.push Thing.pair '<inspect>', inspector
    
    prompt: -> @readline.prompt()
    
@@ -80,19 +85,24 @@ parameterizable class Interactive
    evaluate: (code)->
       @mutex = new Thing
       
-      code = parser.parse code unless code instanceof parser.Expression
-      
-      # We generate a wrapper-Expression for the input, essentially turning it into:
+      # We generate a wrapper-Expression for the input, turning it into:
       # 
       #     <inspector> (expr)
-      inspector = new parser.Expression @generateInspector()
-      superexpr = new parser.Expression code
-      inspector.append superexpr
+      if code instanceof parser.Expression
+         inspector = new parser.Expression new Label '<inspector>'
+         superexpr = new parser.Expression code
+         inspector.append superexpr
+         expr = inspector
+      else
+         expr = parser.parse '<inspect> ('+code+')'
+      
+      Paws.info "-- Generated expression to evaluate: " +
+         expr.with(context: yes, tag: no).toString()
       
       # Now, we put both those in the queue, giving the first ownership of the mutex. This prevents
       # the resumer from realizing until the interact-line has become complete(), and thus had its
       # ownership invalidated.
-      execution = new Execution inspector
+      execution = new Execution expr
       execution.locals = @shared_locals
       execution.rename '<interact: interactive input>'
       
@@ -110,6 +120,3 @@ parameterizable class Interactive
    
    # Generates an `Execution` that will print information about the `Thing` passed to it
    # (presumably, the final result of a line of code typed into the `Interactive`.)
-   generateInspector: -> new Alien (result)->
-      process.stdout.write Paws.inspect(result) + "\n"
-   .rename '<interact: inspect result>'
