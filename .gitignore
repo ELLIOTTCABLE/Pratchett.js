@@ -1,9 +1,11 @@
+node_modules/
+
 .coveralls.yml
 .repl_history
-node_modules/
+
+Documentation/*
+Library/*.bundle.js
+
 Executables/*.js
 Source/*.js
 Test/*.js
-Documentation/
-Library/*.bundle.js
-Library/Coverage.html

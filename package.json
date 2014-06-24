@@ -1,12 +1,13 @@
 {     "author" : "ELLIOTTCABLE (http://ell.io/tt)"
-   
+
 ,       "name" : "Paws.js"
 ,    "private" :  true
 ,    "version" : "3.0.0"
 
 ,       "main" : "Library/Paws.js"
 
-,        "bin" : {"paws.js" : "Executables/paws.js"}
+,        "bin" :{"paws.js"  : "Executables/paws.js"
+               , "paws"     : "Executables/paws.js"                                               }
 
 ,    "scripts" :{
      "preinstall" : "printf \"%s\\n%s\" '#!/usr/bin/env node' \"$(coffee -cbp --no-header ./Executables/paws.js.coffee)\" > ./Executables/paws.js"
@@ -21,16 +22,18 @@
 }
 
 ,     "config" :{
-           "dirs" :{"source"  :"Source"
-                  , "test"    :"Test"
-                  , "instrumentation"
-                              :"Source" }
-,         "mocha" :{"files"      : "Test/*.coffee"
+           "dirs" :{"source"           :"Source"
+                  , "products"         :"Library"
+                  , "documentation"    :"Documentation"
+                  , "test"             :"Test"
+                  , "instrumentation"  :"Source" }
+,         "mocha" :{"files"      : "*.coffee"
                   , "ui"         : "bdd"
-                  , "reporter"   : "spec"
-                  , "ENV"        : "test" }
+                  , "reporter"   : "spec" }
+,         "docco" :{"files"      : "*.coffee"
+                  , "browser"    : "Google Chrome" }
  }
-   
+
 ,          "engines" :{"node":"~0.10.7"}
 ,     "dependencies" :{"minimist"               : "~0.0.9"
                      , "mustache"               : "~0.8.1"
