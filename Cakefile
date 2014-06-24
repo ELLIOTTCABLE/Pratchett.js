@@ -10,6 +10,10 @@ option '-a', '--browser [BROW]', '(*:open) select browser to use'
 Package = require './package.json'
 config  = Package.config
 
+pass_error = (code)->
+   process.on 'exit', (status)->
+      if status == 0 and code
+         process.exit code
 
 # I try to use standard `make`-target names for these tasks.
 # See: http://www.gnu.org/software/make/manual/make.html#Standard-Targets
@@ -27,9 +31,7 @@ task 'test', 'run testsuite through Mocha', (options) ->
    
    glob path.join(config.dirs.test, config.mocha.files), (err, files)->
       files.forEach (file)-> mocha.addFile file
-      mocha.run (failures)-> process.on 'exit', (status)->
-         if status == 0 and failures
-            process.exit 1
+      mocha.run (failures)-> pass_error 1 if failures
 
 
 # TODO: Only works on OS X, right now. Needs Windows and Linux alternatives to `open`.
@@ -81,8 +83,6 @@ task 'docs', 'generate HTML documentation via Docco', (options) ->
    path           = require 'path'
    
    glob path.join(config.dirs.source, config.docco.files), (err, files)->
-   #  docco _.flatten [ null, null, files,
-   #     '--output', config.dirs.documentation ]
       docco {
          args:   files   # It's stupid that this can't be called as `sources`.
          output: config.dirs.documentation
@@ -93,3 +93,12 @@ task 'docs', 'generate HTML documentation via Docco', (options) ->
 task 'docs:open', (options) ->
    path = require 'path'
    open_wait_task options, path.join config.dirs.documentation, 'Paws.html'
+
+
+task 'clean', "remove git-ignore'd build products", ->
+   {exec} = require 'child_process'
+   
+   exec 'git clean -Xdf', (error, out, err)->
+      return pass_error error.code if error
+      console.log out
+      console.log err

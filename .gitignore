@@ -4,8 +4,9 @@ node_modules/
 .repl_history
 
 Documentation/*
+!Documentation/TAP.html
+!Documentation/Test.html
 Library/*.bundle.js
 
-Executables/*.js
 Source/*.js
 Test/*.js
