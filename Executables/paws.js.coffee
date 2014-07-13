@@ -172,6 +172,17 @@ prettify = require('pretty-error').start ->
                expr = Paws.parser.parse source.code, root: true
                out.write expr.serialize() + "\n"
       
+      when 'ch', 'check'
+         readFilesAsync(argv).then (files)->
+            sources.push files...
+            _.forEach sources, (source)->
+               Paws.info "-- Staging '#{T.bold source.from}' from the command-line ..."
+               root = Paws.generateRoot source.code
+               root.locals.inject Thing.with(names: yes).construct(Paws.primitives 'specification')
+               
+               here = new Paws.reactor.Unit
+               here.stage root
+      
       when 'in', 'interact', 'interactive'
          Interactive = require '../Source/interactive.coffee'
          interact = new Interactive
