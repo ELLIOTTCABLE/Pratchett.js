@@ -239,6 +239,8 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
          Paws.alert ">> #{stagee} ← #{result}"
          Paws.alert "   #{prior_position.with(context: yes, tag: no).toString()}" if prior_position?
          Paws.alert "   ┗> #{combo.subject} × #{combo.message}" if combo.subject?
+         @on 'flushed', ->
+            Paws.alert "~~ (queue flushed)"
       
       # If the staging has passed #next, then it's safe to grant it the ownership it's requesting
       @table.give stagee, requestedMask if requestedMask
