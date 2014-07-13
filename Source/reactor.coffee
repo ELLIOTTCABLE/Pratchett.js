@@ -94,7 +94,7 @@ Paws.Thing::receiver = new Native (rv, world)->
    [caller, subject, message] = rv.toArray()
    results = subject.find message
    # FIXME: Welp, this is horrible error-handling. "Print a warning and freeze forevah."
-   Paws.notice "No results on #{Paws.inspect subject} for #{Paws.inspect message}" unless results[0]
+   Paws.notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}." unless results[0]
    world.stage caller, results[0].valueish() if results[0]
 .rename 'thing✕'
 
@@ -209,6 +209,12 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
       results = _.filter @queue, (staging)=> @table.allowsStagingOf staging
       return if results.length then results else undefined
    
+   #---
+   # XXX: Exists soely for debugging purposes. Could just emit *inside* `realize`.
+   flushed: ->
+      Paws.verbose "~~ Queue flushed." if process.env['TRACE_REACTOR']
+      @emit 'flushed', @queue.length
+   
    # Generate the form of object passed to receivers.
    @receiver_parameters: (stagee, subject, message)->
       new Thing(stagee, subject, message).rename '<receiver params>'
@@ -229,7 +235,7 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
       
       # Remove completed stagees from the queue, with no further action.
       if stagee.complete()
-         @emit 'flushed', @queue.length unless @upcoming()
+         @flushed() unless @upcoming()
          return yes
       
       combo = reactor.advance stagee, result
@@ -239,8 +245,6 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
          Paws.alert ">> #{stagee} ← #{result}"
          Paws.alert "   #{prior_position.with(context: yes, tag: no).toString()}" if prior_position?
          Paws.alert "   ┗> #{combo.subject} × #{combo.message}" if combo.subject?
-         @on 'flushed', ->
-            Paws.alert "~~ (queue flushed)"
       
       # If the staging has passed #next, then it's safe to grant it the ownership it's requesting
       @table.give stagee, requestedMask if requestedMask
@@ -255,7 +259,7 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
       
       @table.remove accessor: stagee if stagee.complete()
       
-      @emit 'flushed', @queue.length unless @upcoming()
+      @flushed() unless @upcoming()
       delete @current
       return yes
 
