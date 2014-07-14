@@ -16,6 +16,10 @@ module.exports = Rule = class Rule extends Thing
    maintain_locals: (@locals)->
       @body.locals.inject @locals
    
+   dispatch: ->
+      @environment.unit.once 'flushed', @eventually_listener if @eventually_listener?
+      @environment.unit.stage @body
+   
    pass: -> @status = true;  @complete()
    fail: -> @status = false; @complete()
    
@@ -28,7 +32,6 @@ module.exports = Rule = class Rule extends Thing
       block.locals.inject @locals if @locals?
       @eventually_listener = =>
          @environment.unit.stage block, undefined
-      @environment.unit.once 'flushed', @eventually_listener
    
 Rule.Collection = Collection = class Collection
    
