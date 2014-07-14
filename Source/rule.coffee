@@ -46,11 +46,18 @@ Rule.Collection = Collection = class Collection
    
    push: (rules...)->
       _.map rules, (rule)=>
-         rule.once 'complete', => @report rule, 
+         rule.once('complete', => @print rule) if @reporting
          @rules.push rule
    
+   report: ->
+      @reporting = true
+      _.map @rules, (rule)=>
+         if rule.status? then @print rule
+         else rule.once 'complete', => @print rule
+      
+   
    # Prints a line for a completed rule.
-   report: (rule)-> if not @done
+   print: (rule)->
       number = @rules.indexOf(rule) + 1
       status = switch rule.status
          when true      then 'ok'
