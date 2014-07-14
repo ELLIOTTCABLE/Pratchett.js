@@ -4,6 +4,8 @@ require('./utilities.coffee').infect global
 Paws = require './Paws.coffee'
 infect global, Paws
 
+# FIXME: Refactor this entire thing to use isaacs' `node-tap`
+
 module.exports = Rule = class Rule extends Thing
    #---
    # NOTE: Expects an @environment similar to Execution.synchronous's `this`. Must contain .caller
@@ -17,6 +19,8 @@ module.exports = Rule = class Rule extends Thing
       @body.locals.inject @locals
    
    dispatch: ->
+      Paws.notice '-- Dispatching:', Paws.inspect this
+      @dispatched = true
       @environment.unit.once 'flushed', @eventually_listener if @eventually_listener?
       @environment.unit.stage @body
    
@@ -24,14 +28,18 @@ module.exports = Rule = class Rule extends Thing
    fail: -> @status = false; @complete()
    
    complete: ->
+      Paws.info "-- Completed (#{@status}):", Paws.inspect this
       @environment.unit.removeListener 'flushed', @eventually_listener if @eventually_listener?
       @emit 'complete', @status
    
    # FIXME: repeated calls?
    eventually: (block)->
+      Paws.info "-- Registering 'eventually' for ", Paws.inspect this
       block.locals.inject @locals if @locals?
       @eventually_listener = =>
+         Paws.info "-- Firing 'eventually' for ", Paws.inspect this
          @environment.unit.stage block, undefined
+      @environment.unit.once 'flushed', @eventually_listener if @dispatched
    
 Rule.Collection = Collection = class Collection
    
