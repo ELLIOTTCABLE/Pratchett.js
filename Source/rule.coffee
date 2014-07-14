@@ -64,10 +64,20 @@ Rule.Collection = Collection = class Collection
    
    report: ->
       @reporting = true
+      process.stdout.write "TAP version 13\n"
       _.map @rules, (rule)=>
          if rule.status? then @print rule
          else rule.once 'complete', => @print rule
-      
+   
+   # This will close the suite, outputting no more TAP and dispatching no further tests. It will
+   # also print the TAP 'plan' line, telling the harness how many tests were run.
+   #---
+   # FIXME: Tests *already dispatched* might output after this is called.
+   # XXX: Vaguely convinced this is un-asynchronous. o_O
+   complete: ->
+      @dispatching = false
+      @reporting = false
+      process.stdout.write "1..#{@rules.length}\n"
    
    # Prints a line for a completed rule.
    print: (rule)->
