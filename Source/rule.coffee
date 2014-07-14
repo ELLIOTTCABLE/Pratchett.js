@@ -38,7 +38,11 @@ Rule.Collection = Collection = class Collection
    _current = undefined
    @current: -> _current ?= new Collection
    
-   constructor: -> @rules = new Array
+   constructor: ->
+      @rules = new Array
+      @activate() unless _current?
+   
+   activate: -> _current = this
    
    push: (rules...)->
       _.map rules, (rule)=>
