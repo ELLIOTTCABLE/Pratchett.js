@@ -212,7 +212,8 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
    #---
    # XXX: Exists soely for debugging purposes. Could just emit *inside* `realize`.
    flushed: ->
-      Paws.verbose "~~ Queue flushed." if process.env['TRACE_REACTOR']
+      if process.env['TRACE_REACTOR']
+         Paws.verbose "~~ Queue flushed#{if @queue.length then ' @ '+@queue.length else ''}."
       @emit 'flushed', @queue.length
    
    # Generate the form of object passed to receivers.
