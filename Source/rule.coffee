@@ -56,6 +56,11 @@ Rule.Collection = Collection = class Collection
       _.map rules, (rule)=>
          rule.once('complete', => @print rule) if @reporting
          @rules.push rule
+         rule.dispatch() if @dispatching
+   
+   dispatch: ->
+      @dispatching = true
+      _.map @rules, (rule)=> rule.dispatch()
    
    report: ->
       @reporting = true
