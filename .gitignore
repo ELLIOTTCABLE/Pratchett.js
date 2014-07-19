@@ -6,4 +6,5 @@ Source/**/*.js
 Test/**/*.js
 Documentation/
 Library/*.bundle.js
+Library/*-parser.js
 Library/Coverage.html
