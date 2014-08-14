@@ -11,184 +11,92 @@ catch e
    parser = PEG.buildParser grammar
 
 
-class SourceRange
-   constructor: (@text, @begin, @end)->
-
-   before:     -> @text.substring 0, @begin
-   contents:   -> @text.substring @begin, @end
-   after:      -> @text.substring @end
-
-Expression = parameterizable class Expression
-   constructor: (@contents, @next)->
-   
-   append: (expr)->
-      curr = this
-      curr = curr.next while curr.next
-      curr.next = expr
-   
-   serialize: -> new Serializer(this).serialize()
-
-# A simple recursive descent parser with no backtracking. No lexing is needed here.
-class Parser
-   # FIXME: This won't handle a standalone-closing-quote properly.
-   labelCharacters = /[^\[\]{}"“” \r\n]/
-
-   constructor: (@text, opts = {})->
-      # Keep track of the current position into the text
-      @i = 0
-      
-      if opts.root and @text.slice(0,2) == '#!'
-         @text = @text.split("\n").slice(1).join("\n")
-
-   from: (start, end = @i)->
-      @text.substring start, end
-
-   # Accept a single character. If the given +char+ is at the
-   # current position, proceed and return true.
-   accept: (char)->
-      @text[@i] is char && ++@i
-
-   # TODO: These should raise an exception
-   expect: (char)->
-      @accept(char)
-
-   expect_later: (char)->
-      while @text[@i] && not (@text[@i] is char)
-         ++@i
-      ++@i if @text[@i] is char
-
-   # Swallow all whitespace
-   whitespace: ->
-      true while @accept(' ') || @accept('\r') || @accept('\n')
-      true
-
-   # Sets a SourceRange on a expression
-   with_range: (expr, begin, end = @i)->
-      # Copy the source range of the contents if possible
-      if expr.contents?.source?
-         expr.source = expr.contents.source
-      else
-         expr.source = new SourceRange(@text, begin, end)
-         # Copy the source range to the contents if possible
-         expr.contents.source = expr.source if expr.contents?
-      expr
-
-   # Parses a bare label
-   # TODO: rewrite with accept()s
-   label: ->
-      start = @i
-      res = ''
-      while @text[@i] && labelCharacters.test(@text[@i])
-         res += @text[@i]
-         @i++
-      res && @with_range(new Paws.Label(res), start)
-
-   quote: (delim)->
-      start = @i
-      if    @accept(delim[0]) &&
-            @expect_later(delim[1])
-         @with_range(new Paws.Label(@from start + 1, @i - 1), start)
-
-   quoted_label: -> @quote('“”') || @quote('""')
-
-   # Parses an expression delimited by some characters
-   braces: (delim, constructor)->
-      start = @i
-      if    @accept(delim[0]) &&
-            @whitespace() &&
-            (expr = @expr()) &&
-            @whitespace() &&
-            @expect(delim[1])
-         @with_range(new constructor(expr), start)
-
-   # Subexpression
-   paren: -> @braces('[]', (it)-> it)
-   # Execution
-   scope: -> @braces('{}', Paws.Execution)
-
-   # Parses an expression
-   expr: ->
-      # Strip leading whitespace
-      @whitespace()
-      # The whole expression starts at this position
-      start = @i
-      # and ends here
-      end = @i
-      # The subexpression starts here
-      substart = @i
-
-      res = new Expression
-      while sub = (@label() || @quoted_label() || @paren() || @scope())
-         res.append(@with_range(new Expression(sub), substart))
-         # Expand the expression range (exclude trailing whitespace)
-         end = @i
-         @whitespace()
-         # Set the position of the next expression (exclude leading whitespace)
-         substart = @i
-
-      @with_range(res, start, end)
-
-   parse: ->
-      @expr()
-
+# This can either be inherited from by node-y types (see below), or an instance of it can be created
+# to wrap around raw data-types. In either case, that data can then be contextualized by its
+# location in some original source-code, as well as the exact source-code used to generate it.
 #---
-# XXX: Why are we doing this disgusting Java-esque “everything is a class” form? o_O - ELLIOTTCABLE
-class Serializer
-   constructor: (@root)->
+# TODO: This'd be a nicer API if we had a dynamic on-construction version of delegated()
+exports.HasSource = HasSource =
+class HasSource
+   @unwrap: (it)->
+      if it instanceof HasSource and it.hasOwnProperty 'value' then return it.value else return it
    
-   serialize: (node, text)->
-      return @serialize @root, "" unless node?
-      {contents, next} = node
+   constructor: constructify(return:@) (@value)->
+   
+   # This contextualizes the wrapped `value` with source information.
+   from: (@source_text, @source_begin = 0, @source_end = @source_text.length - 1)->
+   
+   # These conveniences extract useful portions of the original source-text, with respect to the
+   # range encapsulated herein.
+   source_before: -> @source_text.substring 0, @source_begin
+   source_of:     -> @source_text.substring @source_begin, @source_end
+   source_after:  -> @source_text.substring @source_end
+
+# A simple container for a series of sequentially-executed `Expression`s.
+exports.Sequence = Sequence =
+delegated('expressions', Array) class Sequence extends HasSource
+   constructor: (@expressions...)->
+   
+   at: (idx)-> HasSource.unwrap @expressions[idx]
+
+# Represents a single expression (or sub-expression). Contains `words`, each of which may be either
+# a Paws `Thing`, or an array of sub-`Expression`s. JavaScript strings will be constructed into
+# `Label`s.
+exports.Expression = Expression =
+delegated('words', Array) class Expression extends HasSource
+   
+   # Convenience function to construct an `Expression` from a simple JavaScript-object
+   # representation thereof. Given an array of `Thing`s (or JavaScript objects, which are
+   # constructed into `Thing`s as appropriate), this will return an `Expression` of those in
+   # sequence. If arrays are included therein, they will be constructed into sub-`Expression`s:
+   #     
+   #     // `<thing a> <thing b>`
+   #     Expression.from [new Thing, new Thing]
+   #     
+   #     // `foo bar`
+   #     Expression.from [new Label('foo'), new Label('bar')]
+   #     // or
+   #     Expression.from ['foo', 'bar']
+   #
+   #     // `foo [bar baz]`
+   #     Expression.from ['foo', ['bar', 'baz']]
+   #     
+   # Note that that cannot be used to represent sequences-of-`Expression`s (i.e. semicolon-seperated
+   # expressions). Each generated sub-`Expression` will have only one `Expression`; for more complex
+   # constructions, you can nest calls to this:
+   #     
+   #     // Constructs an analogue of `foo bar [a; b] baz`
+   #     Expression.from ['foo', 'bar', [Expression.from 'a', Expression.from 'b'] 'baz']
+   #     // which is equivalent to,
+   #     Expression.from ['foo', 'bar', new Sequence(Expression.from 'a', Expression.from 'b'), 'baz']
+   @from: (representation)->
+      node_from = (representation)->
+         return new Label representation if typeof representation == 'string'
+         return representation if representation instanceof Thing
+         
+         if representation instanceof HasSource
+            representation.value = node_from representation.value
+            return representation
+         
+         return new Sequence Expression.from representation if _.isArray representation
+         return new Sequence representation if representation instanceof Expression
+         return representation if representation instanceof Sequence
+         
+         return Thing.construct representation
       
-      if contents instanceof Label
-         text += '“'+contents.alien+'”'
-         text += ' ' if next
+      # Array of objects passed; construct an Expression
+      it = new Expression
+      it.words = _.map representation, (rep)-> node_from rep
       
-      if contents instanceof Expression
-         text += '['+@serialize(contents, '')+']'
-         text += ' ' if next
-      
-      return text unless next?
-      return @serialize next, text
+      return it
+   
+   constructor: -> @words = new Array
+   
+   at: (idx)-> HasSource.unwrap @words[idx]
 
 
-# @option {boolean=false} context:  Include the entire parse-time Script, instead of just the
-#                                      current Expression
-# @option {boolean=true} colour:    Convey the boundaries of context, if included, with ANSI
-#                                      colour-codes instead of Unicode delimiters.
-# @option {boolean=true} tag:       Include the [Type ...] tag around the output.
-Expression::toString = ->
-   contents = if not @source?
-      new Serializer(this).serialize()
+parse = ->
    
-   else if @_?.context
-      use_colour = Paws.use_colour and (@_?.colour ? @_?.color ? true)
-      
-      magenta = '\x1b[' + '95m'
-      reset   = '\x1b[' + '39m'
-      [before_char, after_char] = if use_colour then [magenta, reset] else ['|', '|']
-      
-      before = @source.before().split("\n").slice(-3).join("\n") + before_char
-      after  = after_char + @source.after().split("\n").slice(0, 3).join("\n")
-      
-      (before + @source.contents() + after).trim()
-   
-   else
-      @source.contents()
-   
-   contents = '{'+contents+'}'
-   
-   if @_?.tag == no then contents else '['+(@constructor.__name__ or @constructor.name)+' '+contents+']'
 
-
-module.exports =
-   parse: (text, opts)->
-      parser = new Parser(text, opts)
-      parser.parse()
-   
-   serialize: (expr, opts)->
-      serializer = new Serializer(expr, opts)
-      serializer.serialize()
-   
-   Expression: Expression
-   SourceRange: SourceRange
+module.exports = parse
+Paws.utilities.infect module.exports, exports
