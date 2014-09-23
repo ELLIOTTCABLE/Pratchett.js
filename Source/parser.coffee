@@ -33,7 +33,7 @@ exports.Sequence = Sequence =
 delegated('expressions', Array) class Sequence
    constructor: (@expressions...)->
    
-   at: (idx)-> HasSource.unwrap @expressions[idx]
+   at: (idx)-> @expressions[idx]
 
 # Represents a single expression (or sub-expression). Contains `words`, each of which may be either
 # a Paws `Thing`, or an array of sub-`Expression`s. JavaScript strings will be constructed into
