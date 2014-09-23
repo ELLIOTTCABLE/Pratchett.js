@@ -100,8 +100,12 @@ describe 'Parser', ->
          expect(sub.at 0).to.be a_thing
    
    describe 'parses ...', ->
-      it.skip 'nothing', ->
-         expr = parse('')
+      it 'nothing', ->
+         debugger;
+         structure = parse('')
+         expect(structure).to.be.ok()
+         expect(structure).to.be.a(parse.Sequence)
          
+         expr = structure.at 0
          expect(expr).to.be.ok()
          expect(expr).to.be.a(parse.Expression)

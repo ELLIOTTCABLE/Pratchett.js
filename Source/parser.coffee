@@ -1,15 +1,15 @@
 `                                                                                                                 /*|*/ require = require('../Library/cov_require.js')(require)`
 Paws = require './data.coffee'
 
+exports._parser = PARSER =
 try
-   PARSER = require '../Library/cPaws-parser.js'
+   require '../Library/cPaws-parser.js'
 catch e
    Paws.warning "!! Compiled parser not found! Dynamically building one from the grammar now ..."
    Paws.warning "   (This should have happened on `npm install`. Run that, if you haven't yet.)"
    PEG = require('pegjs'); fs = require('fs'); path = require('path')
    grammar = fs.readFileSync path.join(__dirname, 'cPaws.pegjs'), encoding: 'utf8'
-   PARSER = PEG.buildParser grammar
-
+   PEG.buildParser grammar
 
 # Instances of this can be associated with Paws objects (and parser-types) to contextualize them
 # with information about ‘where they came from.’
@@ -87,8 +87,30 @@ delegated('words', Array) class Expression
    at: (idx)-> @words[idx]
 
 
-parse = ->
+parse = (text)->
+   context_from = (representation, object)->
+      Context.on object, text, representation.begin, representation.end
+      return object
    
+   # Translates a given PEG-output node into one of our parser nodes:
+   node_from = (representation)->
+      switch representation.type
+         when 'sequence'
+            seq = new Sequence
+            seq.expressions = _.map representation, (expr)-> node_from expr
+            seq.expressions.push new Expression unless seq.expressions.length
+            context_from representation, seq
+         
+         when 'expression'
+            expr = new Expression
+            expr.words      = _.map representation, (word)-> node_from word
+            context_from representation, expr
+         
+         when 'label'      then # ...
+         when 'execution'  then # ...
+         else # ...
+   
+   node_from PARSER.parse(text)
 
 module.exports = parse
 Paws.utilities.infect module.exports, exports
