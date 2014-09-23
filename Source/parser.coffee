@@ -11,30 +11,26 @@ catch e
    parser = PEG.buildParser grammar
 
 
-# This can either be inherited from by node-y types (see below), or an instance of it can be created
-# to wrap around raw data-types. In either case, that data can then be contextualized by its
-# location in some original source-code, as well as the exact source-code used to generate it.
-#---
-# TODO: This'd be a nicer API if we had a dynamic on-construction version of delegated()
-exports.HasSource = HasSource =
-class HasSource
-   @unwrap: (it)->
-      if it instanceof HasSource and it.hasOwnProperty 'value' then return it.value else return it
+# Instances of this can be associated with Paws objects (and parser-types) to contextualize them
+# with information about ‘where they came from.’
+exports.Context = Context =
+class Context
+   key = '_context'
+   # Retreives the `Context` instance, if any, associated with a passed object `it`.
+   @for: (it)->          it[key]
+   @on:  (it, args...)-> it[key] = Context.apply null, args
    
-   constructor: constructify(return:@) (@value)->
-   
-   # This contextualizes the wrapped `value` with source information.
-   from: (@source_text, @source_begin = 0, @source_end = @source_text.length - 1)->
+   constructor: constructify(return:@) (@text, @begin = 0, @end = (@text or 0).length - 1)->
    
    # These conveniences extract useful portions of the original source-text, with respect to the
    # range encapsulated herein.
-   source_before: -> @source_text.substring 0, @source_begin
-   source_of:     -> @source_text.substring @source_begin, @source_end
-   source_after:  -> @source_text.substring @source_end
+   before: -> @text.substring 0, @begin
+   source: -> @text.substring @begin, @end
+   after:  -> @text.substring @end
 
 # A simple container for a series of sequentially-executed `Expression`s.
 exports.Sequence = Sequence =
-delegated('expressions', Array) class Sequence extends HasSource
+delegated('expressions', Array) class Sequence
    constructor: (@expressions...)->
    
    at: (idx)-> HasSource.unwrap @expressions[idx]
@@ -43,7 +39,7 @@ delegated('expressions', Array) class Sequence extends HasSource
 # a Paws `Thing`, or an array of sub-`Expression`s. JavaScript strings will be constructed into
 # `Label`s.
 exports.Expression = Expression =
-delegated('words', Array) class Expression extends HasSource
+delegated('words', Array) class Expression
    
    # Convenience function to construct an `Expression` from a simple JavaScript-object
    # representation thereof. Given an array of `Thing`s (or JavaScript objects, which are
@@ -74,10 +70,6 @@ delegated('words', Array) class Expression extends HasSource
          return new Label representation if typeof representation == 'string'
          return representation if representation instanceof Thing
          
-         if representation instanceof HasSource
-            representation.value = node_from representation.value
-            return representation
-         
          return new Sequence Expression.from representation if _.isArray representation
          return new Sequence representation if representation instanceof Expression
          return representation if representation instanceof Sequence
@@ -92,7 +84,7 @@ delegated('words', Array) class Expression extends HasSource
    
    constructor: -> @words = new Array
    
-   at: (idx)-> HasSource.unwrap @words[idx]
+   at: (idx)-> @words[idx]
 
 
 parse = ->
