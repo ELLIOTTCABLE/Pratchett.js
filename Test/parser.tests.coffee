@@ -53,6 +53,52 @@ describe 'Parser', ->
          Context.on an_object, some_text, 4, 7
          expect(Context.for(an_object).after()).to.be ' ghi'
    
+   describe 'Expression', ->
+      it 'exists', ->
+         expect(Expression).to.be.ok()
+         expect(Expression).to.be.a 'function'
+         
+         expect(-> new Expression).to.not.throwException()
+         expect(   new Expression).to.be.a Expression
+      
+      it "contains Things as 'words'", ->
+         a_thing = new Thing
+         
+         expr = new Expression.from [a_thing]
+         expect(expr).to.be.a Expression
+         expect(expr.words).to.have.length 1
+         expect(expr.words).to.eql [a_thing]
+      
+      it 'constructs Strings into Label-words', ->
+         a_label = 'foo'
+         
+         expr = new Expression.from [a_label]
+         expect(expr).to.be.a Expression
+         expect(expr.words).to.have.length 1
+         expect(expr.at 0       ).to.be.a Label
+         expect(expr.at(0).alien).to.be a_label
+      
+      it 'can create sub-expressions', ->
+         expect(-> new Expression.from ['foo', ['bar'], 'baz']).to.not.throwException()
+   
+      it 'creates a Sequence to wrap sub-expressions', ->
+         expr = new Expression.from [['bar']]
+         expect(expr).to.be.a Expression
+         expect(expr.words).to.have.length 1
+         expect(expr.at 0).to.be.a Sequence
+   
+      it 'recurses to create contents of sub-expressions', ->
+         a_thing = new Thing
+         
+         expr = new Expression.from ['foo', [a_thing], 'baz']
+         expect(expr).to.be.a Expression
+         expect(expr.words).to.have.length 3
+         expect(expr.at 1).to.be.a Sequence
+         
+         sub = expr.at(1).at(0)
+         expect(sub).to.be.an Expression
+         expect(sub.at 0).to.be a_thing
+   
    describe 'parses ...', ->
       it.skip 'nothing', ->
          expr = parse('')
