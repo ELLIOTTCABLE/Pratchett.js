@@ -1,17 +1,17 @@
 `                                                                                                                 /*|*/ require = require('../Library/cov_require.js')(require)`
 expect = require 'expect.js'
 
-Paws   = require '../Source/Paws.coffee'
-parser = require "../Source/parser.coffee"
+Paws  = require '../Source/Paws.coffee'
+parse = require "../Source/parser.coffee"
 
 describe 'Parser', ->
    it 'exists', ->
-      expect(parser).to.be.ok()
-      expect(parser).to.be.a 'function'
+      expect(parse).to.be.ok()
+      expect(parse).to.be.a 'function'
    
-   Sequence = parser.Sequence
-   Expression = parser.Expression
-   Context = parser.Context
+   Sequence    = parse.Sequence
+   Expression  = parse.Expression
+   Context     = parse.Context
    
    describe 'Context', ->
       it 'exists', ->
@@ -52,3 +52,10 @@ describe 'Parser', ->
          
          Context.on an_object, some_text, 4, 7
          expect(Context.for(an_object).after()).to.be ' ghi'
+   
+   describe 'parses ...', ->
+      it.skip 'nothing', ->
+         expr = parse('')
+         
+         expect(expr).to.be.ok()
+         expect(expr).to.be.a(parse.Expression)
