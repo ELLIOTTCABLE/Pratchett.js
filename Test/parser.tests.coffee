@@ -140,3 +140,25 @@ describe 'Parser', ->
          expect(bar).to.be.ok()
          expect(bar).to.be.a Label
          expect(bar.alien).to.be 'bar'
+   
+   it '... while retaining knowledge of the source-code context', ->
+                 # 0123456789A #
+      seq = parse('hello world')
+      expect(Context.for seq).to.be.ok()
+      expect(Context.for(seq).begin).to.be 0
+      expect(Context.for(seq).end).to.be 10
+
+      expr = seq.at 0
+      expect(Context.for expr).to.be.ok()
+      expect(Context.for(expr).begin).to.be 0
+      expect(Context.for(expr).end).to.be 10
+
+      hello = expr.at 0
+      expect(Context.for hello).to.be.ok()
+      expect(Context.for(hello).begin).to.be 0
+      expect(Context.for(hello).end).to.be 4
+
+      world = expr.at 1
+      expect(Context.for world).to.be.ok()
+      expect(Context.for(world).begin).to.be 6
+      expect(Context.for(world).end).to.be 10
