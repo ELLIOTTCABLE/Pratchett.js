@@ -99,9 +99,12 @@ describe 'Parser', ->
          expect(sub).to.be.an Expression
          expect(sub.at 0).to.be a_thing
    
+   # This is a bare-minimum test of the moving-parts *between* the PEG and the API.
+   # I need to write much more in-depth parser tests; preferably something that doesn't require five
+   # lines of code to check a single word. (Some Stack Overflow genius suggests an intermediate-form
+   # XML parse-structure exclusive to your test-base?)
    describe 'parses ...', ->
       it 'nothing', ->
-         debugger;
          structure = parse('')
          expect(structure).to.be.ok()
          expect(structure).to.be.a(parse.Sequence)
@@ -109,3 +112,31 @@ describe 'Parser', ->
          expr = structure.at 0
          expect(expr).to.be.ok()
          expect(expr).to.be.a(parse.Expression)
+      
+      it 'a label expression', ->
+         seq = parse('foo')
+         expect(seq).to.be.a(parse.Sequence)
+         
+         expr = seq.at 0
+         expect(expr).to.be.a(parse.Expression)
+         
+         label = expr.at 0
+         expect(label).to.be.ok()
+         expect(label).to.be.a Label
+         expect(label.alien).to.be 'foo'
+      
+      it 'multiple sequential labels in an expression', ->
+         seq = parse('foo bar')
+         expect(seq).to.be.a(parse.Sequence)
+         
+         expr = seq.at 0
+         expect(expr).to.be.a(parse.Expression)
+         
+         foo = expr.at 0
+         expect(foo).to.be.ok()
+         expect(foo).to.be.a Label
+         expect(foo.alien).to.be 'foo'
+         bar = expr.at 1
+         expect(bar).to.be.ok()
+         expect(bar).to.be.a Label
+         expect(bar.alien).to.be 'bar'

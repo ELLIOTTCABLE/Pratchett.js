@@ -106,7 +106,10 @@ parse = (text)->
             expr.words      = _.map representation, (word)-> node_from word
             context_from representation, expr
          
-         when 'label'      then # ...
+         when 'label'
+            label = new Label representation.string
+            context_from representation, label
+         
          when 'execution'  then # ...
          else # ...
    
