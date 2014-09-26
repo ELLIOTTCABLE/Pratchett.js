@@ -169,8 +169,7 @@ Paws.Label = Label = class Label extends Thing
 
 
 Paws.Execution = Execution = class Execution extends Thing
-   constructor: constructify(return:@) (@position)-> 
-   constructor: constructify (@position)->
+   constructor: constructify (@position, @begin = @position)->
       if typeof @position == 'function' then return Native.apply this, arguments
       
       @pristine = yes
