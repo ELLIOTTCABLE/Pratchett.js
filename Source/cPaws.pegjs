@@ -69,7 +69,7 @@ StraightDelimitedLabel
    { var it = label(them.join('')); return R(offset(), text())(it) }
 
 
-ExecutionLiteral "eecution"
+ExecutionLiteral "execution"
  = '{' it:Sequence '}'
    { return R(offset(), text())( execution(it) ) }
 
