@@ -355,9 +355,10 @@ Paws.Execution = Execution = class Execution extends Thing
          return new Combination previous_response, this
       
       # At this point, through one of several paths above, we've definitely descended into a (or
-      # several) sub-expression(s), and are definitely looking at a `Thing`.
+      # several) sub-expression(s), and are definitely looking at the first `Thing` in a new
+      # expression.
       upcoming_value = upcoming.valueOf()
-      return new Combination previous_response, upcoming_value
+      return new Combination null, upcoming_value
 
 
 Paws.Native = Native = class Native extends Execution
