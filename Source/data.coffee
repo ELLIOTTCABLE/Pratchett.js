@@ -182,6 +182,8 @@ Paws.Combination = Combination = class Combination
 # This class is considered immutable.
 Paws.Position = Position = class Position
    constructor: constructify (@_sequence, @expression_index = 0, @index = 0)->
+      # FIXME: argument validation.
+      #unless _.isArray(@_sequence) and _.isArray(@_sequence[0])
    
    sequence:   -> @_sequence
    expression: -> @_sequence[@expression_index]
@@ -221,9 +223,11 @@ Paws.Position = Position = class Position
 Paws.Execution = Execution = class Execution extends Thing
    constructor: constructify (@begin)->
       if typeof @begin == 'function' then return Native.apply this, arguments
+      if @begin instanceof Paws.parse.Expression then @begin = new Paws.parse.Sequence(@begin)
+      if @begin instanceof Paws.parse.Sequence   then @begin = new Position(@begin)
       
-      @instructions = [ new Position @begin ]
-      @results      = [ null                ]
+      @instructions = [ @begin ]
+      @results      = [ null   ]
       
       @pristine = yes
       @locals = new Thing().rename 'locals'
