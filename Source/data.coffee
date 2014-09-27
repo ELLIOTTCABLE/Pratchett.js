@@ -277,18 +277,21 @@ Paws.Execution = Execution = class Execution extends Thing
    #
    # It usually only makes sense for this to be called after a response to the *previous*
    # combination has been signaled by `respond` (obviously unless this is the first time it's being
-   # advanced.)
+   # advanced.) This also accepts an optional argument, the passing of which is identical to calling
+   # `respond` with that value before-hand.
    # 
    # For combinations involving the start of a new expression, `null` will be returned as one part
    # of the `Combination`; this indicates no meaningful data from the stack for that node. (The
    # reactor will interpret this as an instruction to insert this `Execution`'s `locals` into that
    # combo, instead.)
-   advance: ->
+   advance: (response)->
       return undefined if @complete()
       
       if this instanceof Native
          @pristine = no
          return @bits.shift()
+      
+      @respond response if response?
       
       # If we're continuing to advance a partially-completed `Execution`, ...
       completed = @instructions[0]
