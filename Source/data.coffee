@@ -392,8 +392,9 @@ Paws.Native = Native = class Native extends Execution
    # `Native` object referred to during the invocation of subsequent bits may *not* be the same, as
    # the `Native` may have been branched!)
    constructor: constructify(return:@) (@bits...)->
-      delete @position
-      delete @stack
+      delete @begin
+      delete @instructions
+      delete @results
       
       @resumptions = @bits.length
    
