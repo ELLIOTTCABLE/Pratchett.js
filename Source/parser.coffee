@@ -124,8 +124,9 @@ parse = (text)->
             label = new Label representation.string
             context_from representation.source, label
          
-         when 'execution'  then # ...
-         else # ...
+         when 'execution'
+            execution = new Execution node_from representation.sequence
+            context_from representation.source, execution
    
    node_from PARSER.parse(text)
 
