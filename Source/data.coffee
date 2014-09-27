@@ -186,8 +186,8 @@ Paws.Position = Position = class Position
       #unless _.isArray(@_sequence) and _.isArray(@_sequence[0])
    
    sequence:   -> @_sequence
-   expression: -> @_sequence[@expression_index]
-   valueOf:    -> @_sequence[@expression_index][@index]
+   expression: -> @_sequence?.at @expression_index
+   valueOf:    -> @_sequence?.at(@expression_index)?.at @index
    
    clone: ->
       new Position @_sequence, @expression_index, @index
@@ -196,9 +196,9 @@ Paws.Position = Position = class Position
    # combination. (If the current element is the last word of the last expression in the sequence,
    # returns `undefined`.)
    next: ->
-      if @_sequence[@expression_index][@index + 1]?
+      if @expression().at(@index + 1)?
          return new Position @_sequence, @expression_index, @index + 1
-      if @_sequence[@expression_index + 1]?
+      if @sequence().at(@expression_index + 1)?
          return new Position @_sequence, @expression_index + 1
 
 # `Execution`s store the context necessary to ‘hold’ a Paws script, partially-executed, until the
