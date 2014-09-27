@@ -78,7 +78,7 @@ delegated('words', Array) class Expression
       
       # Array of objects passed; construct an Expression
       it = new Expression
-      it.words = _.map representation, (rep)-> node_from rep
+      it.words = utilities._.map representation, (rep)-> node_from rep
       
       return it
    
