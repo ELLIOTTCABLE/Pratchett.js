@@ -288,7 +288,7 @@ Paws.Execution = Execution = class Execution extends Thing
       
       if this instanceof Native
          @pristine = no
-         return @bits.shift
+         return @bits.shift()
       
       # If we're continuing to advance a partially-completed `Execution`, ...
       completed = @instructions[0]
