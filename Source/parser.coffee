@@ -11,6 +11,7 @@ catch e
    grammar = fs.readFileSync path.join(__dirname, 'cPaws.pegjs'), encoding: 'utf8'
    PEG.buildParser grammar
 
+
 # Instances of this can be associated with Paws objects (and parser-types) to contextualize them
 # with information about ‘where they came from.’
 exports.Context = Context =
