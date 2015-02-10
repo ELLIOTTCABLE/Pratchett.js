@@ -45,6 +45,7 @@ module.exports = Rule = class Rule extends Thing
       @body.locals.inject @locals
    
    dispatch: ->
+      return if @dispatched
       Paws.notice '-- Dispatching:', Paws.inspect this
       @dispatched = true
       @unit.once 'flushed', => @flushed = true
