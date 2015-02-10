@@ -40,7 +40,7 @@ describe "Paws' Rulebook support:", ->
          thing = new Thing
          
          rule.maintain_locals Thing.construct {key: thing}
-         expect(body.locals.at(2).valueish()).to.be thing
+         expect(body.locals.find('key')[0].valueish()).to.be thing
       
       it 'should be able to be dispatched', ->
          body  = sinon.spy()
@@ -91,7 +91,7 @@ describe "Paws' Rulebook support:", ->
             
             block = new Execution
             rule.eventually block
-            expect(block.locals.at(2).valueish()).to.be thing
+            expect(block.locals.find('key')[0].valueish()).to.be thing
          
          it 'should ensure the eventually-block runs after exhaustion of the body', ->
             body  = sinon.spy()
