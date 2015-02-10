@@ -36,7 +36,6 @@ module.exports = Rule = class Rule extends Thing
       else
          @body.locals.inject Paws.primitives 'infrastructure'
          @body.locals.inject Paws.primitives 'implementation'
-         @body.locals.inject Paws.primitives 'specification' # XXX: Is there good reason for this?
       
       @body.locals.inject primitives.generate_block_locals this
       this        .inject primitives.generate_members this
