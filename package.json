@@ -26,10 +26,10 @@
                   , "test"       : "Test"
                   , "instrumentation"
                                  : "Source" }
-,         "mocha" :{"files"      : "Test/*.coffee"
-                  , "ui"         : "bdd"
-                  , "reporter"   : "spec"
-                  , "ENV"        : "test" }
+,          "test" :{"ENV"        : "test"
+                  , "files"      : "Test/*.coffee" }
+,         "mocha" :{"ui"         : "bdd"
+                  , "reporter"   : "spec" }
 ,           "git" :{"hooks"      : "prepare-commit-msg pre-commit post-merge post-checkout" }
  }
 
