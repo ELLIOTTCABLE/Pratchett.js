@@ -37,7 +37,7 @@ module.exports = Rule = class Rule extends Thing
          @body.locals.inject Paws.primitives 'implementation'
       
       @body.locals.inject primitives.generate_block_locals this
-      this        .inject primitives.generate_members this
+      this        .inject primitives.generate_members this if @caller
       
       @collection.push this
    
