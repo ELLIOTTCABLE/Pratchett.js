@@ -50,23 +50,34 @@ env NODE_ENV="$test_env" ./node_modules/.bin/mocha      \
    --reporter "$mocha_reporter" --ui "$mocha_ui"        \
    $MOCHA_FLAGS "$test_files"
 
+# FIXME: Check if the directories exist, but are empty.
 if [ -d "$PWD/$npm_package_config_dirs_rulebook" ]; then
-   env NODE_ENV="$test_env" ./node_modules/.bin/taper          \
-      --runner "$PWD/Executables/paws.js"                      \
-      --runner-param='check'                                   \
-      "$PWD/$npm_package_config_dirs_rulebook/The Ladder/"*    \
-      "$PWD/$npm_package_config_dirs_rulebook/The Gauntlet/"*  \
-      $TAPER_FLAGS -- $CHECK_FLAGS
+   if [ -d "$PWD/$npm_package_config_dirs_rulebook/The Ladder/" ]; then
+      env NODE_ENV="$test_env" ./node_modules/.bin/taper          \
+         --runner "$PWD/Executables/paws.js"                      \
+         --runner-param='check'                                   \
+         "$PWD/$npm_package_config_dirs_rulebook/The Ladder/"*    \
+         $TAPER_FLAGS -- $CHECK_FLAGS
+   fi
    
-if [ -n "${RUN_LETTERS##[NFnf]*}" ]; then
-   env NODE_ENV="$test_env" ./node_modules/.bin/taper          \
-      --runner "$PWD/Executables/paws.js"                      \
-      --runner-param='check'                                   \
-      --runner-param='--expose-specification'                  \
-      "$PWD/$npm_package_config_dirs_rulebook/The Letters/"*   \
-      $TAPER_FLAGS -- $CHECK_FLAGS $RULEBOOK_FLAGS
-fi
-
+   if [ -d "$PWD/$npm_package_config_dirs_rulebook/The Gauntlet/" ]; then
+      env NODE_ENV="$test_env" ./node_modules/.bin/taper          \
+         --runner "$PWD/Executables/paws.js"                      \
+         --runner-param='check'                                   \
+         "$PWD/$npm_package_config_dirs_rulebook/The Gauntlet/"*  \
+         $TAPER_FLAGS -- $CHECK_FLAGS
+   fi
+   
+   if [ -n "${RUN_LETTERS##[NFnf]*}" ] && \
+      [ -d "$PWD/$npm_package_config_dirs_rulebook/The Letters/" ]; then
+      env NODE_ENV="$test_env" ./node_modules/.bin/taper          \
+         --runner "$PWD/Executables/paws.js"                      \
+         --runner-param='check'                                   \
+         --runner-param='--expose-specification'                  \
+         "$PWD/$npm_package_config_dirs_rulebook/The Letters/"*   \
+         $TAPER_FLAGS -- $CHECK_FLAGS $RULEBOOK_FLAGS
+   fi
+   
 else
    [ -n "$DEBUG_SCRIPTS" ] && pute "Rulebook directory not found."
 
