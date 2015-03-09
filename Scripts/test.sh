@@ -29,21 +29,21 @@ env TRACE_REACTOR="$trace_reactor" VERBOSE="$verbose" \
    $MOCHA_FLAGS "$test_files"
 
 if [ -d "$PWD/$npm_package_config_dirs_rulebook" ]; then
-   env TRACE_REACTOR="$trace_reactor" VERBOSE="$verbose" \
-       NODE_ENV="$test_env" ./node_modules/.bin/taper    \
-      --runner "$PWD/Executables/paws.js"                \
-      --runner-param='check'                             \
-      './Test/Rulebook/The Ladder/'*                     \
-      './Test/Rulebook/The Gauntlet/'*                   \
+   env TRACE_REACTOR="$trace_reactor" VERBOSE="$verbose"       \
+       NODE_ENV="$test_env" ./node_modules/.bin/taper          \
+      --runner "$PWD/Executables/paws.js"                      \
+      --runner-param='check'                                   \
+      "$PWD/$npm_package_config_dirs_rulebook/The Ladder/"*    \
+      "$PWD/$npm_package_config_dirs_rulebook/The Gauntlet/"*  \
       $TAPER_FLAGS -- $CHECK_FLAGS
    
 if [ -n ${RUN_LETTERS+x} ]; then
-   env TRACE_REACTOR="$trace_reactor" VERBOSE="$verbose" \
-       NODE_ENV="$test_env" ./node_modules/.bin/taper    \
-      --runner "$PWD/Executables/paws.js"                \
-      --runner-param='check'                             \
-      --runner-param='--expose-specification'            \
-      './Test/Rulebook/The Letters/'*                    \
+   env TRACE_REACTOR="$trace_reactor" VERBOSE="$verbose"       \
+       NODE_ENV="$test_env" ./node_modules/.bin/taper          \
+      --runner "$PWD/Executables/paws.js"                      \
+      --runner-param='check'                                   \
+      --runner-param='--expose-specification'                  \
+      "$PWD/$npm_package_config_dirs_rulebook/The Letters/"*   \
       $TAPER_FLAGS -- $CHECK_FLAGS $RULEBOOK_FLAGS
    
 fi ; fi

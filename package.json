@@ -24,6 +24,7 @@
 ,     "config" :{
            "dirs" :{"source"     : "Source"
                   , "test"       : "Test"
+                  , "rulebook"   : "Test/Rulebook"
                   , "instrumentation"
                                  : "Source" }
 ,          "test" :{"ENV"        : "test"
