@@ -33,27 +33,28 @@ if [ -n "${RESPECT_TRACING##[YTyt]*}" ]; then
    unset TRACE_REACTOR
 fi
 
+[ -z "${SILENT##[NFnf]*}${QUIET##[NFnf]*}" ] && [ "${VERBOSE:-4}" -gt 6 ] && print_commands=yes
+go () { [ -z ${print_commands+x} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
+
 [ -n "$DEBUG_SCRIPTS" ] && puts \
    "Rulebook directory:    '$npm_package_config_dirs_rulebook'"   \
+   "Running letters:       ${RUN_LETTERS:--}"                     \
    "Pre-commit mode:       ${PRE_COMMIT:--}"                      \
    "Verbosity:             '$VERBOSE'"                            \
    "Tracing reactor:       ${TRACE_REACTOR:+Yes!}"                \
-   "Running letters:       ${RUN_LETTERS:--}"                     \
+   "Printing commands:     ${print_commands:--}"                  \
    "" >&2
 
 
-[ -z "${SILENT##[NFnf]*}${QUIET##[NFnf]*}" ] && [ "${VERBOSE:-4}" -gt 6 ] && set -x
-set -e
-
-env NODE_ENV="$test_env" ./node_modules/.bin/mocha      \
-   --compilers coffee:coffee-script/register            \
-   --reporter "$mocha_reporter" --ui "$mocha_ui"        \
+go env NODE_ENV="$test_env" ./node_modules/.bin/mocha       \
+   --compilers coffee:coffee-script/register             \
+   --reporter "$mocha_reporter" --ui "$mocha_ui"         \
    $MOCHA_FLAGS "$test_files"
 
 # FIXME: Check if the directories exist, but are empty.
 if [ -d "$PWD/$npm_package_config_dirs_rulebook" ]; then
    if [ -d "$PWD/$npm_package_config_dirs_rulebook/The Ladder/" ]; then
-      env NODE_ENV="$test_env" ./node_modules/.bin/taper          \
+      go env NODE_ENV="$test_env" ./node_modules/.bin/taper       \
          --runner "$PWD/Executables/paws.js"                      \
          --runner-param='check'                                   \
          "$PWD/$npm_package_config_dirs_rulebook/The Ladder/"*    \
@@ -61,7 +62,7 @@ if [ -d "$PWD/$npm_package_config_dirs_rulebook" ]; then
    fi
    
    if [ -d "$PWD/$npm_package_config_dirs_rulebook/The Gauntlet/" ]; then
-      env NODE_ENV="$test_env" ./node_modules/.bin/taper          \
+      go env NODE_ENV="$test_env" ./node_modules/.bin/taper       \
          --runner "$PWD/Executables/paws.js"                      \
          --runner-param='check'                                   \
          "$PWD/$npm_package_config_dirs_rulebook/The Gauntlet/"*  \
@@ -70,7 +71,7 @@ if [ -d "$PWD/$npm_package_config_dirs_rulebook" ]; then
    
    if [ -n "${RUN_LETTERS##[NFnf]*}" ] && \
       [ -d "$PWD/$npm_package_config_dirs_rulebook/The Letters/" ]; then
-      env NODE_ENV="$test_env" ./node_modules/.bin/taper          \
+      go env NODE_ENV="$test_env" ./node_modules/.bin/taper       \
          --runner "$PWD/Executables/paws.js"                      \
          --runner-param='check'                                   \
          --runner-param='--expose-specification'                  \
