@@ -46,7 +46,7 @@ go () { [ -z ${print_commands+x} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
    "" >&2
 
 
-go env NODE_ENV="$test_env" ./node_modules/.bin/mocha       \
+go env NODE_ENV="$test_env" ./node_modules/.bin/mocha    \
    --compilers coffee:coffee-script/register             \
    --reporter "$mocha_reporter" --ui "$mocha_ui"         \
    $MOCHA_FLAGS "$test_files"
