@@ -1,17 +1,15 @@
-`                                                                                                                 /*|*/ require = require('../Library/cov_require.js')(require)`
 require('./utilities.coffee').infect global
 
 uuid = require 'uuid'
 util = require 'util'
 {EventEmitter} = require 'events'
 
-{debugging} = require('./additional.coffee')
-
 
 module.exports =
    Paws = new Object
 
-debugging.inject Paws
+Paws.debugging = require('./additional.coffee').debugging
+Paws.debugging.inject Paws
 
 
 # Core data-types
@@ -241,6 +239,9 @@ Paws.Execution = Execution = class Execution extends Thing
    receiver: undefined
    
    complete:-> !this.instructions.length
+
+   # Responds with the *current* `Position`; i.e. the top element of the `instructions` stack.
+   current:-> @instructions[0]
    
    # This method of the `Execution` types will copy all data relevant to advancement of the
    # execution to a `Execution` instance. This includes the pristine-ness (boolean), the `results`
@@ -501,7 +502,7 @@ Paws.Native = Native = class Native extends Execution
 
 # Debugging output
 # ----------------
-T = debugging.tput
+T = Paws.debugging.tput
 
 # Convenience to call whatever string-making methods are available on the passed object.
 Paws.inspect = (object)->
