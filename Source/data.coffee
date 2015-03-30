@@ -520,7 +520,7 @@ Thing::_inspectName = ->
 Thing::_tagged = (output)->
    tag = @constructor.__name__ or @constructor.name
    content = if output then ' '+output else ''
-   "<#{tag}:#{@_inspectName}#{content}>"
+   "<#{tag}:#{@_inspectName()}#{content}>"
 
 Execution::_inspectName = ->
    names = []
@@ -544,5 +544,6 @@ Label::toString = ->
    if @_?.tag == no then output else @_tagged output
 
 Execution::toString = ->
-   output = "{ #{@begin.toString()} }"
+   output = @begin.toString focus: @current().valueOf()
+   output = "{ #{output} }"
    if @_?.tag == no then output else @_tagged output

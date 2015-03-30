@@ -136,5 +136,73 @@ parse = (text)->
    
    node_from intermediate
 
+
+# Attempt to construct a canonical-Paws representation of this node.
+Expression::serialize = ({focus: focus} = {})->
+   serialize_label = (word)->
+   
+   words = @words.map (words, word)->
+
+      if word instanceof Label
+         has =
+            straight: /"/              .test(word.alien),
+            curly:    /[“”]/           .test(word.alien),
+            others:   /[{}\[\];\s]/    .test(word.alien)
+         
+         if     (has.others or has.straight) and not has.curly    then w = '“'+word.alien+'”'
+         else if has.curly and not has.straight                   then w = '"'+word.alien+'"'
+         else if has.curly and has.straight
+            throw new SyntaxError "Unserializable label: "+word.inspect()+"!"
+      
+      if word instanceof Sequence
+         w = '['+word.serialize()+']'
+      
+      if word == focus then T.em w else w
+   
+   output = words.join ' '
+   if this == focus then T.em output else output
+
+Sequence::serialize = ({focus: focus} = {})->
+   ser = (expr)-> expr.serialize focus: focus
+   output = @expressions.map(ser, []).join '; '
+   if this == focus then T.em output else output
+
+Sequence::toString =
+#---
+# @param  {...!?!?} focus:
+#    If included, a `focus` node can be hilighted within the serialized string. (However, the 
+#    passed object or Sequence/Expression must have originated from the same Script!)
+# @option {boolean=false} context:
+#    Include the entire parse-time Script (if available), instead of just `this` element.
+#    environment-variable, though.)
+# @option {boolean=true} tag:
+#    Include the <Type ...> tagging around the output.
+Expression::toString = ({focus: focus} = {})->
+   context = Context.for this
+   contents = context?.source() or @serialize {focus: focus}
+   
+   if context
+      if focus
+         f = Context.for focus
+         
+         if context and f.text == context.text and f.begin > context.begin and f.end < context.end
+            length = f.end - f.begin
+            start  = f.begin - context.begin
+            end    = context.begin + length
+            
+            c = new Context contents, start, end
+            contents = c.before() + T.em c.source() + c.after()
+      
+      if @_?.context > 0
+         if not focus
+            contents = T.em contents
+         
+         before   = context.before().split("\n").slice(- @_?.context) .join("\n")
+         after    = context.after() .split("\n").slice(0, @_?.context).join("\n")
+
+         contents = before + contents + after
+   
+   if @_?.tag == no then contents else Thing::_tagged.apply this, contents
+
 module.exports = parse
 Paws.utilities.infect module.exports, exports
