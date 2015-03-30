@@ -510,22 +510,39 @@ Paws.inspect = (object)->
    object instanceof Thing && Thing::inspect.apply(object) or
    util.inspect object
 
+Thing::_inspectID = ->
+   if @id? then @id.slice(-8) else ''
+Thing::_inspectName = ->
+   names = []
+   names.push @_inspectID     if not @name or process.env['ALWAYS_ID'] or @_?.tag == no
+   names.push T.bold @name    if @name
+   names.join(':')
+Thing::_tagged = (output)->
+   tag = @constructor.__name__ or @constructor.name
+   content = if output then ' '+output else ''
+   "<#{tag}:#{@_inspectName}#{content}>"
 
-Thing.inspectID = (it)-> it.id.slice(-8)
+Execution::_inspectName = ->
+   names = []
+   names.push @_inspectID     if not @name or process.env['ALWAYS_ID'] or @_?.tag == no
+   names.push T.bold @name    if @name
+   names = names.join(':')
+   if @resumptions? 
+      calls = @resumptions - @bits.length
+      names + new Array(calls).join 'ʹ'
+   else names
+
 
 Thing::toString = ->
-   output = Thing.inspectID(this) + (if @name? then ': '+T.bold @name else '')
-   if @_?.tag == no then output else '<'+(@constructor.__name__ or @constructor.name)+' '+output+'>'
+   if @_?.tag == no then @_inspectName() else @_tagged()
 
 Thing::inspect = ->
    @toString()
 
 Label::toString = ->
-   output = '“'+@alien+'”' + (if @name? then ': '+T.bold @name else '')
-   if @_?.tag == no then output else '<'+(@constructor.__name__ or @constructor.name)+' '+output+'>'
+   output = "“#{@alien}”"
+   if @_?.tag == no then output else @_tagged output
 
 Execution::toString = ->
-   output = Thing.inspectID(this) +
-      (if @name? then ': '+T.bold @name else '') +
-      (if @resumptions? then new Array(@resumptions - @bits.length).join('[]') else '')
-   if @_?.tag == no then output else '<'+(@constructor.__name__ or @constructor.name)+' '+output+'>'
+   output = "{ #{@begin.toString()} }"
+   if @_?.tag == no then output else @_tagged output
