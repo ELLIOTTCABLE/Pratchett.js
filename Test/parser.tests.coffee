@@ -17,8 +17,8 @@ describe 'Parser', ->
          expect(Context).to.be.ok()
          expect(Context).to.be.a 'function'
          
-         expect(-> new Context).to.not.throwException()
-         expect(   new Context).to.be.a Context
+         expect(-> new Context '').to.not.throwException()
+         expect(   new Context '').to.be.a Context
       
       it 'can associate an instance of itself with any object', ->
          an_object = new Object; another_object = new Object
@@ -37,19 +37,19 @@ describe 'Parser', ->
       it 'can store a range within the source-text', ->
          an_object = new Object; some_text = 'abc def ghi'
          
-         Context.on an_object, some_text, 4, 7
+         Context.on an_object, some_text, 4, 6
          expect(Context.for(an_object).source()).to.be 'def'
       
       it 'can retreive the text *before* the source', ->
          an_object = new Object; some_text = 'abc def ghi'
          
-         Context.on an_object, some_text, 4, 7
+         Context.on an_object, some_text, 4, 6
          expect(Context.for(an_object).before()).to.be 'abc '
       
       it 'can retreive the text *after* the source', ->
          an_object = new Object; some_text = 'abc def ghi'
          
-         Context.on an_object, some_text, 4, 7
+         Context.on an_object, some_text, 4, 6
          expect(Context.for(an_object).after()).to.be ' ghi'
    
    describe 'Expression', ->
