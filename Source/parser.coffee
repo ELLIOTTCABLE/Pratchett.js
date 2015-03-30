@@ -20,13 +20,13 @@ class Context
    @for: (it)->          it[key]
    @on:  (it, args...)-> it[key] = Context.apply null, args
    
-   constructor: constructify(return:@) (@text, @begin = 0, @end = (@text or 0).length - 1)->
+   constructor: constructify(return:@) (@text, @begin = 0, @end = @text.length - 1)->
    
    # These conveniences extract useful portions of the original source-text, with respect to the
    # range encapsulated herein.
    before: -> @text.substring 0, @begin
-   source: -> @text.substring @begin, @end
-   after:  -> @text.substring @end
+   source: -> @text.substring @begin, @end + 1
+   after:  -> @text.substring @end + 1
 
 # A simple container for a series of sequentially-executed `Expression`s.
 exports.Sequence = Sequence =
