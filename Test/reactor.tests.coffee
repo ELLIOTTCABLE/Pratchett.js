@@ -4,7 +4,7 @@ expect = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
 
 Paws = require "../Source/Paws.coffee"
 Paws.utilities.infect global, Paws
-.
+
 describe 'The Paws reactor:', ->
    reactor = Paws.reactor
    parse   = Paws.parse
