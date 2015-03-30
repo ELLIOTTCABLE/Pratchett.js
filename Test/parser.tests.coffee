@@ -97,6 +97,20 @@ describe 'Parser', ->
          sub = expr.at(1).at(0)
          expect(sub).to.be.an Expression
          expect(sub.at 0).to.be a_thing
+      
+      describe '#serialize', ->
+         it 'exists', ->
+            expr = new Expression
+            expect(expr.serialize).to.be.ok()
+            expect(expr.serialize).to.be.a 'function'
+            
+            expect(-> expr.serialize()).to.not.throwException()
+            expect(   expr.serialize()).to.be.a 'string'
+         
+         it 'serializes simple labels as themselves', ->
+            seq = Expression.from ['foo']
+            seq = parse 'foo'
+            expect(seq.serialize()).to.be 'foo'
    
    # This is a bare-minimum test of the moving-parts *between* the PEG and the API.
    # I need to write much more in-depth parser tests; preferably something that doesn't require five

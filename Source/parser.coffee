@@ -138,26 +138,27 @@ parse = (text)->
 
 
 # Attempt to construct a canonical-Paws representation of this node.
+#---
+# XXX: This defaults-syntax is fucking dumb. Patch CoffeeScript.
 Expression::serialize = ({focus: focus} = {})->
-   serialize_label = (word)->
-   
-   words = @words.map (words, word)->
+   words = @words.map (word)->
 
       if word instanceof Label
+         str = word.alien
          has =
-            straight: /"/              .test(word.alien),
-            curly:    /[“”]/           .test(word.alien),
-            others:   /[{}\[\];\s]/    .test(word.alien)
+            straight: /"/              .test(str),
+            curly:    /[“”]/           .test(str),
+            others:   /[{}\[\];\s]/    .test(str)
          
-         if     (has.others or has.straight) and not has.curly    then w = '“'+word.alien+'”'
-         else if has.curly and not has.straight                   then w = '"'+word.alien+'"'
+         if     (has.others or has.straight) and not has.curly    then str = '“'+str+'”'
+         else if has.curly and not has.straight                   then str = '"'+str+'"'
          else if has.curly and has.straight
             throw new SyntaxError "Unserializable label: "+word.inspect()+"!"
       
       if word instanceof Sequence
-         w = '['+word.serialize()+']'
+         str = '['+word.serialize()+']'
       
-      if word == focus then T.em w else w
+      if word == focus then T.em str else str
    
    output = words.join ' '
    if this == focus then T.em output else output
