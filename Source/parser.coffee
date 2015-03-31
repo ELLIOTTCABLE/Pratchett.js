@@ -1,4 +1,5 @@
 Paws = require './data.coffee'
+T    = Paws.debugging.tput
 
 exports._parser = PARSER =
 try
@@ -140,6 +141,7 @@ parse = (text)->
 # Attempt to construct a canonical-Paws representation of this node.
 #---
 # XXX: This defaults-syntax is fucking dumb. Patch CoffeeScript.
+# TODO: Pretty-print the output. (Newlines, etc.)
 Expression::serialize = ({focus: focus} = {})->
    words = @words.map (word)->
 
@@ -192,7 +194,7 @@ Expression::toString = ({focus: focus} = {})->
             end    = context.begin + length
             
             c = new Context contents, start, end
-            contents = c.before() + T.em c.source() + c.after()
+            contents = c.before() + T.em(c.source()) + c.after()
       
       if @_?.context > 0
          if not focus
