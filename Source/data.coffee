@@ -525,7 +525,8 @@ Thing::_tagged = (output)->
 
 Execution::_inspectName = ->
    names = []
-   names.push @_inspectID     if not @name or process.env['ALWAYS_ID'] or @_?.tag == no
+   names.push ''
+   names.push @_inspectID()   if @_inspectID and (not @name or process.env['ALWAYS_ID'] or @_?.tag == no)
    names.push T.bold @name    if @name
    names = names.join(':')
    if @resumptions? 
