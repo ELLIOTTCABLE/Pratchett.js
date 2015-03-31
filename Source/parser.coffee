@@ -31,7 +31,7 @@ class Context
 
 # A simple container for a series of sequentially-executed `Expression`s.
 exports.Sequence = Sequence =
-delegated('expressions', Array) class Sequence
+parameterizable delegated('expressions', Array) class Sequence
    # A convenience method that simply wraps a single result of `Expression#from` in a `Sequence`.
    from: (representation)->
       return new Sequence Expression.from(representation)
@@ -48,7 +48,7 @@ delegated('expressions', Array) class Sequence
 # a Paws `Thing`, or an array of sub-`Expression`s. JavaScript strings will be constructed into
 # `Label`s.
 exports.Expression = Expression =
-delegated('words', Array) class Expression
+parameterizable delegated('words', Array) class Expression
    
    # Convenience function to construct an `Expression` from a simple JavaScript-object
    # representation thereof. Given an array of `Thing`s (or JavaScript objects, which are
@@ -158,7 +158,7 @@ Expression::serialize = ({focus: focus} = {})->
             throw new SyntaxError "Unserializable label: "+word.inspect()+"!"
       
       if word instanceof Sequence
-         str = '['+word.serialize()+']'
+         str = '['+word.serialize(focus: focus)+']'
       
       if word == focus then T.em str else str
    
@@ -205,7 +205,7 @@ Expression::toString = ({focus: focus} = {})->
 
          contents = before + contents + after
    
-   if @_?.tag == no then contents else Thing::_tagged.apply this, contents
+   if @_?.tag == no then contents else Thing::_tagged.call this, contents
 
 module.exports = parse
 Paws.utilities.infect module.exports, exports
