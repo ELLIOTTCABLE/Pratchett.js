@@ -514,13 +514,14 @@ Thing::_inspectID = ->
    if @id? then @id.slice(-8) else ''
 Thing::_inspectName = ->
    names = []
-   names.push @_inspectID     if not @name or process.env['ALWAYS_ID'] or @_?.tag == no
+   names.push ''
+   names.push @_inspectID()   if @_inspectID and (not @name or process.env['ALWAYS_ID'] or @_?.tag == no)
    names.push T.bold @name    if @name
    names.join(':')
 Thing::_tagged = (output)->
    tag = @constructor.__name__ or @constructor.name
    content = if output then ' '+output else ''
-   "<#{tag}:#{@_inspectName()}#{content}>"
+   "<#{tag}#{(@_inspectName or Thing::_inspectName).call this}#{content}>"
 
 Execution::_inspectName = ->
    names = []
