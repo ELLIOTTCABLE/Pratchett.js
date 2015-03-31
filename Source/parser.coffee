@@ -196,13 +196,16 @@ Expression::toString = ({focus: focus} = {})->
             c = new Context contents, start, end
             contents = c.before() + T.em(c.source()) + c.after()
       
-      if @_?.context > 0
+      if (lines = @_?.context) > 0
          if not focus
             contents = T.em contents
          
-         before   = context.before().split("\n").slice(- @_?.context) .join("\n")
-         after    = context.after() .split("\n").slice(0, @_?.context).join("\n")
-
+         before = context.before()
+         after  = context.after()
+         if lines != yes
+            before   = before.split("\n").slice(- @_?.context) .join("\n")
+            after    = after .split("\n").slice(0, @_?.context).join("\n")
+         
          contents = before + contents + after
    
    if @_?.tag == no then contents else Thing::_tagged.call this, contents
