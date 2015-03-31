@@ -399,7 +399,9 @@ Paws.Native = Native = class Native extends Execution
       
       @resumptions = @bits.length
    
-   complete: -> !this.bits.length
+   complete:-> not @bits.length
+
+   current:-> @bits[0]
    
    clone: (to)->
       super (to ?= new Native)
@@ -528,11 +530,13 @@ Execution::_inspectName = ->
    names.push ''
    names.push @_inspectID()   if @_inspectID and (not @name or process.env['ALWAYS_ID'] or @_?.tag == no)
    names.push T.bold @name    if @name
-   names = names.join(':')
+   names.join(':')
+Native::_inspectName = ->
+   names = Execution::_inspectName.call this
    if @resumptions? 
       calls = @resumptions - @bits.length
       names + new Array(calls).join 'ʹ'
-   else names
+   names
 
 
 Thing::toString = ->
@@ -545,7 +549,15 @@ Label::toString = ->
    output = "“#{@alien}”"
    if @_?.tag == no then output else @_tagged output
 
-Execution::toString = ->
+Execution::tostring = ->
    output = @begin.toString focus: @current().valueOf()
    output = "{ #{output} }"
+   if @_?.tag == no then output else @_tagged output
+
+Native::toString = ->
+   bodies = @bits.map (bit)->
+      bit = bit.toString()
+      bit.slice bit.indexOf("{") + 1, bit.lastIndexOf("}")
+   output = bodies.join '*|arg|'
+
    if @_?.tag == no then output else @_tagged output
