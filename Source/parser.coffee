@@ -188,10 +188,10 @@ Expression::toString = ({focus: focus} = {})->
       if focus
          f = Context.for focus
          
-         if context and f.text == context.text and f.begin > context.begin and f.end < context.end
+         if context and f.text == context.text and f.begin >= context.begin and f.end <= context.end
             length = f.end - f.begin
             start  = f.begin - context.begin
-            end    = context.begin + length
+            end    = start + length
             
             c = new Context contents, start, end
             contents = c.before() + T.em(c.source()) + c.after()
