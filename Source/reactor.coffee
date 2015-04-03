@@ -138,7 +138,7 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
    # XXX: Exists soely for debugging purposes. Could just emit *inside* `realize`.
    flushed: ->
       if process.env['TRACE_REACTOR']
-         Paws.verbose "~~ Queue flushed#{if @queue.length then ' @ '+@queue.length else ''}."
+         Paws.debug "~~ Queue flushed#{if @queue.length then ' @ '+@queue.length else ''}."
       @emit 'flushed', @queue.length
    
    # Generate the form of object passed to receivers.
@@ -163,10 +163,10 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
          if stagee.current() instanceof Position
             body = stagee.current().expression().with context: 3, tag: no
                .toString focus: stagee.current().valueOf()
-            Paws.warning T.block body, (line)-> ' │ ' + line.slice 0, -4
+            Paws.debug T.block body, (line)-> ' │ ' + line.slice 0, -4
          else if stagee.current() instanceof Function
             body = stagee.current().toString()
-            Paws.warning T.block body, (line)->   ' │ ' + line.slice 0, -4
+            Paws.wtf T.block body, (line)->   ' │ ' + line.slice 0, -4
       
       # Remove completed stagees from the queue, with no further action.
       if stagee.complete()
