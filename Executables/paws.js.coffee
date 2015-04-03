@@ -30,7 +30,7 @@ if argf.V || argf.verbose
 
 
 sources = _([argf.e, argf.expr, argf.expression])
-   .flatten().compact().map (expression)-> { from: expression, code: expression }
+   .flatten().compact().map (expression, i)-> { from: '--expression #' + i, code: expression }
    .value()
 
 Paws.info "-- Arguments: ", argv.join(' :: ')
@@ -53,8 +53,8 @@ choose = ->
       when 'pa', 'parse'
          go = -> _.forEach sources, (source)->
             Paws.info "-- Parse-tree for '#{T.bold source.from}':"
-            expr = Paws.parse Paws.parse.prepare source.code
-            out.write expr.serialize() + "\n"
+            seq = Paws.parse Paws.parse.prepare source.code
+            out.write seq.serialize() + "\n"
          
          if _.isEmpty argv[0]
             go()
@@ -88,7 +88,7 @@ choose = ->
          
          rule_unit = (source)->
             Paws.info "-- Staging '#{T.bold source.from}' from the command-line ..."
-            root = Paws.generateRoot source.code
+            root = Paws.generateRoot source.code, path.basename source.from, '.paws'
             
             if argf['expose-specification'] == true
                root.locals.inject Paws.primitives 'specification' 
@@ -124,7 +124,7 @@ choose = ->
       when 'st', 'start'
          go = -> _.forEach sources, (source)->
             Paws.info "-- Staging '#{T.bold source.from}' from the command-line ..."
-            root = Paws.generateRoot source.code
+            root = Paws.generateRoot source.code, path.basename source.from, '.paws'
             
             here = new Paws.reactor.Unit
             here.stage root
