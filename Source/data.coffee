@@ -554,19 +554,26 @@ Label::toString = ->
    output = "“#{@alien}”"
    if @_?.tag == no then output else @_tagged output
 
+# By default, this will print a serialized version of the `Execution`, with `focus` on the current
+# `Thing`, and a type-tag. If explicitly invoked with `tag: true`, then the serialized content will
+# be omitted; if instead with `serialize: true`, then the tag will be omitted.
 Execution::tostring = ->
-   output = @begin.toString focus: @current().valueOf()
-   output = "{ #{output} }"
-   if @_?.tag == no then output else @_tagged output
+   if @_?.tag != yes or @_?.serialize == yes
+      output = "{ #{@begin.toString focus: @current().valueOf()} }"
 
+   if @_?.tag == no or @_?.serialize == yes then output else @_tagged output
+
+# For `Native`s, we instead print only the tag by default, *if it is named*. If a name is absent, we
+# print the serialized implementation as well.
 Native::toString = ->
-   output = if @synchronous
-      synch = @synchronous.toString()
-      synch.slice synch.indexOf("{"), synch.lastIndexOf("}") + 1
-   else
-      bodies = @bits.map (bit)->
-         bit = bit.toString()
-         bit.slice bit.indexOf("{"), bit.lastIndexOf("}") + 1
-      bodies.join ' -> '
+   if @_?.serialize != no and (not @name or @_?.tag == no or @_?.serialize == yes)
+      output = if @synchronous
+         synch = @synchronous.toString()
+         synch.slice synch.indexOf("{"), synch.lastIndexOf("}") + 1
+      else
+         bodies = @bits.map (bit)->
+            bit = bit.toString()
+            bit.slice bit.indexOf("{"), bit.lastIndexOf("}") + 1
+         bodies.join ' -> '
 
    if @_?.tag == no then output else @_tagged output
