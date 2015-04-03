@@ -545,6 +545,11 @@ Thing::toString = ->
 Thing::inspect = ->
    @toString()
 
+Label::_inspectName = ->
+   names = []
+   names.push ''
+   names.push T.bold @name    if @name
+   names.join(':')
 Label::toString = ->
    output = "“#{@alien}”"
    if @_?.tag == no then output else @_tagged output
