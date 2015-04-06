@@ -551,5 +551,6 @@ Label::toString = ->
    if @_?.tag == no then output else @_tagged output
 
 Execution::toString = ->
-   output = "{ #{@begin.toString()} }"
+   output = @begin.toString focus: @current().valueOf()
+   output = "{ #{output} }"
    if @_?.tag == no then output else @_tagged output

@@ -42,6 +42,10 @@ class CommandLineDebugging extends Debugging
       @tput.bold      = (text)-> if use_colour then @sgr(1) + text + @sgr(22) else text
       @tput.underline = (text)-> if use_colour then @sgr(4) + text + @sgr(24) else text
       @tput.invert    = (text)-> if use_colour then @sgr(7) + text + @sgr(27) else text
+      
+      @tput.em        = (text)->
+         [before, after] = if use_colour then [@sgr(95), @sgr(39)] else ['*', '*']
+         before + text + after
    
    # This is an exposed, bi-directional mapping of verbosity-names:
    # 

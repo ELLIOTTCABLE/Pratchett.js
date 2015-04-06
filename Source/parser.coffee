@@ -1,4 +1,5 @@
 Paws = require './data.coffee'
+T    = Paws.debugging.tput
 
 exports._parser = PARSER =
 try
@@ -30,7 +31,7 @@ class Context
 
 # A simple container for a series of sequentially-executed `Expression`s.
 exports.Sequence = Sequence =
-delegated('expressions', Array) class Sequence
+parameterizable delegated('expressions', Array) class Sequence
    # A convenience method that simply wraps a single result of `Expression#from` in a `Sequence`.
    from: (representation)->
       return new Sequence Expression.from(representation)
@@ -47,7 +48,7 @@ delegated('expressions', Array) class Sequence
 # a Paws `Thing`, or an array of sub-`Expression`s. JavaScript strings will be constructed into
 # `Label`s.
 exports.Expression = Expression =
-delegated('words', Array) class Expression
+parameterizable delegated('words', Array) class Expression
    
    # Convenience function to construct an `Expression` from a simple JavaScript-object
    # representation thereof. Given an array of `Thing`s (or JavaScript objects, which are
@@ -135,6 +136,79 @@ parse = (text)->
       throw err
    
    node_from intermediate
+
+
+# Attempt to construct a canonical-Paws representation of this node.
+#---
+# XXX: This defaults-syntax is fucking dumb. Patch CoffeeScript.
+# TODO: Pretty-print the output. (Newlines, etc.)
+Expression::serialize = ({focus: focus} = {})->
+   words = @words.map (word)->
+
+      if word instanceof Label
+         str = word.alien
+         has =
+            straight: /"/              .test(str),
+            curly:    /[“”]/           .test(str),
+            others:   /[{}\[\];\s]/    .test(str)
+         
+         if     (has.others or has.straight) and not has.curly    then str = '“'+str+'”'
+         else if has.curly and not has.straight                   then str = '"'+str+'"'
+         else if has.curly and has.straight
+            throw new SyntaxError "Unserializable label: "+word.inspect()+"!"
+      
+      if word instanceof Sequence
+         str = '['+word.serialize(focus: focus)+']'
+      
+      if word == focus then T.em str else str
+   
+   output = words.join ' '
+   if this == focus then T.em output else output
+
+Sequence::serialize = ({focus: focus} = {})->
+   ser = (expr)-> expr.serialize focus: focus
+   output = @expressions.map(ser, []).join '; '
+   if this == focus then T.em output else output
+
+Sequence::toString =
+#---
+# @param  {...!?!?} focus:
+#    If included, a `focus` node can be hilighted within the serialized string. (However, the 
+#    passed object or Sequence/Expression must have originated from the same Script!)
+# @option {boolean=false} context:
+#    Include the entire parse-time Script (if available), instead of just `this` element.
+#    environment-variable, though.)
+# @option {boolean=true} tag:
+#    Include the <Type ...> tagging around the output.
+Expression::toString = ({focus: focus} = {})->
+   context = Context.for this
+   contents = context?.source() or @serialize {focus: focus}
+   
+   if context
+      if focus
+         f = Context.for focus
+         
+         if context and f.text == context.text and f.begin >= context.begin and f.end <= context.end
+            length = f.end - f.begin
+            start  = f.begin - context.begin
+            end    = start + length
+            
+            c = new Context contents, start, end
+            contents = c.before() + T.em(c.source()) + c.after()
+      
+      if (lines = @_?.context) > 0
+         if not focus
+            contents = T.em contents
+         
+         before = context.before()
+         after  = context.after()
+         if lines != yes
+            before   = before.split("\n").slice(- @_?.context) .join("\n")
+            after    = after .split("\n").slice(0, @_?.context).join("\n")
+         
+         contents = before + contents + after
+   
+   if @_?.tag == no then contents else Thing::_tagged.call this, contents
 
 module.exports = parse
 Paws.utilities.infect module.exports, exports
