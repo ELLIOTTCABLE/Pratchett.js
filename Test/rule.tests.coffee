@@ -188,39 +188,33 @@ describe "Paws' Rulebook support:", ->
             expect(coll.rules).to.contain rule
          
          it 'prints nothing when not reporting', ->
-            coll = new Collection
-            coll.print = sinon.spy()
+            stream = { write: sinon.spy() }
+            coll = new Collection stream
             
             rule = new Rule env, 'a test', new Execution, coll
-            expect(coll.print).was.notCalled()
+            expect(stream.write).was.notCalled()
             rule.pass()
-            expect(coll.print).was.notCalled()
+            expect(stream.write).was.notCalled()
          
          # FIXME: These shoudln't squat on `stdout.write`.
-         it 'prints completed rules when reporting is called', ->
-            coll = new Collection
-            coll.print = sinon.spy()
-            orig_write = process.stdout.write; process.stdout.write = new Function
+         it 'prints already-completed rules when reporting is called', ->
+            stream = { write: sinon.spy() }
+            coll = new Collection output: stream
             
             rule = new Rule env, 'a test', new Execution, coll
             rule.pass()
             
-            expect(coll.print).was.notCalled()
+            expect(stream.write).was.notCalled()
             coll.report()
-            expect(coll.print).was.calledOnce()
-            
-            process.stdout.write = orig_write
+            expect(stream.write).was.calledTwice()
          
          it 'immediately prints rules on completion, when reporting', ->
-            coll = new Collection
-            coll.print = sinon.spy()
-            orig_write = process.stdout.write; process.stdout.write = new Function
+            stream = { write: sinon.spy() }
+            coll = new Collection output: stream
             
             coll.report()
-            expect(coll.print).was.notCalled()
+            expect(stream.write).was.calledOnce()
             
             rule = new Rule env, 'a test', new Execution, coll
             rule.pass()
-            expect(coll.print).was.calledOnce()
-            
-            process.stdout.write = orig_write
+            expect(stream.write).was.calledTwice()

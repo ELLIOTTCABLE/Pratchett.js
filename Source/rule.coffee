@@ -97,7 +97,10 @@ Rule.Collection = Collection = class Collection
    _current = undefined
    @current: -> _current ?= new Collection
    
-   constructor: ->
+   # FIXME: WHY IS THIS DESTRUCTURING PARAMETER SO FUCKING UGLY, COFFEESCRIPT!?
+   constructor: ({output: @stream} = {})->
+      @stream ?= process.stdout
+      
       @rules = new Array
       @activate() unless _current?
    
@@ -114,8 +117,10 @@ Rule.Collection = Collection = class Collection
       _.map @rules, (rule)=> rule.dispatch()
    
    report: ->
+      return unless @stream
+      
       @reporting = true
-      process.stdout.write "TAP version 13\n"
+      @stream.write "TAP version 13\n"
       _.map @rules, (rule)=>
          if rule.status? then @print rule
          else rule.once 'complete', => @print rule
@@ -128,19 +133,21 @@ Rule.Collection = Collection = class Collection
    complete: ->
       @dispatching = false
       @reporting = false
-      process.stdout.write "1..#{@rules.length}\n"
+      @stream.write "1..#{@rules.length}\n" if @stream
    
    # Prints a line for a completed rule.
    print: (rule)->
+      return unless @stream
+      
       number = @rules.indexOf(rule) + 1
       status = switch rule.status
          when true      then 'ok'
          when false     then 'not ok'
          when 'NYI'     then 'not ok'
          else           rule.status
-      directive = " # TODO" if rule.status == 'pending'
+      directive = "# TODO " if rule.status == 'NYI'
       
-      process.stdout.write "#{status} #{number} #{rule.title.alien}#{directive||''}\n"
+      @stream.write "#{status} #{number} #{directive||''}#{rule.title.alien}\n"
 
-# Fucking Node.js. ddis
+# Fucking Node.js. ಠ_ಠ
 primitives = require('./primitives/specification.coffee')
