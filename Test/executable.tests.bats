@@ -113,6 +113,21 @@ book
    contains "${lines[1]}" 'ok'
 }
 
+@test '`check` exits non-zero if rules fail' {
+   file="$(tempfile)"
+   cat >"$file" <<book 
+specification rule[] “something” {
+   fail[]
+}
+book
+   
+   run paws.js check "$file"
+   
+   [ "$status" -eq 1 ]
+   [ -n "${lines[1]}" ]
+   contains "${lines[1]}" 'not ok'
+}
+
 @test '`check` reads rulebooks written in YAML' {
    file="$(tempfile).rules.yaml"
    cat >"$file" <<book 

@@ -1,5 +1,6 @@
 assert = require 'assert'
 sinon  = require 'sinon'
+match  = sinon.match
 expect = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
 
 Paws = require "../Source/Paws.coffee"
@@ -192,8 +193,61 @@ describe "Paws' Rulebook support:", ->
             coll = new Collection
             rule = new Rule env, 'a test', new Execution
             
+            expect(coll.rules).to.not.contain rule
             coll.push rule
             expect(coll.rules).to.contain rule
+         
+         it "doesn't invoke rules when not dispatching", ->
+            coll = new Collection
+            test = sinon.spy()
+            
+            rule = new Rule env, 'a test', new Native test
+            expect(test).was.notCalled()
+            coll.push rule 
+            expect(test).was.notCalled()
+         
+         it 'dispatches rules', ->
+            coll = new Collection
+            rule = new Rule env, 'a test', new Execution, coll
+            sinon.spy rule, 'dispatch'
+            
+            coll.dispatch()
+            expect(rule.dispatch).was.calledOnce()
+         
+         it 'dispatches additional rules added while dispatching', ->
+            coll = new Collection
+            coll.dispatch()
+            
+            rule = new Rule env, 'a test', new Execution
+            sinon.spy rule, 'dispatch'
+            
+            coll.push rule
+            expect(rule.dispatch).was.calledOnce()
+         
+         it 'will not accept new rules after closing', ->
+            coll = new Collection output: no
+            coll.dispatch()
+            
+            rule = new Rule env, 'a test', new Execution, coll
+            expect(coll.rules).to.have.length 1
+            
+            coll.close()
+            rule = new Rule env, 'another test', new Execution, coll
+            expect(coll.rules).to.have.length 1
+         
+         it 'completes when all rules have completed', ->
+            listener = sinon.spy()
+            coll = new Collection output: no
+            coll.on 'complete', listener
+            
+            rule1 = new Rule env, 'a test', new Execution, coll
+            rule2 = new Rule env, 'another test', new Execution, coll
+            coll.close()
+            
+            rule1.pass()
+            expect(listener).was.notCalled()
+            rule2.pass()
+            expect(listener).was.calledOnce()
          
          it 'prints nothing when not reporting', ->
             stream = { write: sinon.spy() }
@@ -204,25 +258,43 @@ describe "Paws' Rulebook support:", ->
             rule.pass()
             expect(stream.write).was.notCalled()
          
-         # FIXME: These shoudln't squat on `stdout.write`.
+         it 'prints a TAP header when reporting', ->
+            stream = { write: sinon.spy() }
+            coll = new Collection output: stream
+            expect(stream.write).was.notCalled()
+            
+            coll.report()
+            expect(stream.write).was.calledWith match "TAP version 13"
+         
          it 'prints already-completed rules when reporting is called', ->
             stream = { write: sinon.spy() }
             coll = new Collection output: stream
             
             rule = new Rule env, 'a test', new Execution, coll
             rule.pass()
-            
             expect(stream.write).was.notCalled()
+            
             coll.report()
-            expect(stream.write).was.calledTwice()
+            expect(stream.write).was.calledWith match "ok 1 a test"
          
          it 'immediately prints rules on completion, when reporting', ->
             stream = { write: sinon.spy() }
             coll = new Collection output: stream
-            
             coll.report()
-            expect(stream.write).was.calledOnce()
             
+            expect(stream.write).was.calledOnce()
             rule = new Rule env, 'a test', new Execution, coll
             rule.pass()
-            expect(stream.write).was.calledTwice()
+            expect(stream.write).was.calledWith match "ok 1 a test"
+         
+         it 'prints a ‘plan’ line after all rules have completed', ->
+            stream = { write: sinon.spy() }
+            coll = new Collection output: stream
+            coll.report()
+            
+            expect(stream.write).was.calledOnce()
+            rule = new Rule env, 'another test', new Execution, coll
+            rule.pass()
+            
+            coll.close()
+            expect(stream.write).was.calledWith match "1..1"

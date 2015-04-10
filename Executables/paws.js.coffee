@@ -72,6 +72,7 @@ choose = ->
                go()
       
       # FIXME: Single TAP count / output, for all Collections
+      # FIXME: OHFUCK, any input files need to be started *in serial*, despite asynchronicity
       when 'ch', 'check'
          {Collection} = require '../Source/rule.coffee'
          readSourcesAsync(argv).then (files)->
@@ -90,9 +91,9 @@ choose = ->
                   _.forEach collection.rules, (rule)->
                      rule.body.locals.inject Paws.primitives 'specification' 
                
-               collection.dispatch()
                collection.report()
-               collection.complete()
+               collection.on 'complete', (passed)-> goodbye 1 unless passed
+               collection.close()
          
          rule_unit = (source)->
             Paws.info "-- Staging '#{T.bold source.from}' from the command-line ..."
@@ -108,8 +109,8 @@ choose = ->
             #        it's broken here. (This may not matter, as the only rulebooks actually
             #        *testing* `specification` functionality are currently, intentionally, in YAML.)
             collection = new Collection
-            collection.dispatch()
             collection.report()
+            collection.on 'complete', (passed)-> goodbye 1 unless passed
             
             here = new Paws.reactor.Unit
             
@@ -117,8 +118,8 @@ choose = ->
             #        code on the completion of a Unit, *and* some better way to determine when to
             #        dispatch tests.
             here.on 'flushed', ->
-               if root.complete() and here.listeners('flushed').length == 1 
-                  collection.complete()
+               if root.complete()
+                  collection.close()
             
             here.stage root
             here.start() if argf.start == true
