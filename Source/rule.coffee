@@ -7,7 +7,7 @@ infect global, Paws
 
 module.exports = Rule = class Rule extends Thing
    
-   @construct: (schema, collection = Collection.current())->
+   @construct: (schema)->
       return null unless schema.name? or schema.body?
       name = new Label schema.name ? '<untitled>'
       body = if schema.body
@@ -15,7 +15,7 @@ module.exports = Rule = class Rule extends Thing
       else new Native -> rule.NYI()
       
       # XXX: Each rule in its own Unit?
-      rule = new Rule {unit: new reactor.Unit}, name, body, collection
+      rule = new Rule {unit: new reactor.Unit}, name, body
       if schema.eventually
          rule.eventually switch schema.eventually
             when 'pass' then new Native -> rule.pass()
@@ -27,7 +27,7 @@ module.exports = Rule = class Rule extends Thing
    #---
    # NOTE: Expects an environment similar to Execution.synchronous's `this`. Must contain `.unit`,
    #       and may contain `.caller`.
-   constructor: constructify(return:@) ({@caller, @unit}, @title, @body, @collection = Collection.current())->
+   constructor: constructify(return:@) ({@caller, @unit}, @title, @body, collection = Collection.current())->
       @title = new Label @title unless @title instanceof Label
       
       if @caller?
@@ -39,7 +39,7 @@ module.exports = Rule = class Rule extends Thing
       @body.locals.inject primitives.generate_block_locals this
       this        .inject primitives.generate_members this if @caller
       
-      @collection.push this
+      collection.push this if collection
    
    maintain_locals: (@locals)->
       @body.locals.inject @locals

@@ -62,6 +62,9 @@ describe "Paws' Rulebook support:", ->
          
          expect(coll.rules).to.contain rule
       
+      it 'can be created without any Collection at all', ->
+         expect(-> new Rule env, 'a test', new Execution).to.not.throwException()
+      
       it 'should store status when when passed or failed', ->
          rule  = new Rule env, 'a test', new Execution
          rule.pass()
@@ -163,11 +166,11 @@ describe "Paws' Rulebook support:", ->
          it 'should construct', ->
             expect(-> new Collection).not.to.throwException()
          
-         it 'should generate a new Collection when none exists.', ->
+         it.skip 'should generate a new Collection when none exists.', ->
             # I can't think of a way to test this.
             expect(Collection.current()).to.be.a Collection
          
-         it "should change the global 'current' collection when created"
+         it.skip "should change the global 'current' collection when created", ->
             # I can't think of any way to test this, either. ddis
          
          it 'can be selected as the current collection', ->
