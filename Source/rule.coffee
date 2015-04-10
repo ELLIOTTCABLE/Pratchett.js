@@ -60,6 +60,7 @@ module.exports = Rule = class Rule extends Thing
       Paws.info "-- Completed (#{@status}):", Paws.inspect this
       @unit.removeListener 'flushed', @eventually_listener if @eventually_listener?
       @emit 'complete', @status
+      @on 'newListener', (eve, listener)=> if eve is 'complete' then listener.call this, @status
    
    # FIXME: repeated calls?
    eventually: (block)->

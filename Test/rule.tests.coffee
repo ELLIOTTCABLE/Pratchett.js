@@ -82,6 +82,14 @@ describe "Paws' Rulebook support:", ->
          rule.pass()
          expect(listener).was.calledOnce()
       
+      it 'should emit completion, even after completion', ->
+         listener = sinon.spy()
+         rule  = new Rule env, 'a test', new Execution
+         rule.pass()
+         
+         rule.on 'complete', listener
+         expect(listener).was.calledOnce()
+      
       describe '#eventually', ->
          it 'should take a block', ->
             rule   = new Rule env, 'a test', new Execution
