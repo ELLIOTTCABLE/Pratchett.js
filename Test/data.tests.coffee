@@ -256,6 +256,9 @@ describe 'The Paws API:', ->
       it 'should begin life in a pristine state', ->
          expect((new Execution).pristine).to.be yes
       
+      it 'should begin already completed if created with no instructions', ->
+         expect((new Execution).complete()).to.be yes
+      
       it 'should have locals', ->
          exe = new Execution
          expect(exe.locals).to.be.a Thing

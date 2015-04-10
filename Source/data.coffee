@@ -224,8 +224,9 @@ Paws.Execution = Execution = class Execution extends Thing
       if @begin instanceof Paws.parse.Expression then @begin = new Paws.parse.Sequence(@begin)
       if @begin instanceof Paws.parse.Sequence   then @begin = new Position(@begin)
       
-      @instructions = [ @begin ]
       @results      = [ null   ]
+      @instructions = [        ]
+      @instructions.push @begin if @begin
       
       @pristine = yes
       @locals = new Thing().rename 'locals'
