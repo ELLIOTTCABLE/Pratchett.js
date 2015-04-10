@@ -17,8 +17,8 @@ describe 'Parser', ->
          expect(Context).to.be.ok()
          expect(Context).to.be.a 'function'
          
-         expect(-> new Context).to.not.throwException()
-         expect(   new Context).to.be.a Context
+         expect(-> new Context '').to.not.throwException()
+         expect(   new Context '').to.be.a Context
       
       it 'can associate an instance of itself with any object', ->
          an_object = new Object; another_object = new Object
@@ -37,19 +37,19 @@ describe 'Parser', ->
       it 'can store a range within the source-text', ->
          an_object = new Object; some_text = 'abc def ghi'
          
-         Context.on an_object, some_text, 4, 7
+         Context.on an_object, some_text, 4, 6
          expect(Context.for(an_object).source()).to.be 'def'
       
       it 'can retreive the text *before* the source', ->
          an_object = new Object; some_text = 'abc def ghi'
          
-         Context.on an_object, some_text, 4, 7
+         Context.on an_object, some_text, 4, 6
          expect(Context.for(an_object).before()).to.be 'abc '
       
       it 'can retreive the text *after* the source', ->
          an_object = new Object; some_text = 'abc def ghi'
          
-         Context.on an_object, some_text, 4, 7
+         Context.on an_object, some_text, 4, 6
          expect(Context.for(an_object).after()).to.be ' ghi'
    
    describe 'Expression', ->
@@ -97,6 +97,121 @@ describe 'Parser', ->
          sub = expr.at(1).at(0)
          expect(sub).to.be.an Expression
          expect(sub.at 0).to.be a_thing
+      
+      describe '#serialize', ->
+         before -> Paws.colour no
+         after  -> Paws.colour no
+         
+         it 'exists', ->
+            expr = new Expression
+            expect(expr.serialize).to.be.ok()
+            expect(expr.serialize).to.be.a 'function'
+            
+            expect(-> expr.serialize()).to.not.throwException()
+            expect(   expr.serialize()).to.be.a 'string'
+         
+         it 'serializes simple Labels as themselves', ->
+            expr = Expression.from ['foo']
+            expect(expr.serialize()).to.be 'foo'
+         
+         it 'serializes a simple Expression', ->
+            expr = Expression.from ['foo', 'bar']
+            expect(expr.serialize()).to.be 'foo bar'
+         
+         it 'serializes sub-Expressions', ->
+            expr = Expression.from ['foo', ['bar', 'baz']]
+            expect(expr.serialize()).to.be 'foo [bar baz]'
+         
+         it 'serializes a semicolon-delimited sequence of Expressions', ->
+            expr = new Sequence Expression.from(['foo', 'bar']), Expression.from(['baz', 'widget'])
+            expect(expr.serialize()).to.be 'foo bar; baz widget'
+         
+         it 'serializes obscure quoted Labels', ->
+            expr = Expression.from ["Elliott Cable"]
+            expect(expr.serialize()).to.be "“Elliott Cable”"
+
+            expr = Expression.from ['a quote: “']
+            expect(expr.serialize()).to.be '"a quote: “"'
+            
+            expr = Expression.from ['a quote: "']
+            expect(expr.serialize()).to.be '“a quote: "”'
+            
+            expr = Expression.from ["this isn't a", "[real expression]"]
+            expect(expr.serialize()).to.be "“this isn't a” “[real expression]”"
+         
+         it 'can be instructed to focus on (hilight) a single sub-element', ->
+            expr = Expression.from ['foo', ['bar', 'baz']]
+            bar = expr.at(1).at 0,0
+            expect(expr.serialize(focus: bar)).to.match /foo \[.bar. baz\]/
+         
+         it "ignores hilighted elements that don't occur during serialization", ->
+            expr = Expression.from ['foo', ['bar', 'baz']]
+            widget = new Thing
+            expect(expr.serialize(focus: widget)).to.match /foo \[bar baz\]/
+      
+      describe '#toString', ->
+         before -> Paws.colour no
+         after  -> Paws.colour no
+
+         it 'exists', ->
+            expr = new Expression
+            expect(expr.serialize).to.be.ok()
+            expect(expr.serialize).to.be.a 'function'
+            
+            expect(-> expr.serialize()).to.not.throwException()
+            expect(   expr.serialize()).to.be.a 'string'
+         
+         it 'generates tagged output by default', ->
+            expr = Expression.from ['foo']
+            expect(expr.toString()).to.contain 'Expression'
+         
+         it 'takes an option to disable tagging', ->
+            expr = Expression.from ['foo']
+            expect(expr.with(tag: no).toString()).to.not.contain 'Expression'
+         
+         it 'round-trips formatting from the parser', ->
+            outer = parse ' a   [b ]'
+            expect(outer.with(tag: no).toString()).to.be ' a   [b ]'
+            
+            inner = outer.at 0,1
+            expect(inner.with(tag: no).toString()).to.be 'b '
+         
+         it 'can include the surrounding context of the element', ->
+            outer = parse 'foo [bar]'
+            inner = outer.at 0,1
+            
+            expect(inner.with(tag: no, context: yes).toString()).to.match /foo \[.bar.\]/
+         
+         it 'can truncate multiline context', ->
+            outer = parse """
+               foo;
+               bar [
+                  something
+               ];
+               baz
+            """
+            inner = outer.at 1,1
+            something = inner.at 0,0
+            
+            expect(inner.with(tag: no, context: 1).toString()).to
+               .match /bar \[.\n   something\n.\];/
+            expect(inner.with(tag: no, context: yes).toString()).to
+               .match /foo;\nbar \[.\n   something\n.\];\nbaz/
+         
+         it 'can be instructed to focus-hilight a particular node', ->
+            outer = parse 'foo [bar baz]'
+            inner = outer.at 0,1
+            bar   = inner.at 0,0
+            
+            expect(inner.with(tag: no).toString(focus: bar)).to.match /.bar. baz/
+            expect(inner.with(tag: no, context: yes).toString(focus: bar)).to.match /foo \[.bar. baz\]/
+            
+            expr = Expression.from ['foo', ['bar', 'baz']]
+            inner = outer.at 0,1
+            bar   = inner.at 0,0
+            
+            expect(inner.with(tag: no).toString(focus: bar)).to.match /.bar. baz/
+            expect(inner.with(tag: no, context: yes).toString(focus: bar)).to.match /foo \[.bar. baz\]/
    
    # This is a bare-minimum test of the moving-parts *between* the PEG and the API.
    # I need to write much more in-depth parser tests; preferably something that doesn't require five

@@ -400,7 +400,9 @@ Paws.Native = Native = class Native extends Execution
       
       @resumptions = @bits.length
    
-   complete: -> !this.bits.length
+   complete:-> not @bits.length
+
+   current:-> @bits[0]
    
    clone: (to)->
       super (to ?= new Native)
@@ -448,15 +450,15 @@ Paws.Native = Native = class Native extends Execution
    # FIXME: Replace the holdover ES5 methods in this with IE6-compat LoDash functions
    @synchronous: (func) ->
       body = ->
-         arity = func.length
-         @resumptions = arity + 1
+         @synchronous = func
+         @resumptions = @synchronous.length + 1
          
          # First, we construct the *middle* bits of the coproductive pattern (that is, the ones that
          # handle all but the *last* actual argument the passed function requires.) These are pretty
          # generic: they simply partially-apply their RV to the *last* bit (which will be defined
          # below.) Thus, they participate in currying their argument into the final invocation of
          # the synchronous function.
-         @bits = new Array(arity).join().split(',').map ->
+         @bits = new Array(@resumptions - 1).join().split(',').map ->
             return (caller, rv, here)->
                # FIXME: Pretty this up with prototype extensions. (#last, anybody?)
                @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], rv
@@ -487,15 +489,15 @@ Paws.Native = Native = class Native extends Execution
          # constructing a context-object to act as the `this` described above.
          #---
          # FIXME: Remove the `Paws` pass, if it's unnecessary
-         @bits[arity] = Function.apply(null, ['Paws', 'func', 'caller'].concat(
-            Array(arity + 1).join('_').split(''), 'here', """
+         @bits[@resumptions - 1] = Function.apply(null, ['Paws', 'func', 'caller'].concat(
+            Array(@resumptions).join('_').split(''), 'here', """
                var rv = func.apply({ caller: caller, this: this
                                    , unit: arguments[arguments.length - 1] }
                                  , [].slice.call(arguments, 3) )
                if (typeof rv !== 'undefined' && rv !== null) {
                   here.stage(caller, rv) }
             """))
-         @bits[arity] = _.partial @bits[arity], Paws, func
+         @bits[@resumptions - 1] = _.partial @bits[@resumptions - 1], Paws, func
          
          return this
       body.apply new Native
@@ -511,22 +513,68 @@ Paws.inspect = (object)->
    object instanceof Thing && Thing::inspect.apply(object) or
    util.inspect object
 
+Thing::_inspectID = ->
+   if @id? then @id.slice(-8) else ''
+Thing::_inspectName = ->
+   names = []
+   names.push ''
+   names.push @_inspectID()   if @_inspectID and (not @name or process.env['ALWAYS_ID'] or @_?.tag == no)
+   names.push T.bold @name    if @name
+   names.join(':')
+Thing::_tagged = (output)->
+   tag = @constructor.__name__ or @constructor.name
+   content = if output then ' '+output else ''
+   "<#{tag}#{(@_inspectName or Thing::_inspectName).call this}#{content}>"
 
-Thing.inspectID = (it)-> it.id.slice(-8)
+Execution::_inspectName = ->
+   names = []
+   names.push ''
+   names.push @_inspectID()   if @_inspectID and (not @name or process.env['ALWAYS_ID'] or @_?.tag == no)
+   names.push T.bold @name    if @name
+   names.join(':')
+Native::_inspectName = ->
+   names = Execution::_inspectName.call this
+   if @resumptions? 
+      calls = @resumptions - @bits.length
+      names + new Array(calls).join 'ʹ'
+   names
+
 
 Thing::toString = ->
-   output = Thing.inspectID(this) + (if @name? then ': '+T.bold @name else '')
-   if @_?.tag == no then output else '<'+(@constructor.__name__ or @constructor.name)+' '+output+'>'
+   if @_?.tag == no then @_inspectName() else @_tagged()
 
 Thing::inspect = ->
    @toString()
 
+Label::_inspectName = ->
+   names = []
+   names.push ''
+   names.push T.bold @name    if @name
+   names.join(':')
 Label::toString = ->
-   output = '“'+@alien+'”' + (if @name? then ': '+T.bold @name else '')
-   if @_?.tag == no then output else '<'+(@constructor.__name__ or @constructor.name)+' '+output+'>'
+   output = "“#{@alien}”"
+   if @_?.tag == no then output else @_tagged output
 
-Execution::toString = ->
-   output = Thing.inspectID(this) +
-      (if @name? then ': '+T.bold @name else '') +
-      (if @resumptions? then new Array(@resumptions - @bits.length).join('[]') else '')
-   if @_?.tag == no then output else '<'+(@constructor.__name__ or @constructor.name)+' '+output+'>'
+# By default, this will print a serialized version of the `Execution`, with `focus` on the current
+# `Thing`, and a type-tag. If explicitly invoked with `tag: true`, then the serialized content will
+# be omitted; if instead with `serialize: true`, then the tag will be omitted.
+Execution::tostring = ->
+   if @_?.tag != yes or @_?.serialize == yes
+      output = "{ #{@begin.toString focus: @current().valueOf()} }"
+
+   if @_?.tag == no or @_?.serialize == yes then output else @_tagged output
+
+# For `Native`s, we instead print only the tag by default, *if it is named*. If a name is absent, we
+# print the serialized implementation as well.
+Native::toString = ->
+   if @_?.serialize != no and (not @name or @_?.tag == no or @_?.serialize == yes)
+      output = if @synchronous
+         synch = @synchronous.toString()
+         synch.slice synch.indexOf("{"), synch.lastIndexOf("}") + 1
+      else
+         bodies = @bits.map (bit)->
+            bit = bit.toString()
+            bit.slice bit.indexOf("{"), bit.lastIndexOf("}") + 1
+         bodies.join ' -> '
+
+   if @_?.tag == no then output else @_tagged output

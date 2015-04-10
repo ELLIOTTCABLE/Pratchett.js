@@ -74,7 +74,7 @@ export COLOUR=no
 @test 'The executable accepts `parse` as an operation' {
    file="$(tempfile)"
    run paws.js parse "$file"
-   skip
+   
    [ "$status" -eq 0 ]
 }
 
@@ -82,7 +82,8 @@ export COLOUR=no
    file="$(tempfile)"
    echo 'foo   bar' >"$file"
    run paws.js parse "$file"
-   skip
+   
+     contains "$output" 'bar'
    ! contains "$output" '   '
 }
 

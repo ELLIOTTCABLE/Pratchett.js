@@ -13,7 +13,7 @@ module.exports = Rule = class Rule extends Thing
       return null unless schema.name? or schema.body?
       name = new Label schema.name ? '<untitled>'
       body = if schema.body
-           new Execution Paws.parse schema.body
+         Paws.generateRoot schema.body, name
       else new Native -> rule.NYI()
       
       # XXX: Each rule in its own Unit?
@@ -22,6 +22,9 @@ module.exports = Rule = class Rule extends Thing
          rule.eventually switch schema.eventually
             when 'pass' then new Native -> rule.pass()
             when 'fail' then new Native -> rule.fail()
+            
+            # Not generateRoot'd, because we replace this Execution's locals with the body's locals
+            # when it's invoked.
             else             new Execution Paws.parse schema.eventually
       
       return rule
@@ -34,9 +37,6 @@ module.exports = Rule = class Rule extends Thing
       
       if @caller?
          @body.locals = @caller.clone().locals
-      else
-         @body.locals.inject Paws.primitives 'infrastructure'
-         @body.locals.inject Paws.primitives 'implementation'
       
       @body.locals.inject primitives.generate_block_locals this
       this        .inject primitives.generate_members this if @caller

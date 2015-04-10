@@ -3,6 +3,7 @@ require('./utilities.coffee').infect global
 {EventEmitter} = require 'events'
 
 Paws = require './data.coffee'
+T = Paws.debugging.tput
 infect global, Paws
 
 module.exports =
@@ -143,7 +144,7 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
    # XXX: Exists soely for debugging purposes. Could just emit *inside* `realize`.
    flushed: ->
       if process.env['TRACE_REACTOR']
-         Paws.verbose "~~ Queue flushed#{if @queue.length then ' @ '+@queue.length else ''}."
+         Paws.debug "~~ Queue flushed#{if @queue.length then ' @ '+@queue.length else ''}."
       @emit 'flushed', @queue.length
    
    # Generate the form of object passed to receivers.
@@ -164,14 +165,18 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
       {stagee, result, requestedMask} = staging
       
       if process.env['TRACE_REACTOR']
-         exec_printout = if not stagee.position? then '' else
-            ("\n" + stagee.position.with(context: yes, tag: no).toString())
-            .replace /\n/g, "\n   │  "
-         Paws.warning ">> #{stagee} ← #{result}" + exec_printout
+         Paws.warning ">> #{stagee} ← #{result}"
+         if stagee.current() instanceof Position
+            body = stagee.current().expression().with context: 3, tag: no
+               .toString focus: stagee.current().valueOf()
+            Paws.debug T.block body, (line)-> ' │ ' + line.slice 0, -4
+         else if stagee.current() instanceof Function
+            body = stagee.current().toString()
+            Paws.wtf T.block body, (line)->   ' │ ' + line.slice 0, -4
       
       # Remove completed stagees from the queue, with no further action.
       if stagee.complete()
-         Paws.warning "   ╰┄ complete!" if process.env['TRACE_REACTOR']
+         Paws.warning ' ╰┄ complete!' if process.env['TRACE_REACTOR']
          @flushed() unless @upcoming()
          return yes
       
@@ -190,7 +195,7 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
          message = combo.message ? stagee.locals
          
          if process.env['TRACE_REACTOR']
-            Paws.warning "   ╰┄ combo: #{combo.subject} × #{combo.message}"
+            Paws.warning " ╰┈ ⇢ combo: #{combo.subject} × #{combo.message}"
          
          @stage subject.receiver.clone(),
             Unit.receiver_parameters stagee, subject, message
