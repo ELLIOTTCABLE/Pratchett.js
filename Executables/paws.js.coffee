@@ -97,9 +97,9 @@ choose = ->
          rule_unit = (source)->
             Paws.info "-- Staging '#{T.bold source.from}' from the command-line ..."
             root = Paws.generateRoot source.code
+            root.locals.inject Paws.primitives 'specification' 
             
-            if argf['expose-specification'] == true
-               root.locals.inject Paws.primitives 'specification' 
+            # FIXME: Respect `--expose-specification` for the *bodies* of libside rules
             
             # FIXME: Rules created in libspace using the `specification` namespace will get added to
             #        the same `Collection` as the ‘root’ rules. This is fixed for YAML rulebooks,

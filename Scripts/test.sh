@@ -2,19 +2,29 @@
                                                                                       set +o verbose
 # Usage:
 # ------
-# This script runs both the unit-test suite and, if they've been downloaded, checks conformance with
+# This script runs both our test-suites, and, if they've been downloaded, checks conformance with
 # the Paws rulebooks.
 # 
+# Of note, our test suite is spread across three toolsets:
+# 
+#  - `mocha`, to run most of the unit-tests and the the JavaScript API integration tests,
+#  - `bats`, to run the executable's unit-tests as well as the CLI integration tests,
+#  - and finally `paws.js check` itself (via `taper`) to check Rulebook conformance.
+# 
 #    npm test
-#    MOCHA_FLAGS='--grep Parser' nrs test # Run a specific test-suite
+#    
+#    MOCHA_FLAGS='--grep Parser' npm test # Run a specific test-suite
 #    RESPECT_TRACING=no npm test          # Disable debugging and tracing during the tests
-#    RUN_RULEBOOK=no npm test             # Ignore the Rulebook, even if present
-#    RUN_LETTERS=yes npm test             # To execute the Letters, as well
+#    INTEGRATION=no npm test              # Ignore the Rulebook, even if present
+#    RULEBOOK=no npm test                 # Ignore the Rulebook, even if present
+#    LETTERS=yes npm test                 # To execute the Letters, as well
+
 puts() { printf %s\\n "$@" ;}
 pute() { printf %s\\n "~~ $*" >&2 ;}
 
-test_env="$npm_package_config_test_ENV"
-test_files="$npm_package_config_test_files"
+unit_dir="$npm_package_config_dirs_test"
+integration_dir="$npm_package_config_dirs_integration"
+rulebook_dir="$npm_package_config_dirs_rulebook"
 mocha_ui="$npm_package_config_mocha_ui"
 mocha_reporter="$npm_package_config_mocha_reporter"
 
@@ -26,8 +36,10 @@ echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)' && DEBUG_SC
 
 if [ -n "${PRE_COMMIT##[NFnf]*}" ]; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling pre-commit mode."
-   mocha_reporter='dot'
-   RESPECT_TRACING='no'
+   mocha_reporter=dot
+   RESPECT_TRACING=no
+   INTEGRATION=no
+   RULEBOOK=no
 fi
 
 if [ -n "${RESPECT_TRACING##[YTyt]*}" ]; then
@@ -40,51 +52,63 @@ fi
 go () { [ -z ${print_commands+x} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 [ -n "$DEBUG_SCRIPTS" ] && puts \
-   "Rulebook directory:    '$npm_package_config_dirs_rulebook'"   \
-   "Running letters:       ${RUN_LETTERS:--}"                     \
    "Pre-commit mode:       ${PRE_COMMIT:--}"                      \
-   "Verbosity:             '$VERBOSE'"                            \
    "Tracing reactor:       ${TRACE_REACTOR:+Yes!}"                \
+   "Verbosity:             '$VERBOSE'"                            \
    "Printing commands:     ${print_commands:--}"                  \
+   "Test directory:        '$test_files'"                         \
+   "Integration directory: '$integration_files'"                  \
+   "Rulebook directory:    '$rulebook_dir'"                       \
+   "Running "'`bats`'" tests:  ${BATS:--}"                        \
+   "Running integration:   ${INTEGRATION:--}"                     \
+   "Checking rulebook:     ${RULEBOOK:--}"                        \
+   "Checking letters:      ${LETTERS:--}"                         \
    "" >&2
 
 
-go env NODE_ENV="$test_env" ./node_modules/.bin/mocha    \
-   --compilers coffee:coffee-script/register             \
-   --reporter "$mocha_reporter" --ui "$mocha_ui"         \
-   $MOCHA_FLAGS "$test_files"
+mochaify() {
+   go env NODE_ENV=test ./node_modules/.bin/mocha           \
+      --compilers coffee:coffee-script/register             \
+      --reporter "$mocha_reporter" --ui "$mocha_ui"         \
+      $MOCHA_FLAGS "$@"                                     ;}
 
-# FIXME: Check if the directories exist, but are empty.
-if [ -d "$PWD/$npm_package_config_dirs_rulebook" ]; then
-   if [ -n "${RUN_RULEBOOK##[YTyt]*}" ]; then exit 0; fi
+batsify() {
+   if [ -z "${BATS##[YTyt]*}" ] && command -v bats >/dev/null; then
+      go bats --pretty $BATS_FLAGS "$@"                     ;fi ;}
 
-   if [ -d "$PWD/$npm_package_config_dirs_rulebook/The Ladder/" ]; then
-      go env NODE_ENV="$test_env" ./node_modules/.bin/taper       \
-         --runner "$PWD/Executables/paws.js"                      \
-         --runner-param='check'                                   \
-         "$PWD/$npm_package_config_dirs_rulebook/The Ladder/"*    \
-         $TAPER_FLAGS -- $CHECK_FLAGS
-   fi
+ruleify() {
+   book="$1"; shift
    
-   if [ -d "$PWD/$npm_package_config_dirs_rulebook/The Gauntlet/" ]; then
-      go env NODE_ENV="$test_env" ./node_modules/.bin/taper       \
-         --runner "$PWD/Executables/paws.js"                      \
-         --runner-param='check'                                   \
-         "$PWD/$npm_package_config_dirs_rulebook/The Gauntlet/"*  \
-         $TAPER_FLAGS -- $CHECK_FLAGS
-   fi
-   
-   if [ -n "${RUN_LETTERS##[NFnf]*}" ] && \
-      [ -d "$PWD/$npm_package_config_dirs_rulebook/The Letters/" ]; then
-      go env NODE_ENV="$test_env" ./node_modules/.bin/taper       \
-         --runner "$PWD/Executables/paws.js"                      \
-         --runner-param='check'                                   \
-         --runner-param='--expose-specification'                  \
-         "$PWD/$npm_package_config_dirs_rulebook/The Letters/"*   \
-         $TAPER_FLAGS -- $CHECK_FLAGS $RULEBOOK_FLAGS
-   fi
-   
+   if [ -z "${RULEBOOK##[YTyt]*}" ] \
+   && [ -d "$PWD/$npm_package_config_dirs_rulebook/$book/" ]; then
+      go env NODE_ENV=test ./node_modules/.bin/taper        \
+         --runner "$PWD/Executables/paws.js"                \
+         --runner-param='check'                             \
+         "$PWD/$npm_package_config_dirs_rulebook/$book"/*   \
+         $TAPER_FLAGS -- $CHECK_FLAGS "$@"                  ;fi ;}
+
+
+if [ -n "${INTEGRATION##[YTyt]*}" ]; then
+   mochaify "$unit_dir"/*.tests.coffee
+   batsify "$unit_dir"/*.tests.bats
 else
+   mochaify "$unit_dir"/*.tests.coffee "$integration_dir/"*.tests.coffee
+   batsify "$unit_dir"/*.tests.bats "$integration_dir/"*.tests.coffee
+fi
+
+if ! command -v bats >/dev/null; then
+   [ -n "$DEBUG_SCRIPTS" ] && pute '`bats` not installed.'
+   
+   puts 'Install `bats` to run the executable'\''s tests and CLI integration tests:'
+   puts '   <https://github.com/sstephenson/bats>'
+fi
+
+ruleify "The Ladder"
+ruleify "The Gauntlet"
+[ -n "${LETTERS##[NFnf]*}" ] && \
+   ruleify "The Letters" --expose-specification
+
+if [ ! -d "$PWD/$npm_package_config_dirs_rulebook" ]; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Rulebook directory not found."
 
    puts 'Clone the rulebook from this URL to `./'$npm_package_config_dirs_rulebook'` to check Rulebook compliance:'
