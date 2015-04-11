@@ -2,8 +2,10 @@
 
 ,          "name" : "Paws.js"
 ,       "private" :  true
-,       "version" : "4.0.0"
-,  "version-name" : "brillig paws"
+,       "version" : "5.0.0"
+,  "version-name" : "nordic paws"
+
+,     "spec-name" : "Paws' Nucleus 10 (ish.)"
 
 ,          "main" : "Library/Paws.js"
 

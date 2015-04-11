@@ -197,9 +197,10 @@ version = ->
    # TODO: Extract this `git describe`-style, platform-independant?
    release      = module.package['version'].split('.')[0]
    release_name = module.package['version-name']
+   spec_name    = module.package['spec-name']
    err.write """
       Paws.js release #{release}, “#{release_name}”
-         conforming to: Paws' Nucleus 10 (ish.)
+         conforming to: #{spec_name}
    """ + "\n"
    process.exit 1
 
