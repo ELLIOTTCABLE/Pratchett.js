@@ -27,30 +27,43 @@ Expression = _ expr:Partial _ END _
    { expr.type = 'expression'; return R(offset(), text())(expr) }
 
 Partial
- = PartialWithoutDelimiter
- / PartialWithDelimiter
+ = UndelimitedPartial
+ / LeftDelimitedPartial
 
-PartialWithDelimiter
- = it:DelimitedWord _ rest:PartialWithoutDelimiter { rest.unshift(it); return rest }
- / it:DelimitedWord _ rest:PartialWithDelimiter    { rest.unshift(it); return rest }
- / it:DelimitedWord                                { return [it] }
+LeftDelimitedPartial
+ = it:LeftDelimitedWord __ rest:UndelimitedPartial    { rest.unshift(it); return rest }
+ / it:LeftDelimitedWord  _ rest:LeftDelimitedPartial  { rest.unshift(it); return rest }
+ / it:FullyDelimitedWord _ rest:UndelimitedPartial    { rest.unshift(it); return rest }
+ / it:LeftDelimitedWord                               { return [it] }
 
-PartialWithoutDelimiter
- = it:Word __ rest:PartialWithoutDelimiter         { rest.unshift(it); return rest }
- / it:Word _  rest:PartialWithDelimiter            { rest.unshift(it); return rest }
- / it:Word                                         { return [it] }
+UndelimitedPartial
+ = it:UndelimitedLabel __ rest:UndelimitedPartial     { rest.unshift(it); return rest }
+ / it:UndelimitedLabel _  rest:LeftDelimitedPartial   { rest.unshift(it); return rest }
+ / it:UndelimitedLabel                                { return [it] }
 
 
-DelimitedWord
+FullyDelimitedWord
  = DelimitedLabel
+ / DelimitedMarkedLabel
  / IndirectionSubExpression
  / ExecutionLiteral
+
+LeftDelimitedWord
+ = FullyDelimitedWord
+ / MarkedLabel
+
 
 IndirectionSubExpression "indirection"
  = '[' it:Sequence ']'                             { return it }
 
 
-Word "label" = them:LabelCharacter+
+MarkedLabel
+ = '&' it:UndelimitedLabel                         { it.marked = true; return it }
+
+DelimitedMarkedLabel
+ = '&' it:DelimitedLabel                           { it.marked = true; return it }
+
+UndelimitedLabel "label" = them:LabelCharacter+
    { var it = label(them.join('')); return R(offset(), text())(it) }
 
 LabelCharacter
@@ -101,7 +114,7 @@ LineTerminatorSequence "end of line"
  / "\u2028"
  / "\u2029"
 
-ReservedCharacter = ["“”{}\[\];]
+ReservedCharacter = ["“”&{}\[\];]
 
 EOF = !.                                           { return '??? EOF' }
 
