@@ -13,8 +13,8 @@
 #
 #    npm test
 #
-#    MOCHA_FLAGS='--grep Parser' npm test # Run a specific test-suite
-#    RESPECT_TRACING=no npm test          # Disable debugging and tracing during the tests
+#    npm test --grep 'Parser'             # Run a specific unit-test suite
+#    RESPECT_TRACING=no npm test          # Disable debugging and trcing during the tests
 #    INTEGRATION=no npm test              # Ignore the Rulebook, even if present
 #    RULEBOOK=no npm test                 # Ignore the Rulebook, even if present
 #    LETTERS=yes npm test                 # To execute the Letters, as well
@@ -41,6 +41,9 @@ if [ -n "${PRE_COMMIT##[NFnf]*}" ]; then
    INTEGRATION=no
    RULEBOOK=no
 fi
+
+if [ -n "$*" ] && [ -z "$BATS" ];      then BATS='no'    ;fi
+if [ -n "$*" ] && [ -z "$RULEBOOK" ];  then RULEBOOK='no';fi
 
 if [ -n "${RESPECT_TRACING##[YTyt]*}" ]; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Disrespecting tracing flags"
@@ -70,7 +73,7 @@ mochaify() {
    go env NODE_ENV=test ./node_modules/.bin/mocha           \
       --compilers coffee:coffee-script/register             \
       --reporter "$mocha_reporter" --ui "$mocha_ui"         \
-      $MOCHA_FLAGS "$@"                                     ;}
+      "$@"                                                  ;}
 
 batsify() {
    if [ -z "${BATS##[YTyt]*}" ] && command -v bats >/dev/null; then
@@ -89,10 +92,10 @@ ruleify() {
 
 
 if [ -n "${INTEGRATION##[YTyt]*}" ]; then
-   mochaify "$unit_dir"/*.tests.coffee
+   mochaify "$unit_dir"/*.tests.coffee "$@"
    batsify "$unit_dir"/*.tests.bats
 else
-   mochaify "$unit_dir"/*.tests.coffee "$integration_dir/"*.tests.coffee
+   mochaify "$unit_dir"/*.tests.coffee "$integration_dir/"*.tests.coffee "$@"
    batsify "$unit_dir"/*.tests.bats "$integration_dir/"*.tests.coffee
 fi
 
