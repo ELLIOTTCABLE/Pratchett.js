@@ -21,13 +21,13 @@ config =
       env:        'test'
    docco:
       browser:    'Google Chrome' # Browser to open HTML documentation in
-   
+
    package:    require './package.json'
 
 open_wait_task = (opts, path) ->
    browser = spawn 'open',
       _.compact [ path, '-a', opts.browser ? config.docco.browser, (if opts.wait then '-W') ]
-   
+
    if opts.wait
       browser.on 'exit', -> invoke 'clean'
 
@@ -39,7 +39,7 @@ path           = require 'path'
 task 'test', 'run testsuite through Mocha', (options) ->
    env = Object.create process.env,
       NODE_ENV: { value: config.mocha.env }
-   
+
    child = spawn path.resolve('./node_modules/.bin/mocha'),
       _.compact [ '--grep', (options.grep or '.'), (if options.invert then '--invert')
                   '--watch' if options.watch
@@ -64,7 +64,7 @@ task 'travis', ->
    exec 'npm run-script coveralls', (error) ->
       process.exit 1 if error
       invoke 'test'
-      
+
 
 { document: docco } = require 'docco'
 task 'docs', 'generate HTML documentation via Docco', (options) ->
@@ -86,13 +86,13 @@ task 'compile:client', "bundle JavaScript through Browserify", (options) ->
      #cache: true # FIXME: Lost in 1.0 -> 2.0
      #exports: ['require', 'process'] # FIXME: Lost in 1.0 -> 2.0
    bundle.transform coffeeify
-   
+
    bundle.ignore 'vm'
-   
+
    bundle.add path.resolve process.cwd(), config.dirs.source, 'Paws.coffee'
    if options.tests
       bundle.add path.resolve process.cwd(), file for file in glob.sync config.package.testling.files
-   
+
    bundle.bundle(debug: yes).pipe fs.createWriteStream(
       config.package.main.replace(/(?=\.(?:js|coffee))|$/, '.bundle') )
 

@@ -56,13 +56,13 @@
 # What is this?
 # =============
 # [`.gitlabels`][gh] is a file that defines a series of “labels” that can be applied to [git][] commits.
-# 
+#
 # Each label is intended to “describe” a given commit in a human- and machine-readable way. These can then be used
 # to search and filter commit lists, to bring more ‘signal’ out of the changeset ‘noise.’
-# 
+#
 #   [git]: http://git-scm.com/ "Git: *Fast* version-control and source-code management system"
 #   [gh]: http://github.com/ELLIOTTCABLE/.gitlabels "The .gitlabels project"
-# 
+#
 # Examples
 # --------
 # - filtering out typo-fixes and other drudgery by excluding all commits with the `(-)` label
@@ -70,54 +70,54 @@
 #   searching for commits between the git tags ‘v1.03’ and ‘v1.04’ that include the label `(api)`
 # - following the evolution of a particular developer’s personal style by filtering on commits by that developer
 #   using both of the `(style refactor)` labels
-# 
+#
 # Usage
 # -----
 # Applying labels to your project is as simple as these two steps:
-# 
+#
 # ### Add a `.gitlabels` file
 # Your file, like this one, should exist in your project’s root directory (just like `.gitignore` and
 # `.gitattributes`!), and should consist of lines of the following format:
-#     
+#
 #     - (an-awesome-label:<argument_type>) some description of the label over here, guys!
-#     
+#
 # Labels can be subcategorized under other labels by indenting the `-` preceding the label by two spaces. Filtering
 # against a label should theoretically apply to all results that match sublabels as well. Descriptions must be
 # entirely on the same line (sorry, guys, no hard-wrapping descriptions if they get long!).
-# 
+#
 # Lines containing only whitespace or beginning with a number sign/hash (`#`) in the *first column* will be
 # discarded during parsing, and completely ignored. You may use these to provide commentary and rationale on your
 # project’s labeling system, or for any other purpose you desire.
-# 
+#
 # The parenthesis may only contain a single label, that is, they may not contain any of the characters that are not
 # legal in label names, other than the colon (`:`) necessary to declare an optional argument and its type. The
 # argument declaration (see below) must be surrounded by angle brackets (`<` and `>`).
-# 
+#
 # ### Label your commits
 # The fun part! Do what you like, just be *absolutely consistent* about it; if you collaborate with other
 # developers on the project, you should also document the labels using comments in `.gitlabels`, your README, or
 # some other source, and then encourage your collaborators to apply them as well.
-# 
+#
 # Labels go at the very start of a commit’s commit message in parenthesis, separated by spaces or commas. For
 # instance:
-#     
+#
 #     commit e17f638848fb05a43b2cb431fabdbebc84ac091a
 #     Author: elliottcable <splat@ell.io>
 #     Date:   Sat Feb 26 23:24:29 2011 -0500
-#     
+#
 #     	(doc closes:1234 see:b3b2e05 -) I love pretty much anything that comes from pigflesh.
-#     
+#
 # This commit’s labels comprises `(doc)`, `(closes)`, `(see)`, and `(-)`; in this example, perhaps, these could
 # mean that this commit comprises an unimportant (in the larger scheme of things) change to some documentation that
 # fixes some typos or something. Those typos would have been reported in the project’s issue tracker as issue
 # number 1234; the other commit whose ID began with b3b2e05 was somehow relevant as well.
-# 
+#
 # Labels may include a single argument, if described by the `.gitlabels`, which documents a related piece of data.
 # These arguments may only be of a limited set of data types (defined by whatever label-parsing system you use, but
 # I suggest at least `<commit>` and `<issue>` types of data). These might include a `(closes:<issue>)` or
 # `(related:<commit>)` label, for example. Arguments are never “required,” but a given label may not necessarily
 # make a lot of sense without its intended payload.
-# 
+#
 # Rationale
 # ---------
 # The purpose of this system is basically to encourage more *granular* committing—that is, creating more commits
@@ -128,7 +128,7 @@
 # in a word, the *soul* of the project, should be evidenced by the commit log. “Labels” make this easier, as it’s
 # less intimidating to have a commit log with thousands of commits if you know people can ignore those commits that
 # are irrelevant to them.
-# 
+#
 # Notes
 # -----
 # - The open-parenthesis (`(`) indicating the start of a commit’s labels must be the very first byte of a commit
@@ -148,10 +148,10 @@
 #   any double-quote characters
 # - The same label may appear multiple times on a single commit, and *may* include different arguments each time.
 # - *Any* series of whitespace and/or commas may separate labels (though newlines are inadvisable)
-# 
+#
 # (I, elliottcable, hereby release everything below the line containing “What is this?” into the public domain.
 #  Use, distribute, and re-use as you please. Hell, I’d *love* it if you’d spread it around; maybe then, @GitHub
 #  would be forced to support label filtering on `/compare/` pages! :D
-#  
+#
 #  I do, however, request that you either retain this explanatory document below the content of your `.gitlabels`
 #  file as I do, or include a link to http://github.com/elliottcable/.gitlabels instead. Help spread the word!)

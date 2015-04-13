@@ -20,19 +20,19 @@
       mocha.reporter('tap')
    </script>
    <script src="./Paws.bundle.js"></script>
-   
+
    <div id="explanation">
       <p>This file is used by <a href="https://ci.testling.com">Testling-CI</a> to run the client-
          side Paws tests in each browser I'm interested in testing against, automatically. It
          outputs the information in <a href="http://testanything.org">Test-Anything-Protocol</a> (or
          ‘TAP’) format to the browser's <span class='code'>console</span>.</p>
-      
+
       <p>You'll see a <em>much</em> prettier version of our client-side tests if you run 
          <span class='code'>cake test:client</span> in the project's directory.</p>
-      
+
       <p><span class='code'>:)</span></p>
    </div>
-   
+
    <script>
       window.onload = function(){
          if (mocha.suite.suites.length >= 1)

@@ -1,11 +1,11 @@
 #!/bin/sh
-# 
+#
 # This script searches recent git commits' messages for [git labels][], adds a list of suggested
 # labels to the forthcoming `git commit` template, additionally adding the explanations in
 # the project's `.gitlabels` file as hints to the end of that same template.
-# 
+#
 # Author: twitter.com/@ELLIOTTCABLE
-# 
+#
 # [git labels]: <https://github.com/ELLIOTTCABLE/.gitlabels>
 #    "gitlabels, a system for ‘tagging’ git commits"
 
@@ -28,13 +28,13 @@ SEPARATOR="$(printf '\036')"
 SCRIPT="$(
    cd "$(dirname "${BASH_SOURCE[0]}")"
    SCRIPT="$(basename "${BASH_SOURCE[0]}")"
-   
+
    while [ -L "$SCRIPT" ]; do
       SCRIPT="$(readlink "$SCRIPT")"
       cd     "$(dirname "$SCRIPT")"
       SCRIPT="$(basename "$SCRIPT")"
    done
-   
+
    PHYS_DIR="$(pwd -P)"
    echo "$PHYS_DIR/$SCRIPT"
 )"

@@ -7,9 +7,17 @@ node_js:
  - "0.10"
 #- "0.8"
 
-script: 
- - npm run-script coveralls ; true
+before_install:
+ - sudo add-apt-repository ppa:duggan/bats --yes
+ - sudo apt-get update -qq
+ - sudo apt-get install -qq bats
+ - git clone https://github.com/Paws/Rulebook.git ./Test/Rulebook
+
+script:
  - npm run-script test
+
+after_success:
+ - npm run-script coveralls
 
 matrix:
    allow_failures:
