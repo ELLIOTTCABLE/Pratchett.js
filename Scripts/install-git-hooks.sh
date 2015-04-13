@@ -8,7 +8,7 @@
 #     VERBOSE=true npm run-script install-git-hooks
 puts() { printf %s\\n "$*" ;}
 
-hook_dir=".git/hooks"
+hook_dir="${2:-.git}/hooks"
 tracked_dir="Scripts/git-hooks"
 requested_hook="$1"
 
