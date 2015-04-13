@@ -1,4 +1,6 @@
-#!./node_modules/.bin/coffee 
+#!./node_modules/.bin/coffee
+process.title = 'paws.js'
+
 module.package = require '../package.json'
 bluebird = require 'bluebird'
 minimist = require 'minimist'

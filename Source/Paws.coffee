@@ -6,7 +6,6 @@
 #                          `Y888Y'
 #                            `Y'
 
-process.title = 'paws.js'
 # XXX: Loading layout:
 #     Paws.coffee
 #        += datagraph.coffee
