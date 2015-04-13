@@ -6,8 +6,6 @@
 #                          `Y888Y'
 #                            `Y'
 
-process.title = 'paws.js'
-
 Paws = require './datagraph.coffee'
 
 Paws.utilities = require './utilities.coffee'
