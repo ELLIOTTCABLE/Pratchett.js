@@ -1,4 +1,4 @@
-Paws = require './data.coffee'
+Paws = require './datagraph.coffee'
 T    = Paws.debugging.tput
 
 exports._parser = PARSER =

@@ -8,7 +8,7 @@
 
 process.title = 'paws.js'
 
-Paws = require './data.coffee'
+Paws = require './datagraph.coffee'
 
 Paws.utilities = require './utilities.coffee'
 T = Paws.debugging.tput

@@ -2,7 +2,7 @@ require('./utilities.coffee').infect global
 
 {EventEmitter} = require 'events'
 
-Paws = require './data.coffee'
+Paws = require './datagraph.coffee'
 T = Paws.debugging.tput
 infect global, Paws
 
@@ -89,7 +89,7 @@ reactor.Staging = Staging = class Staging
    constructor: constructify (@stagee, @result, @requestedMask)->
 
 
-# The default receiver for `Thing`s preforms a ‘lookup’ (described in `data.coffee`).
+# The default receiver for `Thing`s preforms a ‘lookup’ (described in `datagraph.coffee`).
 Paws.Thing::receiver = new Native (rv, world)->
    [caller, subject, message] = rv.toArray()
    results = subject.find message
