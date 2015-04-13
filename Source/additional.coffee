@@ -130,7 +130,7 @@ class CommandLineDebugging extends Debugging
 
             exports.wtf "-- Verbosity set to: #{verbosity}/#{verbosities[verbosity] ? '???'}"
 
-         # FIXME: Move this out into its own function, and invoke upon ‘construction’ by data.coffee
+         # FIXME: Move this out into its own function, and invoke upon ‘construction’
          if process.env[name]? and (max_verbosity == Infinity)
             exports[name](process.env[name], environmental: yes)
 
