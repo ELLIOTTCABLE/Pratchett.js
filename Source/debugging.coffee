@@ -1,5 +1,3 @@
-# This file includes some additional APIs, both internal and external, that we expose on the `Paws`
-# exports-object. It's called as the first action in `Paws.coffee`.
 util = require 'util'
 
 class Debugging
@@ -150,6 +148,5 @@ class CommandLineDebugging extends Debugging
 class BrowserDebugging extends Debugging
    inject: -> #noop
 
-module.exports = additional =
-
-   debugging: debugging = new (if process?.browser then BrowserDebugging else CommandLineDebugging)
+module.exports = debugging =
+new (if process?.browser then BrowserDebugging else CommandLineDebugging)

@@ -1,4 +1,4 @@
-require('./additional.coffee').debugging.inject Paws = new Object
+require('./debugging.coffee').inject Paws = new Object
 
 module.exports =
 utilities =

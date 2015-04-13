@@ -7,15 +7,24 @@
 #                            `Y'
 
 process.title = 'paws.js'
+# XXX: Loading layout:
+#     Paws.coffee
+#        += datagraph.coffee
+#           += utilities.coffee (-> debugging.coffee)
+#           += debugging.coffee
+#        += parser.coffee
+#        += reactor.coffee      (-> utilities.coffee...)
+#        += primitives/*
 
 Paws = require './datagraph.coffee'
-
-Paws.utilities = require './utilities.coffee'
 T = Paws.debugging.tput
 
 Paws.parse   = require './parser.coffee'
 Paws.reactor = require './reactor.coffee'
 
+
+Paws.init()
+Paws.info "!! API initialized."
 
 Paws.primitives = (bag)->
    require("./primitives/#{bag}.coffee")()

@@ -1,5 +1,3 @@
-require('./utilities.coffee').infect global
-
 uuid = require 'node-uuid'
 util = require 'util'
 {EventEmitter} = require 'events'
@@ -8,8 +6,10 @@ util = require 'util'
 module.exports =
    Paws = new Object
 
-Paws.debugging = require('./additional.coffee').debugging
+Paws.utilities = require './utilities.coffee'
+Paws.debugging = require './debugging.coffee'
 Paws.debugging.inject Paws
+Paws.utilities.infect global
 
 
 # Core data-types
