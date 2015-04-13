@@ -6,7 +6,7 @@ if (process.env['NODE_ENV'] === 'coverage')
     , exclude: [
          'Test', 'node_modules', '.git'
        , 'Source/primitives'
-       , 'Source/additional.coffee'
+       , 'Source/debugging.coffee'
        , 'Executables' // This feels like cheating.
       ]
     , initAll: true

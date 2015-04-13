@@ -1,4 +1,4 @@
-require('./additional.coffee').debugging.inject Paws = new Object
+require('./debugging.coffee').inject Paws = new Object
 
 module.exports =
 util = new Object
@@ -191,3 +191,6 @@ functions = (prototype, uuntil = Object.prototype)->
    .filter (prop)-> typeof prototype[prop] == 'function'
    .concat(unless metaproto is uuntil then functions metaproto else [])
    .uniq().without('constructor')
+
+
+Paws.info "++ Utilities available"

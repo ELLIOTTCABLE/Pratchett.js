@@ -207,3 +207,5 @@ Rule.Collection = Collection = class Collection extends EventEmitter
 
 # Fucking Node.js. ಠ_ಠ
 primitives = require('./primitives/specification.coffee')
+
+Paws.info "++ Rulebook support available"

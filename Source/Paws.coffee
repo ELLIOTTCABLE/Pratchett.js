@@ -6,9 +6,16 @@
 #                          `Y888Y'
 #                            `Y'
 
-Paws = require './datagraph.coffee'
+# XXX: Loading layout:
+#     Paws.coffee
+#        += datagraph.coffee
+#           += utilities.coffee (-> debugging.coffee)
+#           += debugging.coffee
+#        += parser.coffee
+#        += reactor.coffee      (-> utilities.coffee...)
+#        += primitives/*
 
-Paws.utilities = require './utilities.coffee'
+Paws = require './datagraph.coffee'
 T = Paws.debugging.tput
 
 Paws.parse   = require './parser.coffee'
@@ -40,4 +47,6 @@ Paws.js = (code)->
 
 
 Paws.infect = (globals)-> @utilities.infect globals, this
+
+Paws.info "++ API available"
 module.exports = Paws
