@@ -6,12 +6,12 @@
    <style>
       #warning {
          margin: 2.5em;
-         
+
          font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
          font-size: 135% }
       #warning span.code {
          font-family: Menlo, Consolas, "Lucida Console", monospace }
-      
+
       #warning .addendum { font-size: 80%; font-style: italic }
    </style>
 </head>
@@ -20,7 +20,7 @@
    <script src="../node_modules/mocha/mocha.js"></script>
    <script>mocha.setup('bdd')</script>
    <script src="./Paws.bundle.js"></script>
-   
+
    <div id='warning' style='display:none'>
       <p>You'll need to bundle up the tests before this page will work:
          <pre>cake --tests compile:client</pre></p>
@@ -28,7 +28,7 @@
          check the <span class='code'>console</span>. This may also appear if there's been an
          error.)</p>
    </div>
-   
+
    <script>
       window.onload = function(){
          if (mocha.suite.suites.length >= 1)

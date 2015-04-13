@@ -2,43 +2,43 @@ require('./additional.coffee').debugging.inject Paws = new Object
 
 module.exports =
 utilities =
-   
+
    _:_ = require 'lodash-compat'
 
-   
+
    # Third-order function to pass-through the arguments to the first-order body
    passthrough: passthrough =
       (snd)-> (fst)-> ->
          result = fst.apply this, arguments
          snd.call this, result, arguments
-   
+
    # Higher-order function to wrap a function such that it always returns the owner thereof
    chain:    passthrough -> this
-   
+
    # Higher-order function to return the argument given to the function, unless the function
    # modifies it
    modifier: passthrough (result, args)-> result ? args[0]
-   
-   
+
+
    # NYD
    constructify: (opts)->
       inner = (body)->
          Wrapper = ->
-            
+
             unless this instanceof Wrapper
                F = -> @constructor = Wrapper; return this
                F.prototype = Wrapper.prototype
                F.__name__ = Wrapper.__name__
                return Wrapper.apply new F, arguments
-            
+
             # TODO: Functionality to control arguments passed to the superclass
             Wrapper.__super__?.constructor?.call this
-            
+
             rv = body[ if opts.arguments == 'intact' then 'call' else 'apply' ] this, arguments
             rv = this if typeof rv != 'object' or opts.return
-            
+
             return rv
-         
+
          # Wow. Okay. So, CoffeeScript wraps *our* wrapper in another wrapper, that then calls us
          # (understandably). This means that our `Wrapper` is no longer the *actual type* we're
          # trying to construct (that is, the nominal “constructor function” whose prototype we're
@@ -50,7 +50,7 @@ utilities =
          #
          # Unfortunately, my method for testing for “CoffeeScript-wrapper-ness” in the caller, is
          # rather fragile. I don't know how else to reliably go about this, right now.
-         # 
+         #
          # This *SHOULD NOT* affect you if you're using this in the most common, intended fashion
          # (as a direct tag on a CoffeeScript class.)
          #
@@ -83,22 +83,22 @@ utilities =
                          CoffeeScript's constructor is *always* called first. \n"""
                throw new ReferenceError "CoffeeScript wrapper called after other constructor invocations"
             return Function::apply.apply Wrapper, arguments
-         
+
          Wrapper.apply = before_interceptor
          Wrapper.__name__ = body.__name__ ? body.name
          return Wrapper
-      
+
       return inner(opts) if typeof opts == 'function'
       return inner
-   
-   
+
+
    # This is a “tag” that's intended to be inserted before CoffeeScript class-definitions:
-   # 
+   #
    #     parameterizable class Something
    #        constructor: ->
    #           # ...
    #           return this
-   # 
+   #
    # When tagged thus, the class will provide `Klass.with()(...)` and `instance.with()...` methods.
    # These will store any argument given, temporarily, on `this._`. The intended use thereof is for
    # further parameterizing methods which need complex or variable numbers of arguments in their
@@ -106,7 +106,7 @@ utilities =
    # argument. An example:
    #
    #     new Arrayish.with(makeAwesome: no)(element, element2, element3 ...)
-   # 
+   #
    # There are two extremely important caveats to its use:
    #
    #  - First off, CoffeeScript *does not* generate constructors that explicitly return the
@@ -117,33 +117,33 @@ utilities =
    #    reasonably well.)
    #
    #    **tl;dr**: Your constructors *must* explicitly `return this`.
-   # 
+   #
    #  - Second, because I don't wish to leave extra cruft on the instances of `parameterizable`
    #    ‘classes,’ this implementation automatically deletes the options member at the *end of the
    #    reactor-tick wherein it was defined*. This means both that you must immediately call any
    #    parameterized constructor, and, more importantly, that the options member *will not be
    #    available* within asynchronous calls.
-   #    
+   #
    #    As an example, the following will not work:
    #
    #        parameterizable class Something
    #           constructor: ->
    #              asynchronousOperation (result)->
    #                 if (@_.beAwesome) ...
-   #    
+   #
    #    The idiomatic way around this, is to store the options object to a local variable if you
    #    will be needing it across multiple reactor ticks. This, in my experience, is an edge-case.
    # ----
    # TODO: This could all be a lot more succinct, and prettier.
    parameterizable: (Klass)->
       Klass.with = (opts)->
-         
+
          # XXX: Perhaps this should use constructify()?
          # XXX: Should this handle super-constructors?
          F = -> @constructor = Klass; return this
          F:: = Klass::
          it = new F
-         
+
          it.with opts
          bound = _.bind Klass, it
          _.assign bound, Klass
@@ -151,13 +151,13 @@ utilities =
          bound._ = opts
          process.nextTick => delete bound._
          bound
-         
+
       Klass.prototype.with = (@_)->
          process.nextTick => delete @_
          return this
-      
+
       return Klass
-   
+
    # Another “tag” for CoffeeScript classes, to cause them to delegate any undefined methods to
    # another class, if they *are* defined on that other class.
    delegated: (member, delegatee)-> (klass)->
@@ -165,13 +165,13 @@ utilities =
          mapped = -> delegatee::[f].apply this[member], arguments
          [f, mapped]
       _.defaults klass::, funcs.object().valueOf()
-      
+
       return klass
-   
+
    noop: -> this
    identity: (arg)-> arg
-   
-   
+
+
    infect: (globals, wif = utilities)-> _.assign globals, wif
 
 # lodash's `functions()` only handles *enumerable* properties. `Array`, etc's prototypal functions
@@ -183,7 +183,7 @@ utilities =
 functions = (prototype, uuntil = Object.prototype)->
    # FIXME: This clearly won't work in IEs ... ugh.
    metaproto = prototype.__proto__
-   
+
    _(Object.getOwnPropertyNames prototype)
    .filter (prop)-> typeof prototype[prop] == 'function'
    .concat(unless metaproto is uuntil then functions metaproto else [])

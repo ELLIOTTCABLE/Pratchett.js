@@ -10,7 +10,7 @@
 {
    function label(string)        { return { type: 'label',     string: string                   } }
    function execution(sequence)  { return { type: 'execution', sequence: sequence               } }
-   
+
    function R(begin, contents) { return function(it){
       // I'm still fucking unsure whether end is off-by-one.
       it.source = {begin:begin, contents:contents, end:begin + contents.length - 1}; return it } }
@@ -104,7 +104,7 @@ LineTerminatorSequence "end of line"
 ReservedCharacter = ["“”{}\[\];]
 
 EOF = !.                                           { return '??? EOF' }
- 
+
 // Excerpt from: https://github.com/dmajda/pegjs/blob/master/examples/javascript.pegjs
 /*
  * Unicode Character Categories

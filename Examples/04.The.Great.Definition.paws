@@ -55,7 +55,7 @@ implementation void[]
 # execution stage[] [# set[] [parameters] 2][my.routine];
 # execution stage[] [# set[] [parameters] 3]locals;
 
- 
+
 implementation void[]
    Now we get an arbitrary `thing`'s receiver, and invoke it with our parameters.                    ;
 # execution stage[] [# affix[] [locals]] [# empty[]];

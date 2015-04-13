@@ -14,7 +14,7 @@ for category in $categories; do
          sed -e 's/\([0-9a-fA-F]\{4\}\)/\\u\1/g' |
          tr -d '\n'
    )']'
-   
+
    echo
    echo "$line"
 done

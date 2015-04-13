@@ -74,7 +74,7 @@ export COLOUR=no
 @test 'The executable accepts `parse` as an operation' {
    file="$(tempfile)"
    run paws.js parse "$file"
-   
+
    [ "$status" -eq 0 ]
 }
 
@@ -82,7 +82,7 @@ export COLOUR=no
    file="$(tempfile)"
    echo 'foo   bar' >"$file"
    run paws.js parse "$file"
-   
+
      contains "$output" 'bar'
    ! contains "$output" '   '
 }
@@ -92,23 +92,23 @@ export COLOUR=no
 # =======
 @test 'The executable accepts `check` as an operation' {
    file="$(tempfile)"
-   
+
    run paws.js check "$file"
-   
+
    [ "$status" -eq 0 ]
    contains "${lines[0]}" 'TAP'
 }
 
 @test '`check` executes rules' {
    file="$(tempfile)"
-   cat >"$file" <<book 
+   cat >"$file" <<book
 specification rule[] “something” {
    pass[]
 }
 book
-   
+
    run paws.js check "$file"
-   
+
    [ "$status" -eq 0 ]
    [ -n "${lines[1]}" ]
    contains "${lines[1]}" 'ok'
@@ -116,14 +116,14 @@ book
 
 @test '`check` exits non-zero if rules fail' {
    file="$(tempfile)"
-   cat >"$file" <<book 
+   cat >"$file" <<book
 specification rule[] “something” {
    fail[]
 }
 book
-   
+
    run paws.js check "$file"
-   
+
    [ "$status" -eq 1 ]
    [ -n "${lines[1]}" ]
    contains "${lines[1]}" 'not ok'
@@ -131,15 +131,15 @@ book
 
 @test '`check` reads rulebooks written in YAML' {
    file="$(tempfile).rules.yaml"
-   cat >"$file" <<book 
+   cat >"$file" <<book
 %YAML 1.2 # Paws Rulebook
 A book:
  - name: "something"
    body: pass[]
 book
-   
+
    run paws.js check "$file"
-   
+
    [ "$status" -eq 0 ]
    [ -n "${lines[1]}" ]
    contains "${lines[1]}" 'ok'
@@ -147,7 +147,7 @@ book
 
 @test '`check` accepts `--expose-specification` for self-testing' {
    file="$(tempfile).rules.yaml"
-   cat >"$file" <<book 
+   cat >"$file" <<book
 %YAML 1.2 # Paws Rulebook
 A book:
  - name: "has specification"
@@ -156,15 +156,15 @@ A book:
       pass[]
    eventually: fail[]
 book
-   
+
    run paws.js check "$file"
-   
+
    [ "$status" -eq 1 ]
    [ -n "${lines[1]}" ]
    [ "${lines[1]}" == "not ok 1 has specification" ]
-   
+
    run paws.js check --expose-specification "$file"
-   
+
    [ "$status" -eq 0 ]
    [ -n "${lines[1]}" ]
    [ "${lines[1]}" == "ok 1 has specification" ]

@@ -21,7 +21,7 @@
 ,        "coveralls" : "./Scripts/coveralls.sh"
 ,   "install-git-hooks" :
                        "./Scripts/install-git-hooks.sh"
-}   
+}
 
 ,     "config" :{
            "dirs" :{"source"     : "Source"
@@ -39,11 +39,11 @@
 ,     "dependencies" :{"coffee-script"          : "~1.9.1"
                      , "node-uuid"              : "~1.4.3"
                      , "pegjs"                  : "~0.8.0"
-                     
+
                      , "minimist"               : "~1.1.1"
                      , "mustache"               : "~2.0.0"
                      , "blessed"                : "~0.0.51"
-                     
+
                      , "pretty-error"           : "~1.1.2"
                      , "bluebird"               : "~2.9.24"
                      , "lodash-compat"          : "~3.6.0"                                        }
@@ -52,7 +52,7 @@
                      , "browserify"             : "~3.33.0"
                      , "coffeeify"              : "~0.6.0"
                      , "docco"                  : "~0.7.0"
-                     
+
                      , "mocha"                  : "~2.2.1"
                      , "mocha-lcov-reporter"    : "~0.0.2"
                      , "expect.js"              : "~0.3.1"

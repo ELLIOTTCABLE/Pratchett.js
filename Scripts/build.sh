@@ -4,7 +4,7 @@
 # ------
 # This preforms the various compilation / build steps necessary to use this implementation. It's
 # automatically run on `npm install`.
-# 
+#
 #     npm run-script build
 
 # FIXME: The existence of this script is very problematic. This basically means Windows users

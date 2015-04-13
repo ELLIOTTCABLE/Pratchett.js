@@ -4,15 +4,15 @@
 # ------
 # This script runs both our test-suites, and, if they've been downloaded, checks conformance with
 # the Paws rulebooks.
-# 
+#
 # Of note, our test suite is spread across three toolsets:
-# 
+#
 #  - `mocha`, to run most of the unit-tests and the the JavaScript API integration tests,
 #  - `bats`, to run the executable's unit-tests as well as the CLI integration tests,
 #  - and finally `paws.js check` itself (via `taper`) to check Rulebook conformance.
-# 
+#
 #    npm test
-#    
+#
 #    MOCHA_FLAGS='--grep Parser' npm test # Run a specific test-suite
 #    RESPECT_TRACING=no npm test          # Disable debugging and tracing during the tests
 #    INTEGRATION=no npm test              # Ignore the Rulebook, even if present
@@ -78,7 +78,7 @@ batsify() {
 
 ruleify() {
    book="$1"; shift
-   
+
    if [ -z "${RULEBOOK##[YTyt]*}" ] \
    && [ -d "$PWD/$npm_package_config_dirs_rulebook/$book/" ]; then
       go env NODE_ENV=test ./node_modules/.bin/taper        \
@@ -98,7 +98,7 @@ fi
 
 if ! command -v bats >/dev/null; then
    [ -n "$DEBUG_SCRIPTS" ] && pute '`bats` not installed.'
-   
+
    puts 'Install `bats` to run the executable'\''s tests and CLI integration tests:'
    puts '   <https://github.com/sstephenson/bats>'
 fi

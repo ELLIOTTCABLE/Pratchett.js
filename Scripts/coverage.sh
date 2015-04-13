@@ -4,7 +4,7 @@
 # ------
 # This will run 'coffee-coverage' across the codebase, and then generate HTML coverage to file
 # descriptor 3.
-# 
+#
 #     npm run-script coverage
 #     # ./Scripts/coverage.sh 3>./Library/coverage.html
 puts() { printf %s\\n "$*" ;}
