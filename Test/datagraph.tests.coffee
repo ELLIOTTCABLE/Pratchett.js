@@ -272,12 +272,12 @@ describe 'The Paws API:', ->
          expect(exe.locals.at(1).metadata[2].owns).to.be no
 
       it 'should take a position', ->
-         seq = new Sequence
+         seq = new Sequence new Expression
 
          expect(-> new Execution seq).to.not.throwException()
 
          exec = new Execution seq
-         expect(exec.instructions[0].sequence()).to.be seq
+         expect(exec.instructions[0].expression()).to.be seq.at 0
 
       it 'should know whether it is complete', ->
          ex = new Execution Expression.from ['foo']
@@ -296,12 +296,12 @@ describe 'The Paws API:', ->
          expect(-> ex.current()).to.not.throwException()
          expect(   ex.current()).to.be.a Position
 
-         expect(   ex.current().sequence()).to.be seq
+         expect(   ex.current().expression()).to.be seq.at 0
          expect(   ex.current().valueOf().alien).to.be 'abc'
 
          ex.advance()
          ex.advance new Thing
-         expect(   ex.current().sequence()).to.be seq
+         expect(   ex.current().expression()).to.be seq.at 0
          expect(   ex.current().valueOf().alien).to.be 'def'
 
       it 'can be cloned', ->
@@ -310,19 +310,19 @@ describe 'The Paws API:', ->
          expect(   ex.clone()).to.be.an Execution
 
       it 'preserves the instructions and results when cloning', ->
-         seq1 = new Sequence
-         seq2 = new Sequence
+         seq1 = new Sequence new Expression
+         seq2 = new Sequence new Expression
          ex = new Execution seq1
 
          clone1 = ex.clone()
-         expect(clone1.instructions[0].sequence()).to.be seq1
+         expect(clone1.instructions[0].expression()).to.be seq1.at 0
          expect(clone1.results).to.not.be ex.results
          expect(clone1.results).to.eql ex.results
 
          ex.instructions[0] = new Paws.Position seq2
          ex.results.unshift new Label 'intermediate value'
          clone2 = ex.clone()
-         expect(clone2.instructions[0].sequence()).to.be seq2
+         expect(clone2.instructions[0].expression()).to.be seq2.at 0
          expect(clone2.results).to.have.length 2
          expect(clone2.results).to.not.be ex.results
          expect(clone2.results).to.eql ex.results

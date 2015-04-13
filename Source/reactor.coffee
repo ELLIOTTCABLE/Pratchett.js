@@ -9,38 +9,7 @@ infect global, Paws
 module.exports =
    reactor = new Object
 
-# A Mask is a lens through which one can use a `Thing` as a delinator of a particular sub-graph of the
-# running program's object-graph.
-reactor.Mask = Mask = class Mask
-   constructor: constructify(return:@) (@root)->
-
-   # Given the `Thing`-y root, flatten out the nodes (more `Thing`s) of the sub-graph ‘owned’ by that
-   # root (at the time this function is called) into a simple unique-set. Acheived by climbing the graph.
-   flatten: ()->
-      recursivelyMask = (set, root)->
-         set.push root
-         _(root.metadata)
-            .filter().filter('owns')
-            .pluck('to')
-            .reduce(recursivelyMask, set)
-
-      _.uniq recursivelyMask new Array, @root
-
-   # Explores other `Mask`'s graphs, returning `true` if this `Mask` encapsulates any of the same nodes.
-   conflictsWith: (others...)->
-      others = others.reduce ((others, other)->
-         others.concat other.flatten() ), new Array
-
-      _(others).some (thing)=> _(@flatten()).contains thing
-
-   # Explores other `Mask`'s graphs, returning `true` if they include *all* of this `Mask`'s nodes.
-   containedBy: (others...)->
-      others = others.reduce ((others, other)->
-         others.concat other.flatten() ), new Array
-
-      _(@flatten()).difference(others).isEmpty()
-
-# This acts as a `Unit`'s store of access knowledge: `Executions` are matched to the `Mask`s they've
+# This acts as Achieved `Unit`'s store of access knowledge: `Executions` are matched to the `Mask`s they've
 # been given responsibility for
 #
 # I'd *really* like to see a better data-structure; but my knowledge of such things is insufficient
@@ -87,23 +56,6 @@ reactor.Table = Table = class Table
 
 reactor.Staging = Staging = class Staging
    constructor: constructify (@stagee, @result, @requestedMask)->
-
-
-# The default receiver for `Thing`s preforms a ‘lookup’ (described in `datagraph.coffee`).
-Paws.Thing::receiver = new Native (rv, world)->
-   [caller, subject, message] = rv.toArray()
-   results = subject.find message
-   # FIXME: Welp, this is horrible error-handling. "Print a warning and freeze forevah."
-   Paws.notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}." unless results[0]
-   world.stage caller, results[0].valueish() if results[0]
-.rename 'thing✕'
-
-# `Execution`'s default-receiver preforms a “call”-patterned staging; that is, cloning the subject
-# `Execution`, staging that clone, and leaving the caller unstaged.
-Paws.Execution::receiver = new Native (rv, world)->
-   [caller, subject, message] = rv.toArray()
-   world.stage subject.clone(), message
-.rename 'execution✕'
 
 
 # The Unitary design (i.e. distribution) isn't complete, at all. At the moment, a `Unit` is just a

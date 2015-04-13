@@ -13,10 +13,7 @@ Paws.utilities.infect global
 
 
 # Core data-types
-# ---------------
-
-#---
-# XXX: I'm not sure of the consequences of making all Things into EventEmitters ...
+# ===============
 Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    constructor: constructify(return:@) (elements...)->
       @id = uuid.v4()
@@ -50,10 +47,6 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          Thing.pair( key, relation ).owned()
 
       return Thing members...
-
-   # XXX: Defined later, in `reactor.coffee`. These definitions have to be deferred, because
-   #      `Execution` isn't defined yet.
-   receiver: undefined
 
    at: (idx)->       @metadata[idx]?.to
    set: (idx, to)->  @metadata[idx] = Relation.from to
@@ -123,27 +116,22 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    owned:    -> new Relation this, yes
    disowned: -> new Relation this, no
 
-Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
-   # Given a `Thing` (or `Array`s thereof), this will return a `Relation` to that thing.
-   #
-   # @option own: Whether to create new `Relation`s as `owns: yes`
-   @from: (it)->
-      if it instanceof Relation
-         it.owned @_?.own ? it.owns
-         return it
+   # These definitions have to be deferred, because `Native` isn't defined yet.
+   receiver: undefined
 
-      if it instanceof Thing
-         return new Relation(it, @_?.own ? no)
-      if _.isArray(it)
-         return it.map (el) => @from el
+Thing_init = ->
+   # The default receiver for `Thing`s simply preforms a ‘lookup.’
+   Paws.Thing::receiver = new Native (rv, world)->
+      [caller, subject, message] = rv.toArray()
 
-   constructor: constructify (@to, @owns = false)->
-      @to.clone this if @to instanceof Relation
+      results = subject.find message
 
-   clone: -> new Relation @to, @owns
+      # FIXME: Welp, this is horrible error-handling. "Print a warning and freeze forevah!!!"
+      unless results[0]
+         Paws.notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}."
 
-   owned:    chain (val)-> @owns = val ? yes
-   disowned: chain      -> @owns = no
+      world.stage caller, results[0].valueish() if results[0]
+   .rename 'thing✕'
 
 
 Paws.Label = Label = class Label extends Thing
@@ -165,39 +153,6 @@ Paws.Label = Label = class Label extends Thing
       it.push.apply it, _.map @alien.split(''), (char)-> new Label char
       it
 
-
-# A `Combination` represents a single operation in the Paws semantic. An instance of this class
-# contains the information necessary to process a pending combo (as returned by
-# `Execution#next`).
-Paws.Combination = Combination = class Combination
-   constructor: constructify (@subject, @message)->
-
-# A `Position` records the last element of a given expression from which a `Combination` was
-# generated. It also contains the information necessary to find the *next* element of that
-# expression's sequence (i.e. the indices of both the element within the expression, and the
-# expression within the sequence.)
-#
-# This class is considered immutable.
-Paws.Position = Position = class Position
-   constructor: constructify (@_sequence, @expression_index = 0, @index = 0)->
-      # FIXME: argument validation.
-      #unless _.isArray(@_sequence) and _.isArray(@_sequence[0])
-
-   sequence:   -> @_sequence
-   expression: -> @_sequence?.at @expression_index
-   valueOf:    -> @_sequence?.at(@expression_index)?.at @index
-
-   clone: ->
-      new Position @_sequence, @expression_index, @index
-
-   # Returns a new `Position`, representing the next element of the parent sequence needing
-   # combination. (If the current element is the last word of the last expression in the sequence,
-   # returns `undefined`.)
-   next: ->
-      if @expression().at(@index + 1)?
-         return new Position @_sequence, @expression_index, @index + 1
-      if @sequence().at(@expression_index + 1)?
-         return new Position @_sequence, @expression_index + 1
 
 # `Execution`s store the context necessary to ‘hold’ a Paws script, partially-executed, until the
 # next time it is advanced to produce a `Combination` for the reactor.
@@ -221,12 +176,15 @@ Paws.Position = Position = class Position
 Paws.Execution = Execution = class Execution extends Thing
    constructor: constructify (@begin)->
       if typeof @begin == 'function' then return Native.apply this, arguments
-      if @begin instanceof Paws.parse.Expression then @begin = new Paws.parse.Sequence(@begin)
-      if @begin instanceof Paws.parse.Sequence   then @begin = new Position(@begin)
 
-      @results      = [ null   ]
-      @instructions = [        ]
-      @instructions.push @begin if @begin
+      @begin = new Position @begin if @begin? and not (@begin instanceof Position)
+
+      if @begin
+         @results      = [ null   ]
+         @instructions = [ @begin ]
+      else
+         @results      = [        ]
+         @instructions = [        ]
 
       @pristine = yes
       @locals = new Thing().rename 'locals'
@@ -235,8 +193,7 @@ Paws.Execution = Execution = class Execution extends Thing
 
       return this
 
-   # XXX: Defined later, in `reactor.coffee`. These definitions have to be deferred, because
-   #      `Execution` isn't defined yet.
+   # These definitions have to be deferred, because `Execution` isn't (fully) defined yet.
    receiver: undefined
 
    complete:-> !this.instructions.length
@@ -347,7 +304,7 @@ Paws.Execution = Execution = class Execution extends Thing
 
       # If we *are* looking at another (or an arbitrary number of further) immediate
       # sub-expression(s), we need to push it (all of them) onto the stack.
-      while (it = @instructions[0].valueOf())? and it not instanceof Thing
+      while (it = @instructions[0].valueOf())? and it.expressions?
          @instructions.unshift new Position it; @results.unshift null
 
       upcoming = @instructions[0]
@@ -361,6 +318,9 @@ Paws.Execution = Execution = class Execution extends Thing
       # expression.
       upcoming_value = upcoming.valueOf()
       return new Combination null, upcoming_value
+
+   # These definitions have to be deferred, because `Execution` isn't defined yet.
+   receiver: undefined
 
 
 Paws.Native = Native = class Native extends Execution
@@ -502,6 +462,112 @@ Paws.Native = Native = class Native extends Execution
          return this
       body.apply new Native
 
+Execution_init = ->
+   # `Execution`'s default-receiver preforms a “call”-patterned staging; that is, cloning the subject
+   # `Execution`, staging that clone, and leaving the caller unstaged.
+   Paws.Execution::receiver = new Native (rv, world)->
+      [caller, subject, message] = rv.toArray()
+      world.stage subject.clone(), message
+   .rename 'execution✕'
+
+
+# Supporting types
+# ================
+Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
+   # Given a `Thing` (or `Array`s thereof), this will return a `Relation` to that thing.
+   #
+   # @option own: Whether to create new `Relation`s as `owns: yes`
+   @from: (it)->
+      if it instanceof Relation
+         it.owned @_?.own ? it.owns
+         return it
+
+      if it instanceof Thing
+         return new Relation(it, @_?.own ? no)
+      if _.isArray(it)
+         return it.map (el) => @from el
+
+   constructor: constructify (@to, @owns = false)->
+      @to.clone this if @to instanceof Relation
+
+   clone: -> new Relation @to, @owns
+
+   owned:    chain (val)-> @owns = val ? yes
+   disowned: chain      -> @owns = no
+
+
+# A `Combination` represents a single operation in the Paws semantic. An instance of this class
+# contains the information necessary to process a pending combo (as returned by
+# `Execution#next`).
+Paws.Combination = Combination = class Combination
+   constructor: constructify (@subject, @message)->
+
+# A `Position` records the last element of a given expression from which a `Combination` was
+# generated. It also contains the information necessary to find the *next* element of that
+# expression's sequence (i.e. the indices of both the element within the expression, and the
+# expression within the sequence.)
+#
+# This class is considered immutable.
+#---
+# FIXME: Factor out the Script-types (Expression/Sequence) from the parser, so I can include them
+# verbatim into both parser.coffee and datagraph.coffee
+Paws.Position = Position = class Position
+   constructor: constructify(return:@) (@_sequence, @expression_index = 0, @index = 0)->
+      unless @_sequence?.expressions? # ... passed an Expression, not a Sequence
+         @_sequence = expressions: [@_sequence] # Construct a faux-Sequence
+         [@index, @expression_index] = [@expression_index, 0]
+
+      # FIXME: argument validation.
+      #unless _.isArray(@_sequence) and _.isArray(@_sequence[0])
+
+   expression: -> @_sequence.expressions[@expression_index]
+   valueOf:    -> @_sequence.expressions[@expression_index]?.at @index
+
+   clone: ->
+      new Position @_sequence, @expression_index, @index
+
+   # Returns a new `Position`, representing the next element of the parent sequence needing
+   # combination. (If the current element is the last word of the last expression in the sequence,
+   # returns `undefined`.)
+   next: ->
+      if @expression().at(@index + 1)?
+         return new Position @_sequence, @expression_index, @index + 1
+      if @_sequence.expressions[@expression_index + 1]?
+         return new Position @_sequence, @expression_index + 1
+
+
+# A Mask is a lens through which one can use a `Thing` as a delinator of a particular sub-graph of
+# the running program's object-graph.
+Paws.Mask = Mask = class Mask
+   constructor: constructify(return:@) (@root)->
+
+   # Given the `Thing`-y root, flatten out the nodes (more `Thing`s) of the sub-graph ‘owned’ by
+   # that root (at the time this function is called) into a simple unique-set. Achieved by climbing
+   # the graph.
+   flatten: ()->
+      recursivelyMask = (set, root)->
+         set.push root
+         _(root.metadata)
+            .filter().filter('owns')
+            .pluck('to')
+            .reduce(recursivelyMask, set)
+
+      _.uniq recursivelyMask new Array, @root
+
+   # Explores other `Mask`'s graphs, returning `true` if this `Mask` encapsulates any of the same nodes.
+   conflictsWith: (others...)->
+      others = others.reduce ((others, other)->
+         others.concat other.flatten() ), new Array
+
+      _(others).some (thing)=> _(@flatten()).contains thing
+
+   # Explores other `Mask`'s graphs, returning `true` if they include *all* of this `Mask`'s nodes.
+   containedBy: (others...)->
+      others = others.reduce ((others, other)->
+         others.concat other.flatten() ), new Array
+
+      _(@flatten()).difference(others).isEmpty()
+
 
 # Debugging output
 # ----------------
@@ -578,5 +644,11 @@ Native::toString = ->
          bodies.join ' -> '
 
    if @_?.tag == no then output else @_tagged output
+
+
+# Initialization
+# ==============
+Thing_init()
+Execution_init()
 
 Paws.debug "++ Datagraph available"
