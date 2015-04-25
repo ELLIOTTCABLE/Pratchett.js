@@ -3,57 +3,6 @@ util = require 'util'
 class Debugging
 
 class CommandLineDebugging extends Debugging
-   # FIXME: Make these ‘instance’ variables
-   use_colour = true # Default
-   verbosity = 4 # Default
-   max_verbosity = Infinity
-
-   constructor: ->
-      # FIXME: This `require` will break browserify.
-      @tput = new (require('blessed').Tput) term: process.env['TERM']
-
-      # Patching Tput's column measurement
-      if not @tput?.columns? or @tput.columns == 80
-         @tput.columns = process.stdout.columns || 80
-      process.stdout.on 'resize', => @tput.columns = process.stdout.columns
-
-      @tput.sgr = (flags...)-> @csi flags.join(';') + 'm'
-      @tput.csi = (text)->  '\x1b[' + text
-
-      @tput.fg = (colour, text)-> if use_colour then switch
-         when colour < 10 then @sgr(30+colour) + text + @sgr(39)
-         when colour < 20 then @sgr(80+colour) + text + @sgr(39)
-         else                  @xfg colour, text
-      else text
-
-      @tput.bg = (colour, text)-> if use_colour then switch
-         when colour < 10 then @sgr(40+colour) + text + @sgr(49)
-         when colour < 20 then @sgr(90+colour) + text + @sgr(49)
-         else                  @xbg colour, text
-      else text
-
-      @tput.xfg = (colour, text)->
-         if use_colour then @sgr(38,5,colour) + text + @sgr(39) else text
-      @tput.xbg = (colour, text)->
-         if use_colour then @sgr(48,5,colour) + text + @sgr(49) else text
-
-      @tput.block = (text, cb)=>
-         lines = text.split "\n"
-         lines = _(lines).map (line, i)=>
-            sanitized_line = if use_colour then line.replace /\x1b.*?[ABCDGsum]/g, '' else line
-            spacing = Math.max 0, @tput.columns - sanitized_line.length
-            line = line + new Array(spacing).join ' '
-            if cb then cb line, i, sanitized_line, text else line
-         lines.join "\n"
-
-      @tput.bold      = (text)-> if use_colour then @sgr(1) + text + @sgr(22) else text
-      @tput.underline = (text)-> if use_colour then @sgr(4) + text + @sgr(24) else text
-      @tput.invert    = (text)-> if use_colour then @sgr(7) + text + @sgr(27) else text
-
-      @tput.em        = (text)->
-         [before, after] = if use_colour then [@sgr(95), @sgr(39)] else ['*', '*']
-         before + text + after
-
    # This is an exposed, bi-directional mapping of verbosity-names:
    #
    #     Paws.verbosities[4] === Paws.verbosities['warning']
