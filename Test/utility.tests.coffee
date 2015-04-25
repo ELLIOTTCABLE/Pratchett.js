@@ -61,12 +61,18 @@ describe "Paws' utilities:", ->
          expect(    Klass()).to.be.a Klass
 
       it 'uses a really hacky system that requires you not to call the wrapper before CoffeeScript does', ->
-         Paws.info "Silencing output."; Paws.SILENT()
+         Paws.notice "-- SILENCING ALL DEBUGGING OUTPUT!"
+         verbosity = Paws.debugging.verbosity(); Paws.debugging.VERBOSE 2
+
          Ctor = null
          class Klass
             constructor: Ctor = constructify ->
          Ctor()
          expect(-> new Klass).to.throwException()
+
+         Paws.debugging.VERBOSE verbosity
+         Paws.wtf "-- Resuming debugging output"
+
       it 'can be called multiple times /reg', ->
          Ctor1 = constructify ->
          expect(-> new Ctor1).to.not.throwException()

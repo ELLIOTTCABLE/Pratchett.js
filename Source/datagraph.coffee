@@ -7,10 +7,11 @@ module.exports =
    Paws = new Object
 
 Paws.utilities = require './utilities.coffee'
-Paws.debugging = require './debugging.coffee'
-Paws.debugging.inject Paws
 Paws.utilities.infect global
 
+Paws.debugging = require './debugging.coffee'
+Paws.debugging.infect Paws
+Paws.debugging.infect global
 
 # Core data-types
 # ===============

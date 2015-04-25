@@ -246,5 +246,5 @@ functions = (prototype, uuntil = Object.prototype)->
 
 # `debugging.coffee` depends on this, and thus must be loaded *after* this. (Similarly, it cannot be
 # used inside this file until post-init; so any debugging statements must be inside invocations.)
-require('./debugging.coffee').inject Paws = new Object
-Paws.info "++ Utilities available"
+Paws = require './debugging.coffee'
+(Paws.info ? util.noop) "++ Utilities available"
