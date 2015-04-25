@@ -3,7 +3,7 @@ require('./utilities.coffee').infect global
 {EventEmitter} = require 'events'
 
 Paws = require './datagraph.coffee'
-T = Paws.debugging.tput
+term = Paws.utilities.terminal
 infect global, Paws
 
 module.exports =
@@ -121,10 +121,10 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
          if stagee.current() instanceof Position
             body = stagee.current().expression().with context: 3, tag: no
                .toString focus: stagee.current().valueOf()
-            Paws.debug T.block body, (line)-> ' │ ' + line.slice 0, -4
+            Paws.debug term.block body, (line)-> ' │ ' + line.slice 0, -4
          else if stagee.current() instanceof Function
             body = stagee.current().toString()
-            Paws.wtf T.block body, (line)->   ' │ ' + line.slice 0, -4
+            Paws.wtf term.block body, (line)->   ' │ ' + line.slice 0, -4
 
       # Remove completed stagees from the queue, with no further action.
       if stagee.complete()

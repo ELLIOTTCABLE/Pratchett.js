@@ -1,9 +1,10 @@
-require('./debugging.coffee').inject Paws = new Object
+blessed = require 'blessed'
 
 module.exports =
 util = new Object
 
 util._ = _ = require 'lodash-compat'
+util.util = require 'util'
 
 
 # Functional aids
@@ -22,6 +23,56 @@ util.chain = passthrough -> this
 
 # Higher-order function to return the argument given to the function, unless the function modifies
 util.modifier = passthrough (result, args)-> result ? args[0]
+
+
+# Interactive terminal tools
+# -------------------------
+# FIXME: This probably needs to be more flexible than a single pre-created global instance
+tput = new blessed.Tput term: process.env.TERM
+
+util.terminal =
+   tput: tput
+
+   sgr: sgr = (flags...)-> csi flags.join(';') + 'm'
+   csi: csi = (text)->  '\x1b[' + text
+
+   fg: fg = (colour, text)-> if Paws.colour() then switch
+      when colour < 10 then sgr(30+colour) + text + sgr(39)
+      when colour < 20 then sgr(80+colour) + text + sgr(39)
+      else                  xfg colour, text
+   else text
+
+   bg: bg = (colour, text)-> if Paws.colour() then switch
+      when colour < 10 then sgr(40+colour) + text + sgr(49)
+      when colour < 20 then sgr(90+colour) + text + sgr(49)
+      else                  xbg colour, text
+   else text
+
+   xfg: xfg = (colour, text)->
+      if Paws.colour() then sgr(38,5,colour) + text + sgr(39) else text
+   xbg: xbg = (colour, text)->
+      if Paws.colour() then sgr(48,5,colour) + text + sgr(49) else text
+
+   block: (text, cb)=>
+      lines = text.split "\n"
+      lines = _(lines).map (line, i)=>
+         sanitized_line = if Paws.colour then line.replace /\x1b.*?[ABCDGsum]/g, '' else line
+         spacing = Math.max 0, util.terminal.columns - sanitized_line.length
+         line = line + new Array(spacing).join ' '
+         if cb then cb line, i, sanitized_line, text else line
+      lines.join "\n"
+
+   bold:       (text)-> if Paws.colour() then sgr(1) + text + sgr(22) else text
+   underline:  (text)-> if Paws.colour() then sgr(4) + text + sgr(24) else text
+   invert:     (text)-> if Paws.colour() then sgr(7) + text + sgr(27) else text
+
+   em:         (text)->
+      [before, after] = if Paws.colour() then [sgr(95), sgr(39)] else ['*', '*']
+      before + text + after
+
+util.terminal.columns = tput.columns || process.stdout.columns || 80
+process.stdout.on 'resize', ->
+   util.terminal.columns = process.stdout.columns
 
 
 # CoffeeScript Sugar
@@ -193,4 +244,7 @@ functions = (prototype, uuntil = Object.prototype)->
    .uniq().without('constructor')
 
 
+# `debugging.coffee` depends on this, and thus must be loaded *after* this. (Similarly, it cannot be
+# used inside this file until post-init; so any debugging statements must be inside invocations.)
+require('./debugging.coffee').inject Paws = new Object
 Paws.info "++ Utilities available"

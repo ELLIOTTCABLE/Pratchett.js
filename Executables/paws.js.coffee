@@ -11,7 +11,7 @@ path     = require 'path'
 fs       = bluebird.promisifyAll require 'fs'
 
 Paws     = require '../Library/Paws.js'
-T        = Paws.debugging.tput
+term     = Paws.utilities.terminal
 _        = Paws.utilities._
 
 out = process.stdout
@@ -62,7 +62,7 @@ choose = ->
 
       when 'pa', 'parse'
          go = -> _.forEach sources, (source)->
-            Paws.info "-- Parse-tree for '#{T.bold source.from}':"
+            Paws.info "-- Parse-tree for '#{term.bold source.from}':"
             seq = Paws.parse Paws.parse.prepare source.code
             out.write seq.serialize() + "\n"
 
@@ -85,7 +85,7 @@ choose = ->
             _.forEach sources, (source)-> rule_unit source
 
          rule_file = (source)->
-            Paws.info "-- Staging rules in '#{T.bold source.from}' from the command-line ..."
+            Paws.info "-- Staging rules in '#{term.bold source.from}' from the command-line ..."
             _.forEach _.values(require('yamljs').parse source.code), (book)->
                collection = Collection.from book
 
@@ -98,7 +98,7 @@ choose = ->
                collection.close()
 
          rule_unit = (source)->
-            Paws.info "-- Staging '#{T.bold source.from}' from the command-line ..."
+            Paws.info "-- Staging '#{term.bold source.from}' from the command-line ..."
             root = Paws.generateRoot source.code, path.basename source.from, '.paws'
             root.locals.inject Paws.primitives 'specification' 
 
@@ -134,7 +134,7 @@ choose = ->
 
       when 'st', 'start'
          go = -> _.forEach sources, (source)->
-            Paws.info "-- Staging '#{T.bold source.from}' from the command-line ..."
+            Paws.info "-- Staging '#{term.bold source.from}' from the command-line ..."
             root = Paws.generateRoot source.code, path.basename source.from, '.paws'
 
             here = new Paws.reactor.Unit
@@ -159,7 +159,7 @@ process.nextTick choose
 help = -> readFilesAsync([extra('help.mustache'), extra('figlets.mustache.asv')]).then ([template, figlets])->
    figlets = records_from figlets
 
-   divider = T.invert( new Array(Math.ceil((T.columns + 1) / 2)).join('- ') )
+   divider = term.invert( new Array(Math.ceil((term.columns + 1) / 2)).join('- ') )
 
    prompt = '>'
 
@@ -167,29 +167,31 @@ help = -> readFilesAsync([extra('help.mustache'), extra('figlets.mustache.asv')]
    #  -- standard 80-column terminal -------------------------------------------------|
 
    err.write mustache.render usage+"\n",
-      heart: if Paws.use_colour() then heart else '<3'
-      b: ->(text, r)-> T.bold r text
-      u: ->(text, r)-> T.underline r text
-      c: ->(text, r)-> if Paws.use_colour() then T.invert r text else '`'+r(text)+'`'
+      heart: if Paws.colour() then heart else '<3'
+      b: ->(text, r)-> term.bold r text
+      u: ->(text, r)-> term.underline r text
+      c: ->(text, r)-> if Paws.colour() then term.invert r text else '`'+r(text)+'`'
 
-      op:   ->(text, r)-> T.fg 2, r text
-      bgop: ->(text, r)-> T.bg 2, r text
-      flag: ->(text, r)-> T.fg 6, r text
-      bgflag: ->(text, r)-> T.bg 6, r text
+      op:   ->(text, r)-> term.fg 2, r text
+      bgop: ->(text, r)-> term.bg 2, r text
+      flag: ->(text, r)-> term.fg 6, r text
+      bgflag: ->(text, r)-> term.bg 6, r text
 
-      title: ->(text, r)-> T.bold T.underline r text
+      title: ->(text, r)-> term.bold term.underline r text
       link:  ->(text, r)->
-         if Paws.use_colour() then T.sgr(34) + T.underline(r text) + T.sgr(39) else r text
+         if Paws.colour() then term.sgr(34) + term.underline(r text) + term.sgr(39) else r text
       prompt: -> # Probably only makes sense inside {{pre}}. Meh.
-         if Paws.use_colour() then T.sgr(27) + T.csi('3D') + T.fg(7, prompt+' ') + T.sgr(7) + T.sgr(90) else prompt
-      pre:  ->(text, r)-> T.block r(text), (line, _, sanitized)->
-         line = if Paws.use_colour() and sanitized.charAt(0) == prompt
+         if Paws.colour()
+            term.sgr(27) + term.csi('3D') + term.fg(7, prompt+' ') + term.sgr(7) + term.sgr(90)
+         else prompt
+      pre:  ->(text, r)-> term.block r(text), (line, _, sanitized)->
+         line = if Paws.colour() and sanitized.charAt(0) == prompt
             line.slice 0, -3 # Compensate for columns lost to `prompt`'s ANSI ‘CUB’
          else
             line.slice 0, -6
 
-         if Paws.use_colour()
-            "   #{T.invert T.fg 10, " #{line}"}   "
+         if Paws.colour()
+            "   #{term.invert term.fg 10, " #{line}"}   "
          else
             "   #{line}"
 
@@ -209,16 +211,16 @@ version = ->
 goodbye = (code = 0)->
    salutation = _(salutations).sample()
    length = salutation.length + 3
-   if Paws.use_colour()
+   if Paws.colour()
       # Get rid of the "^C",
-      err.write T.cursor_left() + T.cursor_left()
-      err.write T.clr_eol()
+      err.write term.tpu.cursor_left() + term.tput.cursor_left()
+      err.write term.tput.clr_eol()
 
-      err.write T.column_address T.columns - 1 - length - 2
-      err.write T.enter_blink_mode() unless /[nf]/i.test process.env['BLINK']
+      err.write term.tput.column_address term.columns - 1 - length - 2
+      err.write term.tput.enter_blink_mode() unless /[nf]/i.test process.env['BLINK']
 
-   salutation = '~ '+salutation+' '+ (if Paws.use_colour() then heart else '<3') + "\n"
-   err.write if T.colors == 256 then T.xfg 219, salutation else T.fg 5, salutation
+   salutation = '~ '+salutation+' '+ (if Paws.colour() then heart else '<3') + "\n"
+   err.write if term.colors == 256 then term.xfg 219, salutation else term.fg 5, salutation
 
    process.exit code
 
