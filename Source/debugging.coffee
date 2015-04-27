@@ -249,4 +249,5 @@ for name, this_level in verbosities
    debugging.infect.add name
 
 
+debugging.init()
 debugging.debug "++ Debugging available"

@@ -49,9 +49,6 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return Thing members...
 
-   # These definitions have to be deferred, because `Execution` isn't defined yet.
-   receiver: undefined
-
    at: (idx)->       @metadata[idx]?.to
    set: (idx, to)->  @metadata[idx] = Relation.from to
 
@@ -119,6 +116,23 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    owned:    -> new Relation this, yes
    disowned: -> new Relation this, no
+
+   # These definitions have to be deferred, because `Native` isn't defined yet.
+   receiver: undefined
+
+Thing_init = ->
+   # The default receiver for `Thing`s simply preforms a ‘lookup.’
+   Paws.Thing::receiver = new Native (rv, world)->
+      [caller, subject, message] = rv.toArray()
+
+      results = subject.find message
+
+      # FIXME: Welp, this is horrible error-handling. "Print a warning and freeze forevah!!!"
+      unless results[0]
+         Paws.notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}."
+
+      world.stage caller, results[0].valueish() if results[0]
+   .rename 'thing✕'
 
 
 Paws.Label = Label = class Label extends Thing
@@ -306,6 +320,11 @@ Paws.Execution = Execution = class Execution extends Thing
       upcoming_value = upcoming.valueOf()
       return new Combination null, upcoming_value
 
+   # These definitions have to be deferred, because `Execution` isn't defined yet.
+   receiver: undefined
+
+Thing_init = ->
+
 
 Paws.Native = Native = class Native extends Execution
 
@@ -446,23 +465,7 @@ Paws.Native = Native = class Native extends Execution
          return this
       body.apply new Native
 
-
-# Core types' default receivers
-# -----------------------------
-Paws.init = ->
-   # The default receiver for `Thing`s simply preforms a ‘lookup.’
-   Paws.Thing::receiver = new Native (rv, world)->
-      [caller, subject, message] = rv.toArray()
-
-      results = subject.find message
-
-      # FIXME: Welp, this is horrible error-handling. "Print a warning and freeze forevah!!!"
-      unless results[0]
-         Paws.notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}."
-
-      world.stage caller, results[0].valueish() if results[0]
-   .rename 'thing✕'
-
+Execution_init = ->
    # `Execution`'s default-receiver preforms a “call”-patterned staging; that is, cloning the subject
    # `Execution`, staging that clone, and leaving the caller unstaged.
    Paws.Execution::receiver = new Native (rv, world)->
@@ -644,5 +647,11 @@ Native::toString = ->
          bodies.join ' -> '
 
    if @_?.tag == no then output else @_tagged output
+
+
+# Initialization
+# ==============
+Thing_init()
+Execution_init()
 
 Paws.debug "++ Datagraph available"

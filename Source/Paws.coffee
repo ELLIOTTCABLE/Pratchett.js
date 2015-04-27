@@ -13,9 +13,6 @@ Paws.parse   = require './parser.coffee'
 Paws.reactor = require './reactor.coffee'
 
 
-Paws.init()
-Paws.info "!! API initialized."
-
 Paws.primitives = (bag)->
    require("./primitives/#{bag}.coffee")()
 
