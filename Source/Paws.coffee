@@ -50,4 +50,6 @@ Paws.js = (code)->
 
 
 Paws.infect = (globals)-> @utilities.infect globals, this
+
+Paws.info "++ API available"
 module.exports = Paws

@@ -212,3 +212,5 @@ Expression::toString = ({focus: focus} = {})->
 
 module.exports = parse
 Paws.utilities.infect module.exports, exports
+
+Paws.info "++ Parser available"

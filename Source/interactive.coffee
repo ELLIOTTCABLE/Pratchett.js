@@ -209,3 +209,5 @@ parameterizable class Interactive extends EventEmitter
                   @emit 'SIGTSTP'
 
       [_ttyWrite, _interface._ttyWrite] = [_interface._ttyWrite, active_ttyWrite]
+
+Paws.info "++ Interactive interface available"

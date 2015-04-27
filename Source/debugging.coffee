@@ -240,3 +240,6 @@ parse_booleanish = (arg)->
    if      arg is false or /^nf/i.test arg.toString() then false
    else if arg is true  or /^yt/i.test arg.toString() then true
    else null
+
+
+debugging.debug "++ Debugging available"

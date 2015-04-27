@@ -643,3 +643,5 @@ Native::toString = ->
          bodies.join ' -> '
 
    if @_?.tag == no then output else @_tagged output
+
+Paws.debug "++ Datagraph available"

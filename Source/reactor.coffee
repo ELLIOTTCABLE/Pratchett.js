@@ -186,3 +186,5 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
       if interval
          clearInterval(interval)
          interval = undefined
+
+Paws.info "++ Reactor available"
