@@ -252,4 +252,4 @@ functions = (prototype, uuntil = Object.prototype)->
 # `debugging.coffee` depends on this, and thus must be loaded *after* this. (Similarly, it cannot be
 # used inside this file until post-init; so any debugging statements must be inside invocations.)
 Paws = require './debugging.coffee'
-Paws.info "++ Utilities available"
+(Paws.info ? util.noop) "++ Utilities available"
