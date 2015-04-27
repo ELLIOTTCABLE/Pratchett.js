@@ -11,7 +11,7 @@ path     = require 'path'
 fs       = bluebird.promisifyAll require 'fs'
 
 Paws     = require '../Library/Paws.js'
-T        = Paws.debugging.tput
+T        = Paws.utilities.terminal.tput
 _        = Paws.utilities._
 
 out = process.stdout

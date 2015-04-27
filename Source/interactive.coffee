@@ -1,6 +1,6 @@
 Paws = require './Paws.coffee'
 Paws.infect global
-T = Paws.debugging.tput
+T = Paws.utilities.terminal.tput
 
 PrettyError = require('pretty-error')
 

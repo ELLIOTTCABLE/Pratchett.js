@@ -1,5 +1,5 @@
 Paws = require './datagraph.coffee'
-T    = Paws.debugging.tput
+T    = Paws.utilities.terminal.tput
 
 exports._parser = PARSER =
 try

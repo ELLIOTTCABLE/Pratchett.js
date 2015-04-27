@@ -7,10 +7,11 @@ module.exports =
    Paws = new Object
 
 Paws.utilities = require './utilities.coffee'
-Paws.debugging = require './debugging.coffee'
-Paws.debugging.inject Paws
 Paws.utilities.infect global
 
+Paws.debugging = require './debugging.coffee'
+Paws.debugging.infect Paws
+Paws.debugging.infect global
 
 # Core data-types
 # ===============
@@ -570,7 +571,7 @@ Paws.Mask = Mask = class Mask
 
 # Debugging output
 # ----------------
-T = Paws.debugging.tput
+T = Paws.utilities.terminal.tput
 
 # Convenience to call whatever string-making methods are available on the passed object.
 Paws.inspect = (object)->
