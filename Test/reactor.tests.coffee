@@ -10,8 +10,8 @@ describe 'The Paws reactor:', ->
    parse   = Paws.parse
    advance = reactor.advance
 
+   Mask    = Paws.Mask
    Table   = reactor.Table
-   Mask    = reactor.Mask
    Staging = reactor.Staging
 
    Unit    = reactor.Unit

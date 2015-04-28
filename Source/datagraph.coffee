@@ -323,8 +323,6 @@ Paws.Execution = Execution = class Execution extends Thing
    # These definitions have to be deferred, because `Execution` isn't defined yet.
    receiver: undefined
 
-Thing_init = ->
-
 
 Paws.Native = Native = class Native extends Execution
 
