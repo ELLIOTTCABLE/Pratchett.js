@@ -47,8 +47,8 @@ Paws.info "-- Arguments: ", argv.join(' :: ')
 Paws.info "-- Flags: ", argf
 Paws.info "-- Sources: ", sources
 
-Paws.verbose "-- Environment variables:"
-Paws.verbose process.env
+Paws.wtf "-- Environment variables:"
+Paws.wtf process.env
 
 choose = ->
    if (argf.help)
