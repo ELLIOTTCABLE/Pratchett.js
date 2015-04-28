@@ -208,20 +208,22 @@ version = ->
    """ + "\n"
    process.exit 1
 
+debugging.ENV 'BLINK'
 goodbye = (code = 0)->
-   salutation = _(salutations).sample()
-   length = salutation.length + 3
-   if Paws.colour()
-      # Get rid of the "^C",
-      err.write term.tpu.cursor_left() + term.tput.cursor_left()
-      err.write term.tput.clr_eol()
+   if debugging.verbosity() >= debugging.verbosities['error']
+      salutation = _(salutations).sample()
+      salutation = ' ~ '+salutation+' '+ (if Paws.colour() then heart else '<3')
 
-      err.write term.tput.column_address term.columns - 1 - length - 2
-      err.write term.tput.enter_blink_mode() unless /[nf]/i.test process.env['BLINK']
+      if Paws.colour()
+         err.write term.tput.column_address term.columns - salutation.length
+         err.write term.tput.clr_eol()
+         err.write term.tput.enter_blink_mode() unless debugging.blink()
+         err.write if term.tput.max_colors == 256 then term.xfg 219, salutation else term.fg 5, salutation
+      else
+         err.write "\n"
+         err.write salutation
 
-   salutation = '~ '+salutation+' '+ (if Paws.colour() then heart else '<3') + "\n"
-   err.write if term.colors == 256 then term.xfg 219, salutation else term.fg 5, salutation
-
+   err.write "\n"
    process.exit code
 
 process.on 'SIGINT', -> goodbye 255
