@@ -19,8 +19,8 @@ parameterizable class Interactive extends EventEmitter
       @readline = readline.createInterface
          input: @_?.input ? process.stdin, output: @_?.output ? process.stdout
       @readline.setPrompt @_?.prompt ? ':: '
-      @readline.line_style = term.sgr 7
-      @readline.clear_style = term.sgr 27
+      @readline.line_style = term.sgr 7 if Paws.debugging.colour()
+      @readline.clear_style = term.sgr 27 if Paws.debugging.colour()
       @hackReadline()
 
       @error_renderer = @_?.error_renderer
@@ -47,7 +47,7 @@ parameterizable class Interactive extends EventEmitter
       @readline.on 'line', (line)=>
          return shortcircuit = false if shortcircuit # ???
          return @readline.prompt() unless line.length
-         @readline.output.write @readline.clear_style
+         @readline.output.write @readline.clear_style if @readline.clear_style?
 
          # FIXME: Input during the processing is currently all processed immediately after a prompt
          #        is next shown. This is rather icky when the user ^C's a ton, and then externally
@@ -73,7 +73,7 @@ parameterizable class Interactive extends EventEmitter
 
       SIGTERM = =>
          @here.stop()
-         @readline.output.write @readline.clear_style
+         @readline.output.write @readline.clear_style if @readline.clear_style?
          @readline.close()
          process.stdin.destroy()
          @emit 'close'
@@ -94,7 +94,7 @@ parameterizable class Interactive extends EventEmitter
          process.once 'SIGCONT', SIGCONT
          process.nextTick SIGCONT
 
-         @readline.output.write @readline.clear_style
+         @readline.output.write @readline.clear_style if @readline.clear_style?
          @readline._setRawMode false
          process.kill process.pid, 'SIGTSTP'
 
@@ -145,37 +145,40 @@ parameterizable class Interactive extends EventEmitter
    # This is all a huge, fragile, horrible, monkey-patching hack.
    hackReadline: ->
       exportz = readline
-
       _interface = @readline
-      _interface._refreshLine = ->
-         input = @_prompt + @line
-         lastLineLength = input.length % @columns
-         rows = (input.length - lastLineLength) / @columns
 
-         cursorPos = @_getCursorPos()
+      # We re-implement half of Readline so we can insert the `terminal.block()` call with our
+      # desired line-style.
+      if Paws.debugging.colour()
+         _interface._refreshLine = ->
+            input = @_prompt + @line
+            lastLineLength = input.length % @columns
+            rows = (input.length - lastLineLength) / @columns
 
-         # No idea what function this is supposed to preform.
-         prevRows = @prevRows || 0;
-         if prevRows > 0
-            exportz.moveCursor @output, 0, -prevRows
+            cursorPos = @_getCursorPos()
 
-         exportz.cursorTo @output, 0
-         exportz.clearScreenDown @output
+            # No idea what function this is supposed to preform.
+            prevRows = @prevRows || 0;
+            if prevRows > 0
+               exportz.moveCursor @output, 0, -prevRows
 
-         printable = input + new Array(@columns - lastLineLength).join ' '
-         @output.write term.block printable, (line)->
-            _interface.line_style + line
+            exportz.cursorTo @output, 0
+            exportz.clearScreenDown @output
 
-         if lastLineLength < @columns
-            @output.write ' '
+            printable = input + new Array(@columns - lastLineLength).join ' '
+            @output.write term.block printable, (line)->
+               _interface.line_style + line
 
-         exportz.cursorTo @output, cursorPos.cols
+            if lastLineLength < @columns
+               @output.write ' '
 
-         diff = rows - cursorPos.rows
-         if diff > 0
-            exportz.moveCursor @output, 0, -diff
+            exportz.cursorTo @output, cursorPos.cols
 
-         @prevRows = cursorPos.rows
+            diff = rows - cursorPos.rows
+            if diff > 0
+               exportz.moveCursor @output, 0, -diff
+
+            @prevRows = cursorPos.rows
 
 
       # These replace the usual behavior of pausing the input-stream (which means all input while
