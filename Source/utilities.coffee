@@ -70,7 +70,7 @@ util.terminal =
       [before, after] = if Paws.colour() then [sgr(95), sgr(39)] else ['*', '*']
       before + text + after
 
-util.terminal.columns = tput.columns || process.stdout.columns || 80
+util.terminal.columns = process.stdout.columns || tput.columns || 80
 process.stdout.on 'resize', ->
    util.terminal.columns = process.stdout.columns
 
