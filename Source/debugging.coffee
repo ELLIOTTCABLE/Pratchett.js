@@ -252,6 +252,7 @@ _.extend debugging,
    QUIET:   debugging.quiet
    SILENT:  debugging.silent
 
+debugging.infect.add 'VERBOSE', 'QUIET', 'SILENT'
 
 # Finally, we create special aliases to `debugging.log`, for each of our `debugging.verbosities`,
 # (for instance, `debugging.warning()` or `debugging.info`) with the caveat that each alias becomes
