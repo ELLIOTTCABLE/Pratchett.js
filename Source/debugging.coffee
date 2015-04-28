@@ -145,6 +145,8 @@ module.exports = debugging =
          names       = names.map (n)-> n.toUpperCase()   # 'COLOUR', 'COLOR'
          key         = names[0]                          # 'COLOUR'
 
+         debugging.verbose "-- Registering '#{key}' ENV-option" if debugging.verbose
+
          # deal with each type of string-ish value differently, but consistently. (the type is
          # automatically derived from the default value, unless explicitly specified)
          handler = switch type
@@ -166,6 +168,10 @@ module.exports = debugging =
          if process?.env?
             _.forEach names.slice().reverse(), (name)-> if process.env[name]?
                $values[key] = handler process.env[name], $values[key], key, name
+
+               if debugging.VERBOSE?() >= debugging.verbosities['verbose']
+                  exists_as = if (name is key) then '' else " (as '#{name}')"
+                  debugging.log "-- ENV-option '#{key}' present#{exists_as}: #{$values[key]}"
 
          if defavlt? and not $values[key]?
             $values[key] = defavlt
