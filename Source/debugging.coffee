@@ -16,11 +16,12 @@ module.exports = debugging =
 
    # This is an exposed, bi-directional mapping of verbosity-names:
    #
-   #     Paws.verbosities[4] = 'warning'
-   #     Paws.verbosities['warning'] = 4
+   #     debugging.verbosities[4] = 'warning'
+   #     debugging.verbosities['warning'] = 4
    verbosities: do ->
       $ = verbosities.slice()
       $[name] = minimum for name, minimum in $
+      $
 
    verbosity: -> debugging.VERBOSE()
    is_silent: -> debugging.VERBOSE() == 0

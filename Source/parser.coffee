@@ -1,5 +1,5 @@
 Paws = require './datagraph.coffee'
-T    = Paws.utilities.terminal.tput
+term = Paws.utilities.terminal
 
 exports._parser = PARSER =
 try
@@ -160,15 +160,15 @@ Expression::serialize = ({focus: focus} = {})->
       if word instanceof Sequence
          str = '['+word.serialize(focus: focus)+']'
 
-      if word == focus then T.em str else str
+      if word == focus then term.em str else str
 
    output = words.join ' '
-   if this == focus then T.em output else output
+   if this == focus then term.em output else output
 
 Sequence::serialize = ({focus: focus} = {})->
    ser = (expr)-> expr.serialize focus: focus
    output = @expressions.map(ser, []).join '; '
-   if this == focus then T.em output else output
+   if this == focus then term.em output else output
 
 Sequence::toString =
 #---
@@ -194,11 +194,11 @@ Expression::toString = ({focus: focus} = {})->
             end    = start + length
 
             c = new Context contents, start, end
-            contents = c.before() + T.em(c.source()) + c.after()
+            contents = c.before() + term.em(c.source()) + c.after()
 
       if (lines = @_?.context) > 0
          if not focus
-            contents = T.em contents
+            contents = term.em contents
 
          before = context.before()
          after  = context.after()

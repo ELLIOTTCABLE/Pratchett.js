@@ -1,6 +1,6 @@
 Paws = require './Paws.coffee'
 Paws.infect global
-T = Paws.utilities.terminal.tput
+term = Paws.utilities.terminal
 
 PrettyError = require('pretty-error')
 
@@ -19,8 +19,8 @@ parameterizable class Interactive extends EventEmitter
       @readline = readline.createInterface
          input: @_?.input ? process.stdin, output: @_?.output ? process.stdout
       @readline.setPrompt @_?.prompt ? ':: '
-      @readline.line_style = T.sgr 7
-      @readline.clear_style = T.sgr 27
+      @readline.line_style = term.sgr 7
+      @readline.clear_style = term.sgr 27
       @hackReadline()
 
       @error_renderer = @_?.error_renderer
@@ -101,8 +101,8 @@ parameterizable class Interactive extends EventEmitter
       @readline.on 'SIGTSTP', SIGTSTP
 
       Paws.alert "Successive lines will be evaluated as executions, with shared `locals`."
-      Paws.alert "   (#{T.bold '⌃d'} to close the input-stream; "+
-                     "#{T.bold '⌃c'} to synchronously force new prompt)"
+      Paws.alert "   (#{term.bold '⌃d'} to close the input-stream; "+
+                     "#{term.bold '⌃c'} to synchronously force new prompt)"
       @prompt()
 
 
@@ -163,7 +163,7 @@ parameterizable class Interactive extends EventEmitter
          exportz.clearScreenDown @output
 
          printable = input + new Array(@columns - lastLineLength).join ' '
-         @output.write T.block printable, (line)->
+         @output.write term.block printable, (line)->
             _interface.line_style + line
 
          if lastLineLength < @columns
