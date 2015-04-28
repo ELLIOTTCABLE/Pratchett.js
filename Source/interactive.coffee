@@ -64,10 +64,13 @@ parameterizable class Interactive extends EventEmitter
       process.removeAllListeners('SIGINT') # FIXME: This is a bad idea.
       SIGINT = => process.nextTick =>
          if @mutex then @here.table.remove mask: new reactor.Mask @mutex
-         else
+         else if @readline.line.length
             shortcircuit = true # ???
             @readline.output.write "\n"
+            @readline.line = ''
             @prompt()
+         else
+            @readline.emit 'close'
       @readline.on 'SIGINT', SIGINT
       process  .on 'SIGINT', SIGINT
 
