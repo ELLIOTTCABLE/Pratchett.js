@@ -135,7 +135,7 @@ module.exports = debugging =
 
       (names, opt = {})->
          names       = [names] unless _.isArray names
-         type        = opt.type      ? typeof opt.value
+         type        = opt.type      ? typeof opt.value || 'boolean'
          defavlt     = opt.value
          callback    = opt.handler
          immutable   = opt.immutable ? false
@@ -151,6 +151,9 @@ module.exports = debugging =
             when 'string' then (str)-> str
             when 'number' then parse_numberish
             else               parse_booleanish
+
+         if type is 'boolean'
+            names.push ( _.map names, (name)-> 'NO'+name )...
 
          if callback
             handler = if opt.type? then ->
@@ -189,10 +192,13 @@ parse_numberish  = (arg)->
    int = parseInt arg
    if isNaN int then undefined else int
 
-parse_booleanish = (arg)->
-   if      arg is false or /^nf/i.test arg.toString() then false
-   else if arg is true  or /^yt/i.test arg.toString() then true
-   else null
+parse_booleanish = (arg, braaaaiiins, braaaaaaaiiiiiinnns, as_name)->
+   bool = if arg is false or /^[nf]/i.test arg.toString() then false
+   else   if arg is true  or /^[yt]/i.test arg.toString() then true
+
+   return null unless bool?
+   return !bool if /^NO/.test as_name
+   return bool
 
 
 # The `VERBOSE` environment-variable and friends are handled specially: every `verbosities`-name in
