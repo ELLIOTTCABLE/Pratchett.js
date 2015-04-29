@@ -3,7 +3,7 @@ require('./utilities.coffee').infect global
 {EventEmitter} = require 'events'
 
 Paws = require './datagraph.coffee'
-T = Paws.utilities.terminal.tput
+term = Paws.utilities.terminal
 infect global, Paws
 
 module.exports =
