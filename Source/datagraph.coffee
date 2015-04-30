@@ -7,10 +7,11 @@ module.exports =
    Paws = new Object
 
 Paws.utilities = require './utilities.coffee'
-Paws.debugging = require './debugging.coffee'
-Paws.debugging.inject Paws
 Paws.utilities.infect global
 
+Paws.debugging = require './debugging.coffee'
+Paws.debugging.infect Paws
+Paws.debugging.infect global
 
 # Core data-types
 # ===============
@@ -571,7 +572,7 @@ Paws.Mask = Mask = class Mask
 
 # Debugging output
 # ----------------
-T = Paws.debugging.tput
+term = Paws.utilities.terminal
 
 # Convenience to call whatever string-making methods are available on the passed object.
 Paws.inspect = (object)->
@@ -585,7 +586,7 @@ Thing::_inspectName = ->
    names = []
    names.push ''
    names.push @_inspectID()   if @_inspectID and (not @name or process.env['ALWAYS_ID'] or @_?.tag == no)
-   names.push T.bold @name    if @name
+   names.push term.bold @name if @name
    names.join(':')
 Thing::_tagged = (output)->
    tag = @constructor.__name__ or @constructor.name
@@ -596,7 +597,7 @@ Execution::_inspectName = ->
    names = []
    names.push ''
    names.push @_inspectID()   if @_inspectID and (not @name or process.env['ALWAYS_ID'] or @_?.tag == no)
-   names.push T.bold @name    if @name
+   names.push term.bold @name if @name
    names.join(':')
 Native::_inspectName = ->
    names = Execution::_inspectName.call this
@@ -615,7 +616,7 @@ Thing::inspect = ->
 Label::_inspectName = ->
    names = []
    names.push ''
-   names.push T.bold @name    if @name
+   names.push term.bold @name if @name
    names.join(':')
 Label::toString = ->
    output = "“#{@alien}”"

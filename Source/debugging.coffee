@@ -1,154 +1,274 @@
-util = require 'util'
+require('./utilities.coffee').infect global
 
-class Debugging
+# TODO: I'd really like to extract most of this into npm modules. It represents a lot of thought and
+#       work, and is mostly inspecific to Paws. Several things here are ripe for generalization: the
+#       `infect` mechanism; `verbosities`, and most interestingly, `ENV`. They're all fairly
+#       inter-dependant, but I suspect that can be remedied / accommodated.
+# NOTE: ENV *could* be in `utilities`, because it's more generally-applicable than just to debugging
+#       in the usual case; but in this codebase, I want to encourage the ‘ENV variables are for
+#       debugging; command-line flags or API calls are for operational configuration’ convention.
+#       Hence, restricting the ENV behaviour to the debugging module.
 
-class CommandLineDebugging extends Debugging
-   # FIXME: Make these ‘instance’ variables
-   use_colour = true # Default
-   verbosity = 4 # Default
-   max_verbosity = Infinity
+              #    0       1      2       3      4      5     6     7      8     9
+verbosities = "emergency alert critical error warning notice info debug verbose wtf".split(' ')
 
-   constructor: ->
-      # FIXME: This `require` will break browserify.
-      @tput = new (require('blessed').Tput) term: process.env['TERM']
-
-      # Patching Tput's column measurement
-      if not @tput?.columns? or @tput.columns == 80
-         @tput.columns = process.stdout.columns || 80
-      process.stdout.on 'resize', => @tput.columns = process.stdout.columns
-
-      @tput.sgr = (flags...)-> @csi flags.join(';') + 'm'
-      @tput.csi = (text)->  '\x1b[' + text
-
-      @tput.fg = (colour, text)-> if use_colour then switch
-         when colour < 10 then @sgr(30+colour) + text + @sgr(39)
-         when colour < 20 then @sgr(80+colour) + text + @sgr(39)
-         else                  @xfg colour, text
-      else text
-
-      @tput.bg = (colour, text)-> if use_colour then switch
-         when colour < 10 then @sgr(40+colour) + text + @sgr(49)
-         when colour < 20 then @sgr(90+colour) + text + @sgr(49)
-         else                  @xbg colour, text
-      else text
-
-      @tput.xfg = (colour, text)->
-         if use_colour then @sgr(38,5,colour) + text + @sgr(39) else text
-      @tput.xbg = (colour, text)->
-         if use_colour then @sgr(48,5,colour) + text + @sgr(49) else text
-
-      @tput.block = (text, cb)=>
-         lines = text.split "\n"
-         lines = _(lines).map (line, i)=>
-            sanitized_line = if use_colour then line.replace /\x1b.*?[ABCDGsum]/g, '' else line
-            spacing = Math.max 0, @tput.columns - sanitized_line.length
-            line = line + new Array(spacing).join ' '
-            if cb then cb line, i, sanitized_line, text else line
-         lines.join "\n"
-
-      @tput.bold      = (text)-> if use_colour then @sgr(1) + text + @sgr(22) else text
-      @tput.underline = (text)-> if use_colour then @sgr(4) + text + @sgr(24) else text
-      @tput.invert    = (text)-> if use_colour then @sgr(7) + text + @sgr(27) else text
-
-      @tput.em        = (text)->
-         [before, after] = if use_colour then [@sgr(95), @sgr(39)] else ['*', '*']
-         before + text + after
+module.exports = debugging =
 
    # This is an exposed, bi-directional mapping of verbosity-names:
    #
-   #     Paws.verbosities[4] === Paws.verbosities['warning']
-   verbosities: verbosities =
-      #    0       1      2       3      4      5     6     7      8     9
-      "emergency alert critical error warning notice info debug verbose wtf".split(' ')
-   verbosities[name] = minimum for name, minimum in verbosities
+   #     debugging.verbosities[4] = 'warning'
+   #     debugging.verbosities['warning'] = 4
+   verbosities: do ->
+      $ = verbosities.slice()
+      $[name] = minimum for name, minimum in $
+      $
+
+   verbosity: -> debugging.VERBOSE()
+   is_silent: -> debugging.VERBOSE() == 0
 
 
-   write_browser = (console?.error || console?.log || noop).bind console
-   write_cli = (objects...)->
-      output = util.format.apply(util, arguments) + '\n'
-      process.stderr.write output, 'utf8'
+   # If called, (re-)configures this debugging system for either a DOM-based (`browser`) or
+   # UNIX-based (`CLI`) environment.
+   init: do ->
+      $init = (environment)->
+         environment ?= if process?.browser? then 'browser' else 'CLI'
 
-   # FIXME: Temporary. I'd really like this to be external, and more robust.
-   write: write = if window? or process?.browser?
-      write_browser
-   else
-      write_cli
+         $init[environment]()
+
+      $init.CLI = (stream = process.stderr)->
+         _.assign debugging,
+            _environment:  'CLI'
+            has_terminal: yes
+            has_browser:  no
+
+            log: ->
+               output = util.format.apply(util, arguments) + '\n'
+               stream.write output, 'utf8'
+
+         # XXX: Yes, `Paws.colour()` is intentionally not defined unless executing at the CLI. You
+         #      shouldn't be checking `COLOUR` unless you're about to add ANSI codes, and you
+         #      shouldn't be about to add ANSI codes unless you've checked `has_terminal`.
+         debugging.ENV ['COLOUR', 'COLOR'], value: true, infect: true
+
+      $init.browser = (window = window, console = console)->
+         _.assign debugging,
+            _environment: 'browser'
+            has_terminal: no
+            has_browser:  yes
+
+            log: ->
+               _.bind (console?.error || console?.log || noop), console
+
+      return $init
 
 
-   # Create a reporting function on a given object (of note, the root `Paws` object) for each
-   # `verbosity` string (for instance, `Paws.warning`, or `Paws.info`) that calls `debugging.write`
-   # if the debugging-level is set high enough.
+   infect: do ->
+      virii = new Array
+      infectees = new Array
+
+      infect = (target)->
+         infectees.push target
+         target[member] = debugging[member] for member in virii
+
+      infect.add = (members...)->
+         virii.push members...
+         for target in infectees
+            target[member] = debugging[member] for member in members
+
+      return infect
+
+
+   # The debugging system is largely powered by UNIX environment-variables, because these are
+   # equally accessible even whether Paws.js is used from the command-line, or loaded as a library.
    #
-   # Also sets a few other debugging-relating settings (`Paws.use_colour()`, `Paws.is_silent()`,
-   # `Paws.colour(...)`, and so on.)
-   inject: (exports)->
-      exports.verbosity  = -> verbosity
-      exports.is_silent  = -> verbosity == 0
+   # To this end, at load-time, we read in variables we know we need, and expose them as read-only
+   # or overridable herein. In addition, some of these are further exposed on ‘injectees’ (for
+   # instance, the `Paws` namespace throughout this codebase.)
+   #
+   # ----
+   #
+   # Defining a new envar / setting with this function accepts a name (or a list of aliases), and a
+   # set of options for that setting:
+   #
+   #  - `type:` One of `'string', 'number', 'boolean'`; describes how values for the setting will be
+   #    parsed when set (since all envars are string-ish.)
+   #  - `value:` A default value for the setting, if not set.
+   #  - `handler:` A custom function to interpret the string-ish envar into a JavaScript value for
+   #    the setting in question (overrides the default `type`-predicated parsers.)
+   #  - `immutable:` Can be set to true, preventing this setting from being modified
+   #    programmatically after load-time. (i.e. ‘environment overrides API.’)
+   #  - `infect:` Whether or not `debugging.infect` will expose this setting on infectees (i.e. the
+   #    `Paws` export.)
+   #
+   # All are optional. Without any set, `ENV` simply creates a new boolean setting that defaults to
+   # `false`:
+   #
+   #     debugging.ENV 'FRIENDLY'
+   #     debugging.friendly()    #-> no
+   #     debugging.friendly yes  #-> yes
+   #
+   # The `type` can be inferred from the default `value`, if provided; and both `immutable` and
+   # `infect` default to no.
+   #
+   # The `handler`, meanwhile, if defined, will be passed the string-ish value from the UNIX
+   # environment at load-time (if no `type` is explicitly given), or a pre-parsed version thereof
+   # (if a `type` is given); and later the same for any values passed to the setters generated by
+   # `ENV` (if the setting isn't `immutable`, of course.) Any value it returns will become the value
+   # of the setting in question.
+   #
+   # In addition to the found/passed ‘new’ value for the option, the handler will be passed the
+   # current (‘old’) value for the option, as well as the canonical name of the option (and, if
+   # relevant, the alias under which the option was set.)
+   #
+   # If an array of `names` is provided, then they're treated as equivalent aliases: both accessing
+   # and setting share a value for the setting in question, regardless of which name it's accessed
+   # by.
+   #
+   #     debugging.ENV ['LOVE', 'FRIENDLINESS'], value: 1000
+   #     debugging.love 1000000     #-> 1000000
+   #     debugging.friendliness()   #-> 1000000
+   #
+   # When defining settings, case is unimportant; they're always read from the UNIX environment in
+   # all-caps, and are always exposed in the API as lowercase.
+   ENV: ENV = do ->
+      $values = new Object
 
-      exports.use_colour = -> use_colour
+      (names, opt = {})->
+         names       = [names] unless _.isArray names
+         type        = opt.type      ? typeof opt.value || 'boolean'
+         defavlt     = opt.value
+         callback    = opt.handler
+         immutable   = opt.immutable ? false
+         infect      = opt.infect    ? false
 
-      for name, v in verbosities
-         exports[name] = do (name, v)->-> if v <= verbosity
+         members     = names.map (n)-> n.toLowerCase()   # colour(), color()
+         names       = names.map (n)-> n.toUpperCase()   # 'COLOUR', 'COLOR'
+         key         = names[0]                          # 'COLOUR'
 
-            if verbosity > 9 or process.env.DEBUG_VERBOSITY
-               write "-- Verbosity of #{v}/#{verbosities[v]} ≤ "+
-                   "#{verbosity}/#{verbosities[verbosity] ? '???'}; printing message:"
+         debugging.verbose "-- Registering '#{key}' ENV-option" if debugging.verbose
 
-            write.apply debugging, arguments
+         # deal with each type of string-ish value differently, but consistently. (the type is
+         # automatically derived from the default value, unless explicitly specified)
+         handler = switch type
+            when 'string' then (str)-> str
+            when 'number' then parse_numberish
+            else               parse_booleanish
 
-      # We configure the `verbosity` itself in one of two ways: by calling an internal API at
-      # runtime; or by setting an environment-variable before entry to the Paws library. (The
-      # latter cannot affect the verbosity after the execution of this file.)
-      #
-      #     Paws.VERBOSE(9) // Very verbose output
-      #     // (or `VERBOSE=9 ./program.paws`)
-      #
-      #     Paws.QUIET()    // Silence errors
-      #     // (or `QUIET=true ./program.paws`)
-      #
-      # NOTE: Quieter-overrides-louder, in environment variables. For instance, if `SILENT` is
-      #       defined, that overrides `VERBOSE`. To boot, the verbosity cannot be set *higher*
-      #       via the API, if it has already been set by an environment variable (meaning
-      #       `SILENT` will always mean `SILENT`.)
-      # ----
-      # TODO: Verify that this is compatible all the way back to IE6. I'm a bit iffy about the
-      #       isFinite() shit.
-      variables = SILENT: 0, QUIET: 2, VERBOSE: 8, WTF: 9
+         if type is 'boolean'
+            names.push ( _.map names, (name)-> 'NO'+name )...
 
-      for own name, ddefault of variables
-         exports[name] = do (name, ddefault)-> (level = true, opts = {environmental: no})->
-            if isFinite (l = parseInt level, 10)
-               verbosity = l
-            else if level == true or
-                    level.charAt?(0) == 'y' or # yes
-                    level.charAt?(0) == 't'    # true
-               verbosity = ddefault unless max_verbosity < ddefault # Silence reigns.
+         if callback
+            handler = if opt.type? then ->
+               handled = handler.apply null, arguments
+               callback.call null, handled, _.rest(arguments)...
+            else callback
 
-            max_verbosity = verbosity if opts.environmental
+         # immediately check each alias for values in the ENV to find an initial value; earlier
+         # names for the setting override later ones
+         if process?.env?
+            _.forEach names.slice().reverse(), (name)-> if process.env[name]?
+               $values[key] = handler process.env[name], $values[key], key, name
 
-            exports.wtf "-- Verbosity set to: #{verbosity}/#{verbosities[verbosity] ? '???'}"
+               if debugging.VERBOSE?() >= debugging.verbosities['verbose']
+                  exists_as = if (name is key) then '' else " (as '#{name}')"
+                  debugging.log "-- ENV-option '#{key}' present#{exists_as}: #{$values[key]}"
 
-         # FIXME: Move this out into its own function, and invoke upon ‘construction’
-         if process.env[name]? and (max_verbosity == Infinity)
-            exports[name](process.env[name], environmental: yes)
+         if defavlt? and not $values[key]?
+            $values[key] = defavlt
 
-      exports.colour = exports.color = (use = true)->
-         if use == no or
-            use.charAt?(0) == 'n' or # no
-            use.charAt?(0) == 'f'    # false
-          use_colour = no
-         else
-          use_colour = yes
+         # generate a wrapper-function that receives mutation arguments to env-functions and passes
+         # them to the handler ascertained above
+         wrapper_as = (as_name)->
+            if immutable
+               getter = -> $values[key]
+            else
+               setter = (arg)->
+                  unless arg?
+                     return $values[key]
 
-         exports.wtf "-- Colour set to: #{use_colour}"
+                  result = handler arg, $values[key], key, as_name
+                  $values[key] = result if result?
 
-      if env_colour = process.env['COLOUR'] ? process.env['COLOR']
-         exports.colour env_colour
+         debugging[member] = wrapper_as member for member in members
+         debugging.infect.add members... if infect
 
-class BrowserDebugging extends Debugging
-   inject: -> #noop
+         return debugging[members[0]]
 
-module.exports = debugging =
-new (if process?.browser then BrowserDebugging else CommandLineDebugging)
+parse_numberish  = (arg)->
+   int = parseInt arg
+   if isNaN int then undefined else int
 
-# debugging.debug "++ Debugging available" # um...
+parse_booleanish = (arg, braaaaiiins, braaaaaaaiiiiiinnns, as_name)->
+   bool = if arg is false or /^[nf]/i.test arg.toString() then false
+   else   if arg is true  or /^[yt]/i.test arg.toString() then true
+
+   return null unless bool?
+   return !bool if /^NO/.test as_name
+   return bool
+
+
+# The `VERBOSE` environment-variable and friends are handled specially: every `verbosities`-name in
+# the environment is an alias to the same setting (hereafter referred to as `VERBOSE`). When set, if
+# set to a numerical value, that value becomes the value of `VERBOSE`, regardless of the name by
+# which it is set; however, if *not* numerical, then it's treated as a boolean, with the resultant
+# value of `VERBOSE` depending on the truthiness thereof:
+#
+#  - If truthy, the `VERBOSE` level will be raised to *at least* the named level of verbosity;
+#  - but if falsey, it will be *lowered* if it is *above* the named level.
+#
+# For instance, `debugging.verbose 6` will result in a debugging-verbosity of ‘info’; which could be
+# alternatively set with `debugging.info true`. (As described for `ENV` above, these are
+# configurable via UNIX envars; i.e. `VERBOSE=6` or `INFO=yahhuh!`.)
+#
+# In addition to the standard `verbosities`, I here include `QUIET` (2) and `SILENT` (0).
+#
+# **N.B.: By design, this mechanism will never *raise* a previously-configured verbosity.** The
+# verbosity can be raised from the default, but never again via the API. (This means that you cannot
+# programmatically override the command-line user's ‘be quiet!’ flags with the API. Sorrynotsorry.)
+ENV _.union(verbosities, ['SILENT', 'QUIET']),
+   value: 4
+   handler: (value, current, name)->
+      level = if (int = parse_numberish value)? then int
+      else verbosities.indexOf name.toLowerCase()
+
+      if level is -1 and name is 'SILENT' then level = 0
+      if level is -1 and name is 'QUIET'  then level = 2
+
+      # A bit of a hack; but `_environment` isn't set until `init()` is called, which is *after* the
+      # UNIX environment is scanned above.
+      if debugging._environment?
+         if verbosity_set_at_load and current < level then current
+         else                                              level
+      else
+         verbosity_set_at_load = yes
+         level
+
+verbosity_set_at_load = no
+
+# We also set `VERBOSE`, `QUIET`, and `SILENT` aliases on infectees (notice the case, and contrast
+# with `verbose` and friends, overriden below.)
+_.extend debugging,
+   VERBOSE: debugging.verbose
+   QUIET:   debugging.quiet
+   SILENT:  debugging.silent
+
+debugging.infect.add 'VERBOSE', 'QUIET', 'SILENT'
+
+# Finally, we create special aliases to `debugging.log`, for each of our `debugging.verbosities`,
+# (for instance, `debugging.warning()` or `debugging.info`) with the caveat that each alias becomes
+# a noop when the `ENV.verbose()` setting is lower than that verbosity.
+#
+# These override the default getter/setter functionality that `ENV` adds above (although that is
+# preserved under capitalized names for `VERBOSE` etc; see above.)
+#
+# Of note, these are all set to `infect`; so they're exposed on `Paws` as well (i.e. `Paws.info()`.)
+for name, this_level in verbosities
+   do (name, this_level)->
+      debugging[name] = ->
+         debugging.log.apply debugging, arguments if this_level <= debugging.verbosity()
+
+   debugging.infect.add name
+
+
+debugging.init()
+debugging.debug "++ Debugging available"
