@@ -96,7 +96,7 @@ if [ -n "${INTEGRATION##[YTyt]*}" ]; then
    batsify "$unit_dir"/*.tests.bats
 else
    mochaify "$unit_dir"/*.tests.coffee "$integration_dir/"*.tests.coffee "$@"
-   batsify "$unit_dir"/*.tests.bats "$integration_dir/"*.tests.coffee
+   batsify "$unit_dir"/*.tests.bats "$integration_dir/"*.tests.bats
 fi
 
 if ! command -v bats >/dev/null; then
