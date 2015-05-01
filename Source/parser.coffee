@@ -1,12 +1,21 @@
-Paws = require './datagraph.coffee'
-term = Paws.utilities.terminal
+Paws             = require './datagraph.coffee'
+_                = Paws.utilities
+debugging        = Paws.debugging
+
+# I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
+{  constructify, parameterizable, delegated
+,  terminal: term                                                                              } = _
+
+{  ENV, verbosity, is_silent, colour
+,  emergency, alert, critical, error, warning, notice, info, debug, verbose, wtf       } = debugging
+
 
 exports._parser = PARSER =
 try
    require '../Library/cPaws-parser.js'
 catch e
-   Paws.warning "!! Compiled parser not found! Dynamically building one from the grammar now ..."
-   Paws.warning "   (This should have happened on `npm install`. Run that, if you haven't yet.)"
+   warning "!! Compiled parser not found! Dynamically building one from the grammar now ..."
+   warning "   (This should have happened on `npm install`. Run that, if you haven't yet.)"
    PEG = require('pegjs'); fs = require('fs'); path = require('path')
    grammar = fs.readFileSync path.join(__dirname, 'cPaws.pegjs'), encoding: 'utf8'
    PEG.buildParser grammar
@@ -87,7 +96,7 @@ parameterizable delegated('words', Array) class Expression
 
       # Array of objects passed; construct an Expression
       it = new Expression
-      it.words = utilities._.map representation, (rep)-> node_from rep
+      it.words = _.map representation, (rep)-> node_from rep
 
       return it
 
@@ -210,7 +219,6 @@ Expression::toString = ({focus: focus} = {})->
 
    if @_?.tag == no then contents else Thing::_tagged.call this, contents
 
-module.exports = parse
-Paws.utilities.infect module.exports, exports
 
-Paws.info "++ Parser available"
+_.extend (module.exports = parse), exports
+info "++ Parser available"

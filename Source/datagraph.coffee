@@ -1,17 +1,28 @@
-uuid = require 'node-uuid'
-util = require 'util'
-{EventEmitter} = require 'events'
+uuid             = require 'node-uuid'
+{ EventEmitter } = require 'events'
+
+Paws             = require './datagraph.coffee'
+_                = require './utilities.coffee'
+debugging        = require './debugging.coffee'
+
+# I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
+{  constructify, parameterizable, delegated
+,  passthrough, selfify, modifier
+,  terminal: term                                                                              } = _
+
+{  ENV, verbosity, is_silent, colour
+,  emergency, alert, critical, error, warning, notice, info, debug, verbose, wtf       } = debugging
 
 
+# API entry-point
+# ===============
 module.exports =
-   Paws = new Object
+Paws =
+   utilities: _
+   debugging: debugging
 
-Paws.utilities = require './utilities.coffee'
-Paws.utilities.infect global
-
-Paws.debugging = require './debugging.coffee'
 Paws.debugging.infect Paws
-Paws.debugging.infect global
+
 
 # Core data-types
 # ===============
@@ -106,7 +117,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       _.pluck(results.reverse(), 'to')
 
    # TODO: Option to include the noughty
-   toArray: (cb)-> @metadata.slice(1).map (rel)-> (cb ? identity) rel?.to
+   toArray: (cb)-> @metadata.slice(1).map (rel)-> (cb ? _.identity) rel?.to
 
    @pair: (key, value)->
       new Thing(Label(key), value)
@@ -129,7 +140,7 @@ Thing_init = ->
 
       # FIXME: Welp, this is horrible error-handling. "Print a warning and freeze forevah!!!"
       unless results[0]
-         Paws.notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}."
+         notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}."
 
       world.stage caller, results[0].valueish() if results[0]
    .rename 'thing✕'
@@ -493,8 +504,8 @@ Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
 
    clone: -> new Relation @to, @owns
 
-   owned:    chain (val)-> @owns = val ? yes
-   disowned: chain      -> @owns = no
+   owned:    selfify (val)-> @owns = val ? yes
+   disowned: selfify      -> @owns = no
 
 
 # A `Combination` represents a single operation in the Paws semantic. An instance of this class
@@ -572,13 +583,11 @@ Paws.Mask = Mask = class Mask
 
 # Debugging output
 # ----------------
-term = Paws.utilities.terminal
-
 # Convenience to call whatever string-making methods are available on the passed object.
 Paws.inspect = (object)->
    object?.inspect?() or
    object instanceof Thing && Thing::inspect.apply(object) or
-   util.inspect object
+   _.node.inspect object
 
 Thing::_inspectID = ->
    if @id? then @id.slice(-8) else ''
@@ -652,4 +661,4 @@ Native::toString = ->
 Thing_init()
 Execution_init()
 
-Paws.debug "++ Datagraph available"
+debug "++ Datagraph available"

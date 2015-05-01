@@ -1,28 +1,25 @@
 blessed = require 'blessed'
 
+# TODO: Have this inherit prototypically from lodash.
 module.exports =
-util = new Object
+_ = require 'lodash-compat'
 
-util._ = _ = require 'lodash-compat'
-util.util = require 'util'
+_.node = require 'util'
 
 
 # Functional aids
 # ---------------
-util.noop = -> this
-util.identity = (arg)-> arg
-
 # Third-order function to pass-through the arguments to the first-order body
-util.passthrough = passthrough =
+_.passthrough = passthrough =
    (snd)-> (fst)-> ->
       result = fst.apply this, arguments
       snd.call this, result, arguments
 
 # Higher-order function to wrap a function such that it always returns the owner thereof
-util.chain = passthrough -> this
+_.selfify = passthrough -> this
 
 # Higher-order function to return the argument given to the function, unless the function modifies
-util.modifier = passthrough (result, args)-> result ? args[0]
+_.modifier = passthrough (result, args)-> result ? args[0]
 
 
 # Interactive terminal tools
@@ -30,56 +27,56 @@ util.modifier = passthrough (result, args)-> result ? args[0]
 # FIXME: This probably needs to be more flexible than a single pre-created global instance
 tput = new blessed.Tput term: process.env.TERM
 
-util.terminal =
+_.terminal = term =
    tput: tput
 
    sgr: sgr = (flags...)-> csi flags.join(';') + 'm'
    csi: csi = (text)->  '\x1b[' + text
 
-   fg: fg = (colour, text)-> if Paws.colour() then switch
+   fg: fg = (colour, text)-> if debugging.colour() then switch
       when colour < 10 then sgr(30+colour) + text + sgr(39)
       when colour < 20 then sgr(80+colour) + text + sgr(39)
       else                  xfg colour, text
    else text
 
-   bg: bg = (colour, text)-> if Paws.colour() then switch
+   bg: bg = (colour, text)-> if debugging.colour() then switch
       when colour < 10 then sgr(40+colour) + text + sgr(49)
       when colour < 20 then sgr(90+colour) + text + sgr(49)
       else                  xbg colour, text
    else text
 
    xfg: xfg = (colour, text)->
-      if Paws.colour() then sgr(38,5,colour) + text + sgr(39) else text
+      if debugging.colour() then sgr(38,5,colour) + text + sgr(39) else text
    xbg: xbg = (colour, text)->
-      if Paws.colour() then sgr(48,5,colour) + text + sgr(49) else text
+      if debugging.colour() then sgr(48,5,colour) + text + sgr(49) else text
 
    block: (text, cb)=>
       lines = text.split "\n"
       lines = _(lines).map (line, i)=>
-         sanitized_line = if Paws.colour then line.replace /\x1b.*?[ABCDGsum]/g, '' else line
-         spacing = Math.max 0, util.terminal.columns - sanitized_line.length
+         sanitized_line = if debugging.colour then line.replace /\x1b.*?[ABCDGsum]/g, '' else line
+         spacing = Math.max 0, term.columns - sanitized_line.length
          line = line + new Array(spacing).join ' '
          if cb then cb line, i, sanitized_line, text else line
       lines.join "\n"
 
-   bold:       (text)-> if Paws.colour() then sgr(1) + text + sgr(22) else text
-   underline:  (text)-> if Paws.colour() then sgr(4) + text + sgr(24) else text
-   invert:     (text)-> if Paws.colour() then sgr(7) + text + sgr(27) else text
+   bold:       (text)-> if debugging.colour() then sgr(1) + text + sgr(22) else text
+   underline:  (text)-> if debugging.colour() then sgr(4) + text + sgr(24) else text
+   invert:     (text)-> if debugging.colour() then sgr(7) + text + sgr(27) else text
 
    em:         (text)->
-      [before, after] = if Paws.colour() then [sgr(95), sgr(39)] else ['*', '*']
+      [before, after] = if debugging.colour() then [sgr(95), sgr(39)] else ['*', '*']
       before + text + after
 
-util.terminal.columns = process.stdout.columns || tput.columns || 80
+term.columns = process.stdout.columns || tput.columns || 80
 process.stdout.on 'resize', ->
-   util.terminal.columns = process.stdout.columns
+   term.columns = process.stdout.columns
 
 
 # CoffeeScript Sugar
 # ------------------
 
 # NYD
-util.constructify = (opts)->
+_.constructify = (opts)->
    inner = (body)->
       Wrapper = ->
 
@@ -132,7 +129,7 @@ util.constructify = (opts)->
       after_interceptor = ->
          cs_wrapper = after_interceptor.caller
          if cs_wrapper.name?.length > 0 and arguments[1].callee == cs_wrapper
-            Paws.error """
+            debugging.error """
                Oh-oh! It looks like a CoffeeScript constructor-wrapper has tried to call a
                ------ constructor that you've called `constructify()` on, *after* you've
                       otherwise called that function yourself. Due to the (unfortunately,
@@ -192,7 +189,7 @@ util.constructify = (opts)->
 #    be needing it across multiple reactor ticks. This, in my experience, is an edge-case.
 # ----
 # TODO: This could all be a lot more succinct, and prettier.
-util.parameterizable = (Klass)->
+_.parameterizable = (Klass)->
    Klass.with = (opts)->
 
       # XXX: Perhaps this should use constructify()?
@@ -203,7 +200,7 @@ util.parameterizable = (Klass)->
 
       it.with opts
       bound = _.bind Klass, it
-      _.assign bound, Klass
+      _.extend bound, Klass
       bound.prototype = Klass.prototype
       bound._ = opts
       process.nextTick => delete bound._
@@ -217,7 +214,7 @@ util.parameterizable = (Klass)->
 
 # Another “tag” for CoffeeScript classes, to cause them to delegate any undefined methods to another
 # class, if they *are* defined on that other class.
-util.delegated = (member, delegatee)-> (klass)->
+_.delegated = (member, delegatee)-> (klass)->
    funcs = functions(delegatee::).map (f)->
       mapped = -> delegatee::[f].apply this[member], arguments
       [f, mapped]
@@ -225,8 +222,6 @@ util.delegated = (member, delegatee)-> (klass)->
 
    return klass
 
-
-util.infect = (globals, wif = util)-> _.assign globals, wif
 
 # lodash's `_.functions()` only handles *enumerable* properties. `Array`, etc's prototypal functions
 # aren't enumerable. Ugh.
@@ -246,5 +241,5 @@ functions = (prototype, uuntil = Object.prototype)->
 
 # `debugging.coffee` depends on this, and thus must be loaded *after* this. (Similarly, it cannot be
 # used inside this file until post-init; so any debugging statements must be inside invocations.)
-Paws = require './debugging.coffee'
-(Paws.info ? util.noop) "++ Utilities available"
+debugging = require './debugging.coffee'
+(debugging.info ? _.noop) "++ Utilities available"

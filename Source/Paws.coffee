@@ -6,7 +6,13 @@
 #                          `Y888Y'
 #                            `Y'
 
+_         = require './utilities.coffee'
+debugging = require './debugging.coffee'
 
+
+# Assembling the API
+# ==================
+module.exports =
 Paws = require './datagraph.coffee'
 
 Paws.parse   = require './parser.coffee'
@@ -20,7 +26,7 @@ Paws.generateRoot = (code = '', name)->
    code = Paws.parse Paws.parse.prepare code if typeof code == 'string'
    code = new Execution code
    code.rename name if name
-   Paws.info "~~ Root-execution generated for #{Paws.utilities.terminal.bold name}" if name
+   debugging.info "~~ Root-execution generated for #{_.terminal.bold name}" if name
 
    code.locals.inject Paws.primitives 'infrastructure'
    code.locals.inject Paws.primitives 'implementation'
@@ -37,18 +43,20 @@ Paws.js = (code)->
    here.start()
 
 
-Paws.infect = (globals)-> @utilities.infect globals, this
+Paws.infect = (globals)-> @utilities.extend globals, this
+
+# FIXME: Temporary.
+Paws.infect global
 
 
 # XXX: Loading order:
-#      0. Paws.coffee
-#      1. += datagraph.coffee
-#      2.    += utilities.coffee
-#      3.       -> debugging.coffee...
-#         += debugging.coffee (-> utilities.coffee...)
-#      4. += parser.coffee
-#      5. += reactor.coffee (-> utilities.coffee...)
+#      0. Paws.☕️
+#      1. += utilities.☕️
+#      2.    -> debugging.☕️ ...
+#         += debugging.☕️      (-> utilities.☕️ )
+#      3. += datagraph.☕️      (-> utilities.☕️ , debugging.☕️ )
+#      4. += parser.☕️         (-> utilities.☕️ , debugging.☕️ )
+#      5. += reactor.☕️        (-> utilities.☕️ , debugging.☕️ )
 #      6, += primitives/*
 
-Paws.info "++ API available"
-module.exports = Paws
+debugging.info "++ API available"

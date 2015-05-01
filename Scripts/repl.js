@@ -21,6 +21,4 @@ r = repl.start({
 ,  historyFile: path.resolve(__dirname + '/../.repl_history')
 })
 
-require('../Source/utilities.coffee').infect(r.context, Paws)
-                                             r.context.Paws = Paws
-                                             r.context.P    = Paws
+Paws.infect(r.context)

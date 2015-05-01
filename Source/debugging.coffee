@@ -1,4 +1,6 @@
-require('./utilities.coffee').infect global
+{ term: terminal } =
+_ = require './utilities.coffee'
+
 
 # TODO: I'd really like to extract most of this into npm modules. It represents a lot of thought and
 #       work, and is mostly inspecific to Paws. Several things here are ripe for generalization: the
@@ -36,13 +38,13 @@ module.exports = debugging =
          $init[environment]()
 
       $init.CLI = (stream = process.stderr)->
-         _.assign debugging,
+         _.extend debugging,
             _environment:  'CLI'
             has_terminal: yes
             has_browser:  no
 
             log: ->
-               output = util.format.apply(util, arguments) + '\n'
+               output = _.node.format.apply(_.node, arguments) + '\n'
                stream.write output, 'utf8'
 
          # XXX: Yes, `Paws.colour()` is intentionally not defined unless executing at the CLI. You
@@ -51,7 +53,7 @@ module.exports = debugging =
          debugging.ENV ['COLOUR', 'COLOR'], value: true, infect: true
 
       $init.browser = (window = window, console = console)->
-         _.assign debugging,
+         _.extend debugging,
             _environment: 'browser'
             has_terminal: no
             has_browser:  yes

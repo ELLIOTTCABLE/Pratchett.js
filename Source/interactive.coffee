@@ -1,17 +1,23 @@
-Paws = require './Paws.coffee'
-Paws.infect global
-term = Paws.utilities.terminal
+{ EventEmitter } = require 'events'
+PrettyError      = require 'pretty-error'
+readline         = require 'readline'
+readline.vim     = try require 'readline-vim' catch error
+                     throw error unless error.code == 'MODULE_NOT_FOUND'
 
-PrettyError = require('pretty-error')
+Paws             = require './datagraph.coffee'
+_                = Paws.utilities
+debugging        = Paws.debugging
 
-{EventEmitter} = require 'events'
-readline = require 'readline'
-readline.vim = try require 'readline-vim' catch error
-                  throw error unless error.code == 'MODULE_NOT_FOUND'
+# I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
+{  constructify, parameterizable, delegated
+,  terminal: term                                                                              } = _
+
+{  ENV, verbosity, is_silent, colour
+,  emergency, alert, critical, error, warning, notice, info, debug, verbose, wtf       } = debugging
 
 
-module.exports = Interactive =
-parameterizable class Interactive extends EventEmitter
+module.exports =
+Interactive = parameterizable class Interactive extends EventEmitter
 
    constructor: ->
       # XXX: Not sure if I can create the readline instance early, before I use it. This may need to
@@ -19,8 +25,8 @@ parameterizable class Interactive extends EventEmitter
       @readline = readline.createInterface
          input: @_?.input ? process.stdin, output: @_?.output ? process.stdout
       @readline.setPrompt @_?.prompt ? ':: '
-      @readline.line_style = term.sgr 7 if Paws.debugging.colour()
-      @readline.clear_style = term.sgr 27 if Paws.debugging.colour()
+      @readline.line_style = term.sgr 7 if colour()
+      @readline.clear_style = term.sgr 27 if colour()
       @hackReadline()
 
       @error_renderer = @_?.error_renderer
@@ -58,7 +64,7 @@ parameterizable class Interactive extends EventEmitter
             @evaluate line
          catch err
             # TODO: ‘theme’ this to be a bit less verbose
-            Paws.error @error_renderer.render(err)
+            error @error_renderer.render(err)
             @prompt()
 
       process.removeAllListeners('SIGINT') # FIXME: This is a bad idea.
@@ -103,9 +109,9 @@ parameterizable class Interactive extends EventEmitter
 
       @readline.on 'SIGTSTP', SIGTSTP
 
-      Paws.alert "Successive lines will be evaluated as executions, with shared `locals`."
-      Paws.alert "   (#{term.bold '⌃d'} to close the input-stream; "+
-                     "#{term.bold '⌃c'} to synchronously force new prompt)"
+      alert "Successive lines will be evaluated as executions, with shared `locals`."
+      alert "   (#{term.bold '⌃d'} to close the input-stream; "+
+                "#{term.bold '⌃c'} to synchronously force new prompt)"
       @prompt()
 
 
@@ -120,8 +126,8 @@ parameterizable class Interactive extends EventEmitter
       else
          expr = parse '_INTERACTIVE_INSPECT ['+code+']'
 
-     #Paws.info "-- Generated expression to evaluate: " +
-     #   expr.with(context: yes, tag: no).toString()
+      info "-- Generated expression to evaluate: " +
+         expr.with(context: yes, tag: no).toString()
 
       # Now, we put both those in the queue, giving the first responsibility for the mutex. This
       # prevents the resumer from realizing until the interact-line has become complete(), and thus
@@ -152,7 +158,7 @@ parameterizable class Interactive extends EventEmitter
 
       # We re-implement half of Readline so we can insert the `terminal.block()` call with our
       # desired line-style.
-      if Paws.debugging.colour()
+      if colour()
          _interface._refreshLine = ->
             input = @_prompt + @line
             lastLineLength = input.length % @columns
@@ -216,4 +222,5 @@ parameterizable class Interactive extends EventEmitter
 
       [_ttyWrite, _interface._ttyWrite] = [_interface._ttyWrite, active_ttyWrite]
 
-Paws.info "++ Interactive interface available"
+
+info "++ Interactive interface available"

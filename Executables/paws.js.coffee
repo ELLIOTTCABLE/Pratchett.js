@@ -2,20 +2,27 @@
 process.title = 'paws.js'
 
 module.package = require '../package.json'
-bluebird = require 'bluebird'
-minimist = require 'minimist'
-mustache = require 'mustache'
-prettify = require('pretty-error').start()
+bluebird    = require 'bluebird'
+minimist    = require 'minimist'
+mustache    = require 'mustache'
+prettify    = require('pretty-error').start()
 
-path     = require 'path'
-fs       = bluebird.promisifyAll require 'fs'
+path        = require 'path'
+fs          = bluebird.promisifyAll require 'fs'
 
-Paws     = require '../Library/Paws.js'
-term     = Paws.utilities.terminal
-_        = Paws.utilities._
+Paws        = require '../Library/Paws.js'
+debugging   = Paws.debugging
+_           = Paws.utilities
 
-out = process.stdout
-err = process.stderr
+# I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
+{  constructify, parameterizable, delegated
+,  terminal: term                                                                              } = _
+
+{  ENV, verbosity, is_silent, colour
+,  emergency, alert, critical, error, warning, notice, info, debug, verbose, wtf       } = debugging
+
+{ stdout: out, stderr: err } = process
+
 
 heart = '💖 '
 salutations = [
@@ -36,19 +43,20 @@ argv = argf._
 
 # TODO: Support -VV / -VVV
 if argf.V || argf.verbose
-   Paws.VERBOSE 6
+   debugging.VERBOSE 6
 
 
 sources = _([argf.e, argf.expr, argf.expression])
    .flatten().compact().map (expression, i)-> { from: '--expression #' + i, code: expression }
    .value()
 
-Paws.info "-- Arguments: ", argv.join(' :: ')
-Paws.info "-- Flags: ", argf
-Paws.info "-- Sources: ", sources
+if verbosity() >= debugging.verbosities['info']
+   info "-- Arguments: ", argv.join(' :: ')
+   info "-- Flags: ", argf
+   info "-- Sources: ", sources
 
-Paws.wtf "-- Environment variables:"
-Paws.wtf process.env
+   wtf "-- Environment variables:"
+   wtf process.env
 
 choose = ->
    if (argf.help)
@@ -62,7 +70,7 @@ choose = ->
 
       when 'pa', 'parse'
          go = -> _.forEach sources, (source)->
-            Paws.info "-- Parse-tree for '#{term.bold source.from}':"
+            info "-- Parse-tree for '#{term.bold source.from}':"
             seq = Paws.parse Paws.parse.prepare source.code
             out.write seq.serialize() + "\n"
 
@@ -85,7 +93,7 @@ choose = ->
             _.forEach sources, (source)-> rule_unit source
 
          rule_file = (source)->
-            Paws.info "-- Staging rules in '#{term.bold source.from}' from the command-line ..."
+            info "-- Staging rules in '#{term.bold source.from}' from the command-line ..."
             _.forEach _.values(require('yamljs').parse source.code), (book)->
                collection = Collection.from book
 
@@ -98,7 +106,7 @@ choose = ->
                collection.close()
 
          rule_unit = (source)->
-            Paws.info "-- Staging '#{term.bold source.from}' from the command-line ..."
+            info "-- Staging '#{term.bold source.from}' from the command-line ..."
             root = Paws.generateRoot source.code, path.basename source.from, '.paws'
             root.locals.inject Paws.primitives 'specification' 
 
@@ -134,7 +142,7 @@ choose = ->
 
       when 'st', 'start'
          go = -> _.forEach sources, (source)->
-            Paws.info "-- Staging '#{term.bold source.from}' from the command-line ..."
+            info "-- Staging '#{term.bold source.from}' from the command-line ..."
             root = Paws.generateRoot source.code, path.basename source.from, '.paws'
 
             here = new Paws.reactor.Unit
@@ -167,10 +175,10 @@ help = -> readFilesAsync([extra('help.mustache'), extra('figlets.mustache.asv')]
    #  -- standard 80-column terminal -------------------------------------------------|
 
    err.write mustache.render usage+"\n",
-      heart: if Paws.colour() then heart else '<3'
+      heart: if colour() then heart else '<3'
       b: ->(text, r)-> term.bold r text
       u: ->(text, r)-> term.underline r text
-      c: ->(text, r)-> if Paws.colour() then term.invert r text else '`'+r(text)+'`'
+      c: ->(text, r)-> if colour() then term.invert r text else '`'+r(text)+'`'
 
       op:   ->(text, r)-> term.fg 2, r text
       bgop: ->(text, r)-> term.bg 2, r text
@@ -179,18 +187,18 @@ help = -> readFilesAsync([extra('help.mustache'), extra('figlets.mustache.asv')]
 
       title: ->(text, r)-> term.bold term.underline r text
       link:  ->(text, r)->
-         if Paws.colour() then term.sgr(34) + term.underline(r text) + term.sgr(39) else r text
+         if colour() then term.sgr(34) + term.underline(r text) + term.sgr(39) else r text
       prompt: -> # Probably only makes sense inside {{pre}}. Meh.
-         if Paws.colour()
+         if colour()
             term.sgr(27) + term.csi('3D') + term.fg(7, prompt+' ') + term.sgr(7) + term.sgr(90)
          else prompt
       pre:  ->(text, r)-> term.block r(text), (line, _, sanitized)->
-         line = if Paws.colour() and sanitized.charAt(0) == prompt
+         line = if colour() and sanitized.charAt(0) == prompt
             line.slice 0, -3 # Compensate for columns lost to `prompt`'s ANSI ‘CUB’
          else
             line.slice 0, -6
 
-         if Paws.colour()
+         if colour()
             "   #{term.invert term.fg 10, " #{line}"}   "
          else
             "   #{line}"
@@ -208,13 +216,13 @@ version = ->
    """ + "\n"
    process.exit 1
 
-debugging.ENV 'BLINK'
+ENV 'BLINK'
 goodbye = (code = 0)->
-   if debugging.verbosity() >= debugging.verbosities['error']
+   if verbosity() >= debugging.verbosities['error']
       salutation = _(salutations).sample()
-      salutation = ' ~ '+salutation+' '+ (if Paws.colour() then heart else '<3')
+      salutation = ' ~ '+salutation+' '+ (if colour() then heart else '<3')
 
-      if Paws.colour()
+      if colour()
          err.write term.tput.column_address term.columns - salutation.length
          err.write term.tput.clr_eol()
          err.write term.tput.enter_blink_mode() unless debugging.blink()
@@ -249,6 +257,6 @@ records_from = (asv)->
 
 prettify.skipNodeFiles()
 bluebird.onPossiblyUnhandledRejection (error)->
-   Paws.debug "!! Possibly unhandled rejection:"
+   debug "!! Possibly unhandled rejection:"
    console.error error.stack if error.stack
    process.exit 1

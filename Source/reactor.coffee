@@ -1,16 +1,26 @@
-require('./utilities.coffee').infect global
+{ EventEmitter } = require 'events'
 
-{EventEmitter} = require 'events'
+Paws             = require './Paws.coffee'
+_                = Paws.utilities
+debugging        = Paws.debugging
 
-Paws = require './datagraph.coffee'
-term = Paws.utilities.terminal
-infect global, Paws
+# FIXME: Temporary.
+_.extend global, Paws
+
+# I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
+{  constructify, parameterizable, delegated
+,  terminal: term                                                                              } = _
+
+{  ENV, verbosity, is_silent, colour
+,  emergency, alert, critical, error, warning, notice, info, debug, verbose, wtf       } = debugging
+
+
 
 module.exports =
-   reactor = new Object
+reactor = new Object
 
-# This acts as Achieved `Unit`'s store of access knowledge: `Executions` are matched to the `Mask`s they've
-# been given responsibility for
+# This acts as a `Unit`'s store of access knowledge: `Executions` are matched to the `Mask`s they've
+# been given responsibility for.
 #
 # I'd *really* like to see a better data-structure; but my knowledge of such things is insufficient
 # to apply a truly appropriate one. For now, just a simple mapping of `Mask`s to accessors
@@ -96,7 +106,7 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
    # XXX: Exists soely for debugging purposes. Could just emit *inside* `realize`.
    flushed: ->
       if process.env['TRACE_REACTOR']
-         Paws.debug "~~ Queue flushed#{if @queue.length then ' @ '+@queue.length else ''}."
+         debug "~~ Queue flushed#{if @queue.length then ' @ '+@queue.length else ''}."
       @emit 'flushed', @queue.length
 
    # Generate the form of object passed to receivers.
@@ -117,18 +127,18 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
       {stagee, result, requestedMask} = staging
 
       if process.env['TRACE_REACTOR']
-         Paws.warning ">> #{stagee} ← #{result}"
+         warning ">> #{stagee} ← #{result}"
          if stagee.current() instanceof Position
             body = stagee.current().expression().with context: 3, tag: no
                .toString focus: stagee.current().valueOf()
-            Paws.debug term.block body, (line)-> ' │ ' + line.slice 0, -4
+            debug term.block body, (line)-> ' │ ' + line.slice 0, -4
          else if stagee.current() instanceof Function
             body = stagee.current().toString()
-            Paws.wtf term.block body, (line)->   ' │ ' + line.slice 0, -4
+            wtf term.block body, (line)->   ' │ ' + line.slice 0, -4
 
       # Remove completed stagees from the queue, with no further action.
       if stagee.complete()
-         Paws.warning ' ╰┄ complete!' if process.env['TRACE_REACTOR']
+         warning ' ╰┄ complete!' if process.env['TRACE_REACTOR']
          @flushed() unless @upcoming()
          return yes
 
@@ -147,7 +157,7 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
          message = combo.message ? stagee.locals
 
          if process.env['TRACE_REACTOR']
-            Paws.warning " ╰┈ ⇢ combo: #{combo.subject} × #{combo.message}"
+            warning " ╰┈ ⇢ combo: #{combo.subject} × #{combo.message}"
 
          @stage subject.receiver.clone(),
             Unit.receiver_parameters stagee, subject, message
@@ -187,4 +197,5 @@ reactor.Unit = Unit = parameterizable class Unit extends EventEmitter
          clearInterval(interval)
          interval = undefined
 
-Paws.info "++ Reactor available"
+
+info "++ Reactor available"

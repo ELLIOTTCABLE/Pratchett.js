@@ -1,12 +1,18 @@
-require('./utilities.coffee').infect global
+{ EventEmitter } = require 'events'
 
-{EventEmitter} = require 'events'
+Paws             = require './Paws.coffee'
+_                = Paws.utilities
+debugging        = Paws.debugging
 
-Paws = require './Paws.coffee'
-infect global, Paws
+# I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
+{  constructify, parameterizable, delegated
+,  terminal: term                                                                              } = _
+
+{  ENV, verbosity, is_silent, colour
+,  emergency, alert, critical, error, warning, notice, info, debug, verbose, wtf       } = debugging
+
 
 # FIXME: Refactor this entire thing to use isaacs' `node-tap`
-
 module.exports = Rule = class Rule extends Thing
 
    @construct: (schema)->

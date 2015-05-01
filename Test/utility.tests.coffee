@@ -3,12 +3,12 @@ expect = require 'expect.js'
 Paws = require "../Source/Paws.coffee"
 
 describe "Paws' utilities:", ->
-   utilities = require "../Source/utilities.coffee"
+   _ = utilities = require "../Source/utilities.coffee"
    it 'should exist', ->
       expect(utilities).to.be.ok()
 
-   describe 'chain()', ->
-      composed = utilities.chain -> 'whee'
+   describe 'selfify()', ->
+      composed = utilities.selfify -> 'whee'
       it 'should always return the `this` value', ->
          object = new Object
          expect(composed.call object).to.be object
@@ -23,6 +23,8 @@ describe "Paws' utilities:", ->
 
 
    describe 'constructify()', ->
+      constructify = _.constructify
+
       it 'basically works', ->
          expect(constructify).to.be.ok()
          expect(-> constructify ->).to.not.throwException()
@@ -141,7 +143,7 @@ describe "Paws' utilities:", ->
 
 
    describe 'parameterizable()', ->
-      utilities.parameterizable class Twat
+      _.parameterizable class Twat
          constructor: -> return this
 
       it 'should create a parameterizable constructor', ->
@@ -167,7 +169,7 @@ describe "Paws' utilities:", ->
          class Delegatee
             operate: (arg)-> return this: this, argument: arg
 
-         Something = utilities.delegated('a_member', Delegatee) class Something
+         Something = _.delegated('a_member', Delegatee) class Something
             constructor: (@a_member)->
 
          expect(Something::operate).to.be.ok()

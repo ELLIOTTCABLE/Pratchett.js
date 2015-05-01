@@ -6,10 +6,8 @@ sinon   = require 'sinon'
 
 # TODO: Replace all the 'should' language with more direct 'will' language
 #       (i.e. “it should return ...” becomes “it returns ...”
-describe 'The Paws API:', ->
+describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
-   it 'should be defined', ->
-      expect(Paws).to.be.ok()
 
    Thing     = Paws.Thing
    Label     = Paws.Label
