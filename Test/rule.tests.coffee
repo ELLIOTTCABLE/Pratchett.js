@@ -3,11 +3,15 @@ sinon  = require 'sinon'
 match  = sinon.match
 expect = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
 
-Paws = require "../Source/Paws.coffee"
-Paws.infect global # FIXME: Temporary.
+Paws   = require '../Source/Paws.coffee'
+
+{  Thing, Label, Execution, Native
+,  Relation, Combination, Position, Mask
+,  reactor, parse, debugging, utilities: _                                                  } = Paws
+
 
 describe "Paws' Rulebook support:", ->
-   Rule = require '../Source/rule.coffee'
+   Rule       = require '../Source/rule.coffee'
    Collection = Rule.Collection
 
    describe 'Rule', ->

@@ -9,13 +9,11 @@ sinon   = require 'sinon'
 describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
 
-   Thing     = Paws.Thing
-   Label     = Paws.Label
-   Execution = Paws.Execution
+   {  Thing, Label, Execution, Native
+   ,  Relation, Combination, Position, Mask } = Paws
 
    describe 'Thing', ->
 
-      Relation = Paws.Relation
       describe 'Relation', ->
          describe '##from', ->
             it 'should return the passed value if it is already a Relation', ->

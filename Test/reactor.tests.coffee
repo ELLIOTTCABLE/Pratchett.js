@@ -2,19 +2,18 @@ assert = require 'assert'
 sinon  = require 'sinon'
 expect = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
 
-Paws = require "../Source/Paws.coffee"
-Paws.infect global # FIXME: Temporary.
+Paws   = require "../Source/Paws.coffee"
+
+{  Thing, Label, Execution, Native
+,  Relation, Combination, Position, Mask
+,  reactor, parse, debugging, utilities: _                                                  } = Paws
+
 
 describe 'The Paws reactor:', ->
-   reactor = Paws.reactor
-   parse   = Paws.parse
-   advance = reactor.advance
-
-   Mask    = Paws.Mask
+   Unit    = reactor.Unit
    Table   = reactor.Table
    Staging = reactor.Staging
-
-   Unit    = reactor.Unit
+   advance = reactor.advance
 
    it 'should exist', ->
       expect(reactor).to.be.ok()

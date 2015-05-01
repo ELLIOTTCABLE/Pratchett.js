@@ -1,10 +1,12 @@
 { EventEmitter } = require 'events'
 
-Paws             = require './Paws.coffee'
-_                = Paws.utilities
-debugging        = Paws.debugging
-
 # I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
+Paws             = require './Paws.coffee'
+
+{  Thing, Label, Execution, Native
+,  Relation, Combination, Position, Mask
+,  reactor, parse, debugging, utilities: _                                                  } = Paws
+
 {  constructify, parameterizable, delegated
 ,  terminal: term                                                                              } = _
 
@@ -31,7 +33,7 @@ module.exports = Rule = class Rule extends Thing
 
             # Not generateRoot'd, because we replace this Execution's locals with the body's locals
             # when it's invoked.
-            else             new Execution Paws.parse schema.eventually
+            else             new Execution parse schema.eventually
 
       return rule
 

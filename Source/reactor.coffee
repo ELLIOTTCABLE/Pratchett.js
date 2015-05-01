@@ -1,19 +1,17 @@
 { EventEmitter } = require 'events'
 
-Paws             = require './Paws.coffee'
-_                = Paws.utilities
-debugging        = Paws.debugging
-
-# FIXME: Temporary.
-_.extend global, Paws
-
 # I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
+Paws             = require './Paws.coffee'
+
+{  Thing, Label, Execution, Native
+,  Relation, Combination, Position, Mask
+,  debugging, utilities: _                                                                  } = Paws
+
 {  constructify, parameterizable, delegated
 ,  terminal: term                                                                              } = _
 
 {  ENV, verbosity, is_silent, colour
 ,  emergency, alert, critical, error, warning, notice, info, debug, verbose, wtf       } = debugging
-
 
 
 module.exports =

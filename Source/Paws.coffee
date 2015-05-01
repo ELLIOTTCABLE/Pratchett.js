@@ -13,7 +13,7 @@ debugging = require './debugging.coffee'
 # Assembling the API
 # ==================
 module.exports =
-Paws = require './datagraph.coffee'
+Paws         = require './datagraph.coffee'
 
 Paws.parse   = require './parser.coffee'
 Paws.reactor = require './reactor.coffee'
@@ -24,7 +24,7 @@ Paws.primitives = (bag)->
 
 Paws.generateRoot = (code = '', name)->
    code = Paws.parse Paws.parse.prepare code if typeof code == 'string'
-   code = new Execution code
+   code = new Paws.Execution code
    code.rename name if name
    debugging.info "~~ Root-execution generated for #{_.terminal.bold name}" if name
 
@@ -43,10 +43,7 @@ Paws.js = (code)->
    here.start()
 
 
-Paws.infect = (globals)-> @utilities.extend globals, this
-
-# FIXME: Temporary.
-Paws.infect global
+Paws.infect = (target)-> @utilities.extend (target ? global), this
 
 
 # XXX: Loading order:

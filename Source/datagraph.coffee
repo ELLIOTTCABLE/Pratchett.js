@@ -1,7 +1,6 @@
 uuid             = require 'node-uuid'
 { EventEmitter } = require 'events'
 
-Paws             = require './datagraph.coffee'
 _                = require './utilities.coffee'
 debugging        = require './debugging.coffee'
 

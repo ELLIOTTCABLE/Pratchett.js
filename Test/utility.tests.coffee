@@ -1,6 +1,7 @@
 expect = require 'expect.js'
 
-Paws = require "../Source/Paws.coffee"
+Paws   = require "../Source/Paws.coffee"
+
 
 describe "Paws' utilities:", ->
    _ = utilities = require "../Source/utilities.coffee"

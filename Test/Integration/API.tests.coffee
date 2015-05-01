@@ -2,7 +2,9 @@ support = require '../support.coffee'
 expect  = require 'expect.js'
 
 describe 'API consumers', ->
-   it.skip "have pristine globals after including Paws", ->
+   they = it
+
+   they "retain pristine globals after including Paws", ->
       require '../../Source/Paws.coffee'
 
       expect(-> Paws).to.throwError()
@@ -22,7 +24,7 @@ describe 'API consumers', ->
       expect(-> terminal).to.throwError()
       expect(-> constructify).to.throwError()
 
-   it.skip "have pristine globals after including `Interactive`", ->
+   they "retain pristine globals after including `Interactive`", ->
       require '../../Source/interactive.coffee'
 
       expect(-> Paws).to.throwError()
@@ -30,7 +32,7 @@ describe 'API consumers', ->
 
       expect(-> Interactive).to.throwError()
 
-   it.skip "have pristine globals after including `Rule`", ->
+   they "retain pristine globals after including `Rule`", ->
       require '../../Source/rule.coffee'
 
       expect(-> Paws).to.throwError()

@@ -4,11 +4,13 @@ readline         = require 'readline'
 readline.vim     = try require 'readline-vim' catch error
                      throw error unless error.code == 'MODULE_NOT_FOUND'
 
-Paws             = require './datagraph.coffee'
-_                = Paws.utilities
-debugging        = Paws.debugging
-
 # I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
+Paws             = require './Paws.coffee'
+
+{  Thing, Label, Execution, Native
+,  Relation, Combination, Position, Mask
+,  reactor, parse, debugging, utilities: _                                                  } = Paws
+
 {  constructify, parameterizable, delegated
 ,  terminal: term                                                                              } = _
 

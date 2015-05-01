@@ -1,7 +1,11 @@
 expect = require 'expect.js'
 
-Paws  = require '../Source/Paws.coffee'
-parse = require "../Source/parser.coffee"
+Paws   = require '../Source/Paws.coffee'
+
+{  Thing, Label, Execution, Native
+,  Relation, Combination, Position, Mask
+,  reactor, parse, debugging, utilities: _                                                  } = Paws
+
 
 describe 'Parser', ->
    it 'exists', ->
@@ -100,7 +104,7 @@ describe 'Parser', ->
 
       describe '#serialize', ->
          before -> Paws.colour no
-         after  -> Paws.colour no
+         after  -> Paws.colour yes
 
          it 'exists', ->
             expr = new Expression
@@ -151,7 +155,7 @@ describe 'Parser', ->
 
       describe '#toString', ->
          before -> Paws.colour no
-         after  -> Paws.colour no
+         after  -> Paws.colour yes
 
          it 'exists', ->
             expr = new Expression
