@@ -18,58 +18,6 @@ describe 'The Paws reactor:', ->
    it 'should exist', ->
       expect(reactor).to.be.ok()
 
-   describe 'Mask', ->
-      describe '#flatten', ->
-         it 'should always return at least the root', ->
-            a_mask = new Mask(a_thing = new Thing)
-            expect(a_mask.flatten()).to.contain a_thing
-
-         it 'should include anything owned by that root', ->
-            [a_thing, another_thing] = [new Thing, new Thing]
-            a_mask = new Mask Thing.construct {something: a_thing, something_else: another_thing}
-            expect(a_mask.flatten()).to.contain a_thing
-            expect(a_mask.flatten()).to.contain another_thing
-
-         it 'should include anything owned, recursively, by that roots', ->
-            [a_thing, another_thing] = [new Thing, new Thing]
-            parent_thing = Thing.construct {something: a_thing, something_else: another_thing}
-            a_mask = new Mask Thing.construct {child: parent_thing}
-            expect(a_mask.flatten()).to.contain parent_thing
-            expect(a_mask.flatten()).to.contain a_thing
-            expect(a_mask.flatten()).to.contain another_thing
-
-      # FIXME: This is insufficiently exercised.
-      describe '#conflictsWith', ->
-         it 'should indicate whether passed a mask currently contains some of the same items', ->
-            a_mask = new Mask Thing.construct(things = {a: new Thing, b: new Thing})
-            expect(a_mask.conflictsWith new Mask things.a).to.be true
-            expect(a_mask.conflictsWith new Mask new Thing).to.be false
-
-      describe '#containedBy', ->
-         it 'should return true if the only item is contained by a passed Mask', ->
-            a_mask       = new Mask Thing.construct(things = {a: new Thing, b: new Thing})
-            another_mask = new Mask things.a
-            expect(another_mask.containedBy a_mask).to.be true
-
-         it 'should return true if all items are contained by a passed Mask', ->
-            [a_thing, another_thing] = [new Thing, new Thing]
-            parent_thing = Thing.construct {something: new Thing, something_else: new Thing}
-            a_mask = new Mask Thing.construct {child: parent_thing}
-            another_mask = new Mask parent_thing
-            expect(another_mask.containedBy a_mask).to.be true
-
-         it 'should return true if all items are contained by one or another of the passed Masks'
-            # NYI: Is this even possible? If it contains the root node of a given mask, then it must
-            #      contain all nodes. In fact, I should take advantage of that in my climbing algorithm ...
-
-         it 'should return false if any item is *not* contained by one of the passed Masks', ->
-            # XXX: Ditto above. It's possible that *only* roots can possibly be not-contained. Hm ...
-            [a_thing, another_thing] = [new Thing, new Thing]
-            parent_thing = Thing.construct {something: new Thing, something_else: new Thing}
-            a_mask = new Mask Thing.construct {child: parent_thing}
-            another_mask = new Mask parent_thing
-            expect(a_mask.containedBy another_mask).to.be false
-
    describe 'a responsibility Table', ->
       it 'should exist', ->
          expect(Table).to.be.ok()
