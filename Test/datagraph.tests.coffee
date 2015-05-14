@@ -114,6 +114,7 @@ describe "Paws' Data types:", ->
             expect(pair.at 2).to.be.an Execution
 
       describe '##pair', ->
+         it.skip 'should be tested...'
 
       uuid_regex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/
       it 'should have a UUID', ->
