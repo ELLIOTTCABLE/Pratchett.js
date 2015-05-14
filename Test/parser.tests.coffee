@@ -4,7 +4,7 @@ Paws   = require '../Source/Paws.coffee'
 
 {  Thing, Label, Execution, Native
 ,  Relation, Combination, Position, Mask
-,  reactor, parse, debugging, utilities: _                                                  } = Paws
+,  parse, debugging, utilities: _                                                           } = Paws
 
 
 describe 'Parser', ->
