@@ -14,9 +14,7 @@ debugging = require './debugging.coffee'
 # ==================
 module.exports =
 Paws         = require './datagraph.coffee'
-
 Paws.parse   = require './parser.coffee'
-Paws.reactor = require './reactor.coffee'
 
 
 Paws.primitives = (bag)->
@@ -53,7 +51,6 @@ Paws.infect = (target)-> @utilities.extend (target ? global), this
 #         += debugging.☕️      (-> utilities.☕️ )
 #      3. += datagraph.☕️      (-> utilities.☕️ , debugging.☕️ )
 #      4. += parser.☕️         (-> utilities.☕️ , debugging.☕️ )
-#      5. += reactor.☕️        (-> utilities.☕️ , debugging.☕️ )
 #      6, += primitives/*
 
 debugging.info "++ API available"

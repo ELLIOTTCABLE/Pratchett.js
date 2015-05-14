@@ -9,7 +9,7 @@ Paws             = require './Paws.coffee'
 
 {  Thing, Label, Execution, Native
 ,  Relation, Combination, Position, Mask
-,  reactor, parse, debugging, utilities: _                                                  } = Paws
+,  parse, debugging, utilities: _                                                           } = Paws
 
 {  constructify, parameterizable, delegated
 ,  terminal: term                                                                              } = _
