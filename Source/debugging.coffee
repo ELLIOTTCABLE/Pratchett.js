@@ -51,6 +51,7 @@ module.exports = debugging =
          #      shouldn't be checking `COLOUR` unless you're about to add ANSI codes, and you
          #      shouldn't be about to add ANSI codes unless you've checked `has_terminal`.
          debugging.ENV ['COLOUR', 'COLOR'], value: true, infect: true
+         debugging.ENV 'SIMPLE_ANSI', value: false
 
       $init.browser = (window = window, console = console)->
          _.extend debugging,

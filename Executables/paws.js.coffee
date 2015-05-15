@@ -2,10 +2,13 @@
 process.title = 'paws.js'
 
 module.package = require '../package.json'
+optional    = require 'optional'
+
 bluebird    = require 'bluebird'
 minimist    = require 'minimist'
 mustache    = require 'mustache'
 prettify    = require('pretty-error').start()
+kexec       = optional 'kexec'
 
 path        = require 'path'
 fs          = bluebird.promisifyAll require 'fs'
@@ -61,6 +64,9 @@ if verbosity() >= debugging.verbosities['info']
    wtf process.env
 
 choose = ->
+   if (argf.pager == true and not argf['already-paginated'])
+      return page()
+
    if (argf.help)
       return help()
    if (argf.version)
@@ -166,7 +172,36 @@ process.nextTick choose
 
 # ---- --- ---- --- ----
 
-help = -> readFilesAsync([extra('help.mustache'), extra('figlets.mustache.asv')]).then ([template, figlets])->
+# Re-executes the current invocation of `paws.js`, with the output wrapped in `$PAGER`; then invokes
+# the callback in the new, paginated process.
+#---
+# FIXME: Check for existence of `less` if `$PAGER` is not defined.
+# FIXME: `less` seems to mangle the emoji heart above by default.
+page = (cb)->
+   if argf['already-paginated'] or argf.pager == false
+      return cb()
+
+   # A simpler hack, to send `-R` to `less`, if possible.
+   pager = process.env.PAGER || 'less -RS'
+   pager = pager.replace /less(\s|$)/, 'less --RAW-CONTROL-CHARS$1'
+
+   # This is a horrible hack. Thanks, Stack Overflow. http://stackoverflow.com/a/22827128/31897
+   escapeShellArg = (cmd)-> "'" + cmd.replace(/\'/g, "'\\''") + "'"
+
+   params = process.argv.slice()
+   params.splice 2, 0, '--already-paginated'
+   process.env['SIMPLE_ANSI'] = true
+
+   # These are passed to `"sh" "-c" ...` by `kexec()`.
+   params = params.map (arg)-> escapeShellArg arg
+   params.push '|'
+   params.push pager
+
+   Paws.debug "!! Forking and exec'ing to pager:", pager
+   Paws.wtf "-- Invocation via `sh -c`:", params.join ' '
+   kexec params.join ' '
+
+help = -> page -> readFilesAsync([extra('help.mustache'), extra('figlets.mustache.asv')]).then ([template, figlets])->
    figlets = records_from figlets
 
    divider = term.invert( new Array(Math.ceil((term.columns + 1) / 2)).join('- ') )
@@ -176,7 +211,7 @@ help = -> readFilesAsync([extra('help.mustache'), extra('figlets.mustache.asv')]
    usage = divider + "\n" + _(figlets).sample() + template + divider
    #  -- standard 80-column terminal -------------------------------------------------|
 
-   err.write mustache.render usage+"\n",
+   out.write mustache.render usage+"\n",
       heart: if colour() then heart else '<3'
       b: ->(text, r)-> term.bold r text
       u: ->(text, r)-> term.underline r text
@@ -191,11 +226,11 @@ help = -> readFilesAsync([extra('help.mustache'), extra('figlets.mustache.asv')]
       link:  ->(text, r)->
          if colour() then term.sgr(34) + term.underline(r text) + term.sgr(39) else r text
       prompt: -> # Probably only makes sense inside {{pre}}. Meh.
-         if colour()
+         if colour() and not debugging.simple_ansi()
             term.sgr(27) + term.csi('3D') + term.fg(7, prompt+' ') + term.sgr(7) + term.sgr(90)
          else prompt
       pre:  ->(text, r)-> term.block r(text), (line, _, sanitized)->
-         line = if colour() and sanitized.charAt(0) == prompt
+         line = if colour() and not debugging.simple_ansi() and sanitized.charAt(0) == prompt
             line.slice 0, -3 # Compensate for columns lost to `prompt`'s ANSI ‘CUB’
          else
             line.slice 0, -6
@@ -212,7 +247,7 @@ version = ->
    release      = module.package['version'].split('.')[0]
    release_name = module.package['version-name']
    spec_name    = module.package['spec-name']
-   err.write """
+   out.write """
       Paws.js release #{release}, “#{release_name}”
          conforming to: #{spec_name}
    """ + "\n"
@@ -220,7 +255,7 @@ version = ->
 
 ENV 'BLINK'
 goodbye = (code = 0)->
-   if verbosity() >= debugging.verbosities['error']
+   if not argf['already-paginated'] and verbosity() >= debugging.verbosities['error']
       salutation = _(salutations).sample()
       salutation = ' ~ '+salutation+' '+ (if colour() then heart else '<3')
 
