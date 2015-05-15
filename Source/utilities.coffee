@@ -67,9 +67,11 @@ _.terminal = term =
       [before, after] = if debugging.colour() then [sgr(95), sgr(39)] else ['*', '*']
       before + text + after
 
-term.columns = process.stdout.columns || tput.columns || 80
+term.columns = parseInt(process.env['_PAGINATED_COLUMNS']) || process.stdout.columns || tput.columns
+term.columns = 80 if isNaN term.columns
+
 process.stdout.on 'resize', ->
-   term.columns = process.stdout.columns
+   term.columns = process.stdout.columns if process.stdout.columns
 
 
 # CoffeeScript Sugar

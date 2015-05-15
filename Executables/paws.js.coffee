@@ -64,7 +64,7 @@ if verbosity() >= debugging.verbosities['info']
    wtf process.env
 
 choose = ->
-   if (argf.pager == true and not argf['already-paginated'])
+   if (argf.pager == true and not process.env['_PAGINATED'])
       return page()
 
    if (argf.help)
@@ -178,26 +178,27 @@ process.nextTick choose
 # FIXME: Check for existence of `less` if `$PAGER` is not defined.
 # FIXME: `less` seems to mangle the emoji heart above by default.
 page = (cb)->
-   if argf['already-paginated'] or argf.pager == false
+   if process.env['_PAGINATED'] or argf.pager == false
       return cb()
 
    # A simpler hack, to send `-R` to `less`, if possible.
-   pager = process.env.PAGER || 'less -RS'
+   pager = process.env.PAGER || 'less --chop-long-lines'
    pager = pager.replace /less(\s|$)/, 'less --RAW-CONTROL-CHARS$1'
 
    # This is a horrible hack. Thanks, Stack Overflow. http://stackoverflow.com/a/22827128/31897
    escapeShellArg = (cmd)-> "'" + cmd.replace(/\'/g, "'\\''") + "'"
 
-   params = process.argv.slice()
-   params.splice 2, 0, '--already-paginated'
    process.env['SIMPLE_ANSI'] = true
+   process.env['_PAGINATED'] = true
+   process.env['_PAGINATED_COLUMNS'] = term.columns
 
    # These are passed to `"sh" "-c" ...` by `kexec()`.
+   params = process.argv.slice()
    params = params.map (arg)-> escapeShellArg arg
    params.push '|'
    params.push pager
 
-   Paws.debug "!! Forking and exec'ing to pager:", pager
+   Paws.debug "!! Forking and exec'ing to pager: `#{pager}`"
    Paws.wtf "-- Invocation via `sh -c`:", params.join ' '
    kexec params.join ' '
 
@@ -255,7 +256,7 @@ version = ->
 
 ENV 'BLINK'
 goodbye = (code = 0)->
-   if not argf['already-paginated'] and verbosity() >= debugging.verbosities['error']
+   if not process.env['_PAGINATED'] and verbosity() >= debugging.verbosities['error']
       salutation = _(salutations).sample()
       salutation = ' ~ '+salutation+' '+ (if colour() then heart else '<3')
 
