@@ -1,8 +1,9 @@
 support = require './support.coffee'
+util    = require '../Source/utilities.coffee'
 
 assert  = require 'assert'
-expect  = require 'expect.js'
 sinon   = require 'sinon'
+expect  = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
 
 # TODO: Replace all the 'should' language with more direct 'will' language
 #       (i.e. “it should return ...” becomes “it returns ...”
@@ -10,7 +11,7 @@ describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
 
    {  Thing, Label, Execution, Native
-   ,  Relation, Combination, Position, Mask } = Paws
+   ,  Relation, Combination, Position, Mask, Operation } = Paws
 
    describe 'Thing', ->
 
@@ -283,6 +284,44 @@ describe "Paws' Data types:", ->
          foo1 = new Label 'foo'
          foo2 = new Label 'foo'
          expect(foo1.compare foo2).to.be true
+
+
+   describe 'Operation', ->
+      it 'consists of of a stringly-typed operation,', ->
+         expect(-> new Operation 'foo').to.not.throwError()
+
+      it '... with some optional arguments', ->
+         expect(-> new Operation 'foo', new Thing, new Thing).to.not.throwError()
+
+      it 'maintains a global map of known operations', ->
+         expect(Operation.operations).to.be.ok()
+         expect(Operation.operations).to.be.an 'object'
+         expect(Operation.operations).to.have.keys 'advance', 'adopt'
+
+      it 'can be told to register new operation-types', ->
+         expect(   Operation.register).to.be.ok()
+         expect(   Operation.register).to.be.a 'function'
+
+         [ops, Operation.operations] = [Operation.operations, new Array]
+         an_op = new Function
+
+         expect(-> Operation.register 'op', an_op).to.not.throwError()
+         expect(   Operation.operations).to.have.key 'op'
+         expect(   Operation.operations['op']).to.be an_op
+
+         Operation.operations = ops
+
+      it 'applies the body of the operation against a passed Execution', ->
+         [ops, Operation.operations] = [Operation.operations, new Array]
+         Operation.register 'op', sinon.spy()
+         an_exec = new Execution
+
+         it = new Operation 'op'
+         it.perform an_exec
+
+         expect(Operation.operations['op']).was.calledOn an_exec
+
+         Operation.operations = ops
 
 
    describe 'Execution', ->
