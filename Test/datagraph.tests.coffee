@@ -359,24 +359,25 @@ describe "Paws' Data types:", ->
             expect(bit).was.calledWith a_thing
 
          # FIXME: I don't like how tightly-coupled this test is.
-         it.skip "... or queues a combination for the Execution", ->
-            an_exec = new Execution
+         it "... or queues a combination for the Execution", ->
+            an_exec = new Execution (new Sequence)
+            a_subject = new Thing; a_message = new Thing
             a_receiver = new Native
 
-            clone = sinon.stub an_exec.receiver, 'clone'
-            clone.returns a_receiver
+            sinon.stub(an_exec, 'advance').returns new Combination a_subject, a_message
+            sinon.stub(a_subject.receiver, 'clone').returns a_receiver
 
-            op = new Operation 'advance',
+            op = new Operation 'advance', new Thing
             op.perform an_exec
 
-            expect(clone).was.calledOnce()
-            expect(a_receiver.queue[0]).to.be.ok()
-            expect(a_receiver.queue[0].params[0]).to.be.ok()
+            expect(a_subject.receiver.clone).was.calledOnce()
+            expect(a_receiver.ops[0]).to.be.ok()
+            expect(a_receiver.ops[0].params[0]).to.be.ok()
 
-            params = a_receiver.queue[0].params[0].metadata
-            expect(params[0]).to.be an_exec
-            expect(params[1]).to.be.ok()
-            expect(params[1]).to.be.ok()
+            params = a_receiver.ops[0].params[0]
+            expect(params.at 0).to.be an_exec
+            expect(params.at 1).to.be a_subject
+            expect(params.at 2).to.be a_message
 
          # TODO: Test defaulting-to-locals functionality
 
@@ -483,6 +484,12 @@ describe "Paws' Data types:", ->
 
          expect(clone.locals).to.not.equal ex.locals
          expect(clone.find('locals')[1].valueish()).to.equal ex.locals
+
+      describe 'operation queue', ->
+         it 'is initialized', ->
+            ex = new Execution
+            expect(ex.ops).to.be.ok()
+            expect(ex.ops).to.be.an 'array'
 
       describe '#advance', ->
          it "doesn't modify a completed Native", ->

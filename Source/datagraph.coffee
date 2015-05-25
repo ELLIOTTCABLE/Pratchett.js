@@ -202,10 +202,19 @@ Paws.Execution = Execution = class Execution extends Thing
       @locals.push Thing.pair 'locals', @locals.disowned()
       this   .push Thing.pair 'locals', @locals.owned()
 
+      @ops = new Array
+
       return this
 
-   # These definitions have to be deferred, because `Execution` isn't (fully) defined yet.
-   receiver: undefined
+   # Pushes a new `Operation` onto this `Execution`'s `ops`-queue.
+   queue: (something)->
+      return @queue new Operation arguments...  unless something.op?
+
+      @ops.push something
+
+   respond: (response)->
+      @queue new Operation 'advance', arguments...
+
 
    complete:-> !this.instructions.length
 
@@ -641,7 +650,7 @@ Operation.register 'advance', (response)->
       message = next.message ? @locals
       params  = new Thing.with(noughtify: no)(this, subject, message).rename '<receiver params>'
 
-      subject.receiver.clone().queue params
+      subject.receiver.clone().respond params
 
 
 Operation.register 'adopt', ()->
