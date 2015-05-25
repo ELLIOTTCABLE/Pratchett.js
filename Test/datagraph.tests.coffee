@@ -206,6 +206,41 @@ describe "Paws' Data types:", ->
          it 'should accept JavaScript primitives', ->
             expect(foo_bar_foo.find 'foo').to.have.length 2
 
+      describe 'default receiver', ->
+         caller = undefined; receiver = undefined
+         beforeEach ->
+            caller   = new Execution
+            receiver = Thing::receiver.clone()
+
+         it 'stages the caller if there is a result', ->
+            a_thing = Thing.construct foo: another_thing = new Thing
+            params = Execution.create_params caller, a_thing, new Label 'foo'
+            sinon.spy caller, 'queue'
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            expect(caller.queue).was.calledOnce()
+
+         it 'does not stage the caller if there is no result', ->
+            a_thing = Thing.construct foo: another_thing = new Thing
+            params = Execution.create_params caller, a_thing, new Label 'bar'
+            sinon.spy caller, 'queue'
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            expect(caller.queue).was.notCalled()
+
+         it 'finds a matching pair-ish Thing in the subject', ->
+            a_thing = Thing.construct foo: another_thing = new Thing
+            params = Execution.create_params caller, a_thing, new Label 'foo'
+            sinon.spy caller, 'queue'
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            expect(caller.queue).was.calledWith sinon.match.has 'params', [another_thing]
 
    describe 'Mask', ->
       describe '#flatten', ->
@@ -359,24 +394,25 @@ describe "Paws' Data types:", ->
             expect(bit).was.calledWith a_thing
 
          # FIXME: I don't like how tightly-coupled this test is.
-         it.skip "... or queues a combination for the Execution", ->
-            an_exec = new Execution
+         it "... or queues a combination for the Execution", ->
+            an_exec = new Execution (new Sequence)
+            a_subject = new Thing; a_message = new Thing
             a_receiver = new Native
 
-            clone = sinon.stub an_exec.receiver, 'clone'
-            clone.returns a_receiver
+            sinon.stub(an_exec, 'advance').returns new Combination a_subject, a_message
+            sinon.stub(a_subject.receiver, 'clone').returns a_receiver
 
-            op = new Operation 'advance',
+            op = new Operation 'advance', new Thing
             op.perform an_exec
 
-            expect(clone).was.calledOnce()
-            expect(a_receiver.queue[0]).to.be.ok()
-            expect(a_receiver.queue[0].params[0]).to.be.ok()
+            expect(a_subject.receiver.clone).was.calledOnce()
+            expect(a_receiver.ops[0]).to.be.ok()
+            expect(a_receiver.ops[0].params[0]).to.be.ok()
 
-            params = a_receiver.queue[0].params[0].metadata
-            expect(params[0]).to.be an_exec
-            expect(params[1]).to.be.ok()
-            expect(params[1]).to.be.ok()
+            params = a_receiver.ops[0].params[0]
+            expect(params.at 0).to.be an_exec
+            expect(params.at 1).to.be a_subject
+            expect(params.at 2).to.be a_message
 
          # TODO: Test defaulting-to-locals functionality
 
@@ -483,6 +519,42 @@ describe "Paws' Data types:", ->
 
          expect(clone.locals).to.not.equal ex.locals
          expect(clone.find('locals')[1].valueish()).to.equal ex.locals
+
+      describe 'operation queue', ->
+         it 'is initialized', ->
+            ex = new Execution
+            expect(ex.ops).to.be.ok()
+            expect(ex.ops).to.be.an 'array'
+
+         it 'can be added to', ->
+            ex = new Execution
+            op = new Operation 'foo'
+
+            expect(ex.ops).to.have.length 0
+
+            ex.queue op
+            expect(ex.ops).to.have.length 1
+            expect(ex.ops[0]).to.be op
+
+            a_thing = new Thing
+            ex.queue 'bar', a_thing
+            expect(ex.ops).to.have.length 2
+            expect(ex.ops[1]).to.have.property 'op'
+            expect(ex.ops[1].op).to.be 'bar'
+            expect(ex.ops[1].params).to.contain a_thing
+
+         it "provides a convenience method to quickly add 'advance' operations", ->
+            ex = new Execution
+
+            expect(ex.ops).to.have.length 0
+
+            a_thing = new Thing
+            ex.respond a_thing
+            expect(ex.ops).to.have.length 1
+            expect(ex.ops[0]).to.have.property 'op'
+            expect(ex.ops[0].op).to.be 'advance'
+            expect(ex.ops[0].params).to.contain a_thing
+
 
       describe '#advance', ->
          it "doesn't modify a completed Native", ->
@@ -696,10 +768,10 @@ describe "Paws' Data types:", ->
                beforeEach -> a =
                   caller: new Execution
                   thing:  new Label 'foo'
-                  unit: { stage: sinon.spy() }
-               call = (exe, rv)->
-                  # FIXME: This is waaaaay too tightly-coupled. I am clearly bad at TDD.
-                  exe.bits.shift().call exe, rv, a.unit
+
+               call = (it, response)->
+                  bit = it.advance response
+                  bit.call it, response
 
                it 'are Functions', ->
                   exe = synchronous (a, b, c)->
@@ -708,16 +780,39 @@ describe "Paws' Data types:", ->
                   expect(exe.bits[2]).to.be.a Function
                   expect(exe.bits[3]).to.be.a Function
 
-               it 'expect a caller, RV, and unit', ->
+               it 'mostly expect a caller and value,', ->
                   exe = synchronous (a, b, c)->
-                  expect(exe.bits[0]).to.have.length 2 # `caller`-curry
-                  expect(exe.bits[1]).to.have.length 3
-                  expect(exe.bits[2]).to.have.length 3
+                  expect(exe.bits[1]).to.have.length 2
+                  expect(exe.bits[2]).to.have.length 2
 
-               it 'can be successfully called', ->
+               it '(except the first, which expects only the value, which becomes the caller,)', ->
                   exe = synchronous (a, b, c)->
+                  expect(exe.bits[0]).to.have.length 1
+
+               # TESTME: lodash's `_.partial` doesn't export a correct `length`, nor does it provide
+               #         access to the original, wrapped `Function`; I don't know how to test this.
+               it.skip '(and the last, which expects several extra arguments.)', ->
+                  body = (a, b, c)->
+                  exe  = synchronous body
+                  expect(exe.bits[3]).to.have.length 4 + 1
+
+               it 'can be successfully passed a caller,', ->
+                  exe = synchronous (a, b, c)->
+                  sinon.spy a.caller, 'queue'
+
                   expect(-> call exe, a.caller).to.not.throwException()
+                  expect(a.caller.queue).was.calledWith sinon.match params: [exe]
+
+               it 'can be successfully passed intermediate parameters', ->
+                  exe = synchronous (a, b, c)->
+                  sinon.spy a.caller, 'queue'
+                  call exe, a.caller
+
                   expect(-> call exe, a.thing).to.not.throwException()
+                  expect(-> call exe, a.thing).to.not.throwException()
+
+                  expect(a.caller.queue).was.calledWith sinon.match params: [exe]
+                  expect(a.caller.queue).was.calledThrice()
 
                it 'are provided a `caller` by the first bit', ->
                   some_function = sinon.spy (a, b, c)->
@@ -734,54 +829,52 @@ describe "Paws' Data types:", ->
                   assert bits[2].calledWith a.caller
                   assert bits[3].calledWith a.caller
 
-               it 're-stage the `caller` after each coproductive consumption', ->
-                  stage = a.unit.stage
+               it 'resume the `caller` after each coconsumption', ->
                   exe = synchronous (a, b, c)->
+                  queue = sinon.spy a.caller, 'queue'
 
                   call exe, a.caller
-                  expect(stage.callCount).to.be 1
-                  assert stage.getCall(0).calledOn a.unit
-                  assert stage.getCall(0).calledWith a.caller, exe
+                  expect(queue.callCount).to.be 1
+                  expect(queue.thisValues[0]).to.be a.caller
+                  expect(queue.args[0][0].params).to.contain exe
 
                   call exe, new Label 123
-                  expect(stage.callCount).to.be 2
-                  assert stage.getCall(1).calledOn a.unit
-                  assert stage.getCall(1).calledWith a.caller, exe
+                  expect(queue.callCount).to.be 2
+                  expect(queue.thisValues[1]).to.be a.caller
+                  expect(queue.args[1][0].params).to.contain exe
 
                   call exe, new Label 456
-                  expect(stage.callCount).to.be 3
-                  assert stage.getCall(2).calledOn a.unit
-                  assert stage.getCall(2).calledWith a.caller, exe
+                  expect(queue.callCount).to.be 3
+                  expect(queue.thisValues[2]).to.be a.caller
+                  expect(queue.args[2][0].params).to.contain exe
 
                   call exe, new Label 789
-                  expect(stage.callCount).to.not.be 4
+                  expect(queue.callCount).to.not.be 4
 
                it 're-stage the `caller` after all coproduction if a result is returned', ->
-                  stage = a.unit.stage
-
                   result = new Label "A result!"
                   exe = synchronous (a)-> return result
+                  queue = sinon.spy a.caller, 'queue'
 
                   call exe, a.caller
-                  expect(stage.callCount).to.be 1
-                  assert stage.getCall(0).calledOn a.unit
-                  assert stage.getCall(0).calledWith a.caller, exe
+                  expect(queue.callCount).to.be 1
+                  expect(queue.thisValues[0]).to.be a.caller
+                  expect(queue.args[0][0].params).to.contain exe
 
                   call exe, new Label 123
-                  expect(stage.callCount).to.be 2
-                  assert stage.getCall(1).calledOn a.unit
-                  assert stage.getCall(1).calledWith a.caller, result
+                  expect(queue.callCount).to.be 2
+                  expect(queue.thisValues[1]).to.be a.caller
+                  expect(queue.args[1][0].params).to.contain result
 
                it 're-stage the `caller` immediately if no coconsumption is required', ->
-                  stage = a.unit.stage
-
+                  queue = sinon.spy a.caller, 'queue'
                   result = new Label "A result!"
                   exe = synchronous -> return result
 
                   call exe, a.caller
-                  expect(stage.callCount).to.be 1
-                  assert stage.getCall(0).calledOn a.unit
-                  assert stage.getCall(0).calledWith a.caller, result
+                  expect(queue.callCount).to.be 1
+                  expect(queue.thisValues[0]).to.be a.caller
+                  expect(queue.args[0][0].params).to.contain result
 
                it 'call the passed function exactly once, when exhausted', ->
                   some_function = sinon.spy (a, b, c)->
@@ -792,7 +885,7 @@ describe "Paws' Data types:", ->
                   call exe, new Label 456
                   call exe, new Label 789
 
-                  assert some_function.calledOnce
+                  expect(some_function).was.calledOnce()
 
                it 'collect individually passed arguments into arguments to the passed function', ->
                   some_function = sinon.spy (a, b, c)->
@@ -808,8 +901,7 @@ describe "Paws' Data types:", ->
                   call exe, things.second
                   call exe, things.third
 
-                  assert some_function.calledWithExactly(
-                     things.first, things.second, things.third, a.unit)
+                  expect(some_function).was.calledWithExactly things.first, things.second, things.third
 
                it 'inject context into the passed function', ->
                   some_function = sinon.spy (arg)->
@@ -822,10 +914,45 @@ describe "Paws' Data types:", ->
                   expect(some_function.firstCall.thisValue.caller).to.be.an Execution
                   expect(some_function.firstCall.thisValue.caller).to.be a.caller
 
-                  expect(some_function.firstCall.thisValue).to.have.property 'this'
-                  expect(some_function.firstCall.thisValue.this).to.be.an Execution
-                  expect(some_function.firstCall.thisValue.this).to.be exe
+                  expect(some_function.firstCall.thisValue).to.have.property 'execution'
+                  expect(some_function.firstCall.thisValue.execution).to.be.an Execution
+                  expect(some_function.firstCall.thisValue.execution).to.be exe
 
-                  expect(some_function.firstCall.thisValue).to.have.property 'unit'
-                 #expect(some_function.firstCall.thisValue.unit).to.be.a Unit # FIXME
-                  expect(some_function.firstCall.thisValue.unit).to.be a.unit
+      describe 'default receiver', ->
+         caller = undefined; receiver = undefined
+         beforeEach ->
+            caller   = new Execution
+            receiver = Execution::receiver.clone()
+
+         it 'clones the subject,', ->
+            an_exec = new Execution; something = new Thing
+            params = Execution.create_params caller, an_exec, something
+
+            sinon.spy an_exec, 'clone'
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            expect(an_exec.clone).was.called()
+
+         it 'resumes that clone,', ->
+            an_exec = new Execution; something = new Thing
+            params = Execution.create_params caller, an_exec, something
+            sinon.spy an_exec, 'clone'
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            clone = an_exec.clone.returnValues[0]
+            expect(clone.ops).to.have.length 1
+            expect(clone.ops[0].op).to.be 'advance'
+            expect(clone.ops[0].params).to.contain something
+
+         it 'does not re-stage the caller', ->
+            an_exec = new Execution; something = new Thing
+            params = Execution.create_params caller, an_exec, something
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            expect(caller.ops).to.have.length 0

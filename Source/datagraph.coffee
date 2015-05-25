@@ -132,16 +132,20 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
 Thing_init = ->
    # The default receiver for `Thing`s simply preforms a ‘lookup.’
-   Paws.Thing::receiver = new Native (rv, world)->
-      [caller, subject, message] = rv.toArray()
+   Paws.Thing::receiver = new Native (params)->
+      caller  = params.at 0
+      subject = params.at 1
+      message = params.at 2
 
       results = subject.find message
 
+      if results[0]
+         caller.respond results[0].valueish()
+
       # FIXME: Welp, this is horrible error-handling. "Print a warning and freeze forevah!!!"
-      unless results[0]
+      else
          notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}."
 
-      world.stage caller, results[0].valueish() if results[0]
    .rename 'thing✕'
 
 
@@ -157,8 +161,8 @@ Paws.Label = Label = class Label extends Thing
       to instanceof Label and
       to.alien == @alien
 
-   # FIXME: I need to double-check the Unicode properties of this. I'd really like to explode by
-   #        codepoint, and I'm not sure how JS handles `split()` and Unicode.
+   # FIXME: JavaScript's `split()` doesn't handle wide-character (surrogate in UTF-16, or 4-byte in
+   #        UTF-8) Unicode very well.
    explode: ->
       it = new Thing
       it.push.apply it, _.map @alien.split(''), (char)-> new Label char
@@ -202,10 +206,24 @@ Paws.Execution = Execution = class Execution extends Thing
       @locals.push Thing.pair 'locals', @locals.disowned()
       this   .push Thing.pair 'locals', @locals.owned()
 
+      @ops = new Array
+
       return this
 
-   # These definitions have to be deferred, because `Execution` isn't (fully) defined yet.
-   receiver: undefined
+   # Creates a list-thing of the form that receiver `Execution`s expect.
+   @create_params: (caller, subject, message)-> new Thing.with(noughtify: no)(arguments...)
+
+
+   # Pushes a new `Operation` onto this `Execution`'s `ops`-queue.
+   queue: (something)->
+      return @queue new Operation arguments...  unless something.op?
+
+      @ops.push something
+
+   # A convenience method for pushing an 'advance' `Operation`, specifically.
+   respond: (response)->
+      @queue new Operation 'advance', arguments...
+
 
    complete:-> !this.instructions.length
 
@@ -228,7 +246,7 @@ Paws.Execution = Execution = class Execution extends Thing
       to.locals      = @locals.clone().rename('locals')
       to.push Thing.pair 'locals', to.locals.owned()
 
-      to.resumptions = @resumptions if @resumptions?
+      to.advancements = @advancements if @advancements?
 
       if @instructions? and @results?
          to.instructions = @instructions.slice 0
@@ -345,27 +363,26 @@ Paws.Native = Native = class Native extends Execution
    # `Function`. Each ‘bit’ of the `Native` implements a (clearly synchronous, as they are written
    # in JavaScript) set of operations to be preformed upon the next resumption of the `Execution`
    # represented by this `Native`. (It can be easier to conceptualize an `Native` as an explicit
-   # coroutine, with the `return` statement of one bit and the arguments of the following bit acting
+   # coroutine, with the `return` statement of one bit and the argument of the following bit acting
    # somewhat like a traditional `yield` statement.)
    #
    # The first `Function`-bit will be invoked upon resumption of the `Native`, and then discarded
    # (thus causing the following `Function` to receive the resumption thereafter.) Upon resumption,
-   # the `Function` will be invoked with the following arguments and environment:
+   # the `Function` will be invoked with only one parameter: `response`, whatever value was included
+   # with the resumption operation.
    #
-   #  1. `result`, whatever resumption-value was queued to cause this resumption
-   #  2. `unit` (optional), the `Unit` in which this resumption is relevant (thus providing access
-   #     to the current `Unit`'s staging-`queue` and responsibility-`table`.)
-   #
-   # In addition, the `this` at invocation will be the `Native` itself, giving the bit-body
-   # convenient access to a place to store incrementally-constructed results. (Note that the actual
-   # `Native` object referred to during the invocation of subsequent bits may *not* be the same, as
-   # the `Native` may have been branched!)
+   # In addition, `this` within the body of the `bit`-function will be this `Native` itself, giving
+   # the `Native`'s implementation convenient access to a place to store incrementally-constructed
+   # results between the invocations of bits. (Note that the actual `Native` object referred to
+   # during the invocation of subsequent bits may *not* be the same, as the `Native` may have been
+   # branched! Any own-properties of the `Native` will have been copied, if so; but the object-
+   # identity will be different.)
    constructor: constructify(return:@) (@bits...)->
       delete @begin
       delete @instructions
       delete @results
 
-      @resumptions = @bits.length
+      @advancements = @bits.length
 
    complete:-> not @bits.length
 
@@ -403,90 +420,89 @@ Paws.Native = Native = class Native extends Execution
    # the corresponding bits to acquire those arguments.
    #
    # Then, once the resultant `Native` has been resumed the appropriate number of times (plus one
-   # extra initial resumption with a `caller` as the resumption-value, as is standard coproductive
-   # practice in Paws), the synchronous JavaScript passed in as the argument here will be invoked.
+   # extra initial resumption with a `caller` as the value, as is standard coproductive practice in
+   # Paws), the synchronous JavaScript passed in as the argument here will be invoked.
    #
    # That invocation will provide the arguments recorded in the function's implementation, as well
-   # as a context-object containing the following information as `this`:
+   # as a context-object containing the following information available on `this`:
    #
    # caller
    #  : The first resumption-value provided to the generated `Native`. Usually, itself, an
    #    `Execution`, in the coproductive pattern.
-   # this
-   #  : The original `this`. That is, the generated `Native` that's currently being run.
-   # unit
-   #  : The current `Unit` at the time of realization, as provided by the reactor.
+   # execution
+   #  : The original `this`. That is, the generated `Native` that was constructed from the function.
    #
-   # After your function executes, if it provides a non-null JavaScript return value, then the
-   # `caller` provided as the first resumption-value Paws-side will be resumed one final time with
-   # that as the resumption-value. (Hence the name of this method: it provides a ‘synchronous’ (ish)
-   # result after all arguments have been acquired.)
+   # After your function executes, if it results in a non-null return value, then the `caller`
+   # provided as the first response Paws-side will be resumed one final time with that as the
+   # corresponding response. (Hence the name of this method: it provides a ‘synchronous’ (ish)
+   # result after all the parameters have been asynchronously collected.)
    #
    # @param { function(... [Thing]
-   #                , this:{caller: Execution, this, unit: Unit}): ?Thing }
-   #    func   The synchronous function we'll generate an Execution to match
-   #---
-   # FIXME: Replace the holdover ES5 methods in this with IE6-compat LoDash functions
-   @synchronous: (func) ->
-      body = ->
-         @synchronous = func
-         @resumptions = @synchronous.length + 1
+   #                , this:{caller: Execution, this}): ?Thing }
+   #    synch_body   The synchronous function we'll generate an Execution to match
+   @synchronous: (synch_body) ->
+      advancements = synch_body.length + 1
 
-         # First, we construct the *middle* bits of the coproductive pattern (that is, the ones that
-         # handle all but the *last* actual argument the passed function requires.) These are pretty
-         # generic: they simply partially-apply their RV to the *last* bit (which will be defined
-         # below.) Thus, they participate in currying their argument into the final invocation of
-         # the synchronous function.
-         @bits = new Array(@resumptions - 1).join().split(',').map ->
-            return (caller, rv, here)->
-               # FIXME: Pretty this up with prototype extensions. (#last, anybody?)
-               @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], rv
-               here.stage caller, this
+      # First, we construct the *middle* bits of the coproductive pattern (that is, the ones that
+      # handle all but the *last* actual argument the passed function requires.) These are pretty
+      # generic: they simply partially-apply their RV to the *last* bit (which will be defined
+      # below.) Thus, they participate in currying their argument into the final invocation of
+      # the synchronous function.
+      bits = new Array(advancements - 1).join().split(',').map ->
+         (caller, value)->
+            # FIXME: Pretty this up with prototype extensions. (#last, anybody?)
+            @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], value
+            caller.respond this
 
-         # Next, we construct the *first* bit, which is assumed to be responsible for receiving the
-         # `caller` (as is usually the case in the coproductive pattern.) It takes its
-         # resumption-value, and curries it into *every* following bit. (Notice that both the
-         # middle-bits, above, and the concluding bit, below, save a spot for a `caller` argument.)
-         @bits[0] = (caller, here)->
-            @bits = @bits.map (bit)=> _.partial bit, caller
-            here.stage caller, this
+      # Next, we construct the *first* bit, which is a special case responsible for receiving the
+      # `caller` (as is usually the case in the coproductive pattern.) It takes its resumption-
+      # value, and curries it into *every* following bit. (Notice that both the middle bits, above,
+      # and the concluding bit, below, save a spot for a `caller` argument.)
+      bits[0] = (caller)->
+         @bits = @bits.map (bit)=> _.partial bit, caller
+         caller.respond this
 
-         # Now, the complex part. The *final* bit has quite a few arguments curried into it:
-         #
-         #  - Immediately (at generate-time), the locals we'll need within the body: the `Paws` API,
-         #    and the `func` we were passed. This is necessary, because we're building the body in a
-         #    new closure environment, via the `eval`-y `Function` constructor.
-         #  - Second (later-on, at stage-time), the `caller` curried in by the first bit
-         #  - Third, any *actual arguments* curried in by intermediate bits
-         #
-         # In addition to these, it's got one final argument (the actual resumption-value with which
-         # this final bit is invoked, **after** all the other bits have been exhausted), and the
-         # Unit passed in by the reactor.
-         #
-         # These values are curred into a function we construct within the body-string below, that
-         # proceeds to provide the *actual* arguments to the synchronous `func`, as well as
-         # constructing a context-object to act as the `this` described above.
-         #---
-         # FIXME: Remove the `Paws` pass, if it's unnecessary
-         @bits[@resumptions - 1] = Function.apply(null, ['Paws', 'func', 'caller'].concat(
-            Array(@resumptions).join('_').split(''), 'here', """
-               var rv = func.apply({ caller: caller, this: this
-                                   , unit: arguments[arguments.length - 1] }
-                                 , [].slice.call(arguments, 3) )
-               if (typeof rv !== 'undefined' && rv !== null) {
-                  here.stage(caller, rv) }
-            """))
-         @bits[@resumptions - 1] = _.partial @bits[@resumptions - 1], Paws, func
+      # Now, the complex part. The *final* bit has quite a few arguments curried into it:
+      #
+      #  - Immediately (at generate-time), the locals we'll need within the body: the `Paws` API,
+      #    and the `synch_body` we were passed. This is necessary, because we're building the body
+      #    in a new JavaScript environment, due to the `eval`-y `Function` constructor;
+      #  - Second (later on, throughout invocation-time), the `caller` curried in by the first bit;
+      #  - Third, any *actual arguments* curried in by intermediate bits.
+      #
+      # In addition to these, it's got one final argument (the actual resumption-value with which
+      # this final bit is invoked, after all the other bits have been exhausted).
+      #
+      # These values are curred into a function we construct within the body-string below, that
+      # proceeds to provide the *actual* arguments to the synchronous `func`, as well as
+      # constructing a context-object to act as the `this` described above.
+      #---
+      # FIXME: Remove the `Paws` pass, if it's unnecessary
+      arg_names = ['synch_body', 'caller'].concat Array(advancements).join('_').split('')
 
-         return this
-      body.apply new Native
+      last_bit = """
+         var that = { caller: caller, execution: this }
+         var result = synch_body.apply(that, [].slice.call(arguments, 2))
+         if (typeof result !== 'undefined' && result !== null) {
+            caller.respond(result) }
+      """
+
+      bits[advancements - 1] = _.partial Function(arg_names..., last_bit), synch_body
+
+
+      it = new Native bits...
+      it.synchronous = synch_body
+
+      return it
 
 Execution_init = ->
-   # `Execution`'s default-receiver preforms a “call”-patterned staging; that is, cloning the subject
-   # `Execution`, staging that clone, and leaving the caller unstaged.
-   Paws.Execution::receiver = new Native (rv, world)->
-      [caller, subject, message] = rv.toArray()
-      world.stage subject.clone(), message
+   # The `Execution` default-receiver is specified to preform a ‘call-pattern’ invocation: cloning
+   # the subject-`Execution`, resuming that clone, and explicitly *not* resuming the caller.
+   Paws.Execution::receiver = new Native (params)->
+      subject = params.at 1
+      message = params.at 2
+
+      subject.clone().respond message
    .rename 'execution✕'
 
 
@@ -645,9 +661,10 @@ Operation.register 'advance', (response)->
 
       subject = next.subject ? @locals
       message = next.message ? @locals
-      params  = new Thing.with(noughtify: no)(this, subject, message).rename '<receiver params>'
+      params  = Execution.create_params this, subject, message
+      params.rename '<parameters>'
 
-      subject.receiver.clone().queue params
+      subject.receiver.clone().respond params
 
 
 Operation.register 'adopt', ()->
@@ -682,8 +699,8 @@ Execution::_inspectName = ->
    names.join(':')
 Native::_inspectName = ->
    names = Execution::_inspectName.call this
-   if @resumptions?
-      calls = @resumptions - @bits.length
+   if @advancements?
+      calls = @advancements - @bits.length
       names + new Array(calls).join 'ʹ'
    names
 
