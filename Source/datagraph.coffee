@@ -209,7 +209,7 @@ Paws.Execution = Execution = class Execution extends Thing
 
    complete:-> !this.instructions.length
 
-   # Responds with the *current* `Position`; i.e. the top element of the `instructions` stack.
+   # Returns the *current* `Position`; i.e. the top element of the `instructions` stack.
    current:-> @instructions[0]
 
    # This method of the `Execution` types will copy all data relevant to advancement of the
@@ -239,16 +239,16 @@ Paws.Execution = Execution = class Execution extends Thing
    # This informs an `Execution` of the ‘result’ of the last `Combination` returned from `next`.
    # This value is stored in the `results` stack, and is later used as one of the values in furhter
    # `Combination`s.
-   respond: (response)-> @results[0] = response
+   register_response: (response)-> @results[0] = response
 
    # Returns the next `Combination` that needs to be preformed for the advancement of this
    # `Execution`. This is a mutating call, and each time it is called, it will produce a new
    # (subsequent) `Combination` for this `Execution`.
    #
    # It usually only makes sense for this to be called after a response to the *previous*
-   # combination has been signaled by `respond` (obviously unless this is the first time it's being
-   # advanced.) This also accepts an optional argument, the passing of which is identical to calling
-   # `respond` with that value before-hand.
+   # combination has been signaled by `register_response` (obviously unless this is the first time
+   # it's being advanced.) This also accepts an optional argument, the passing of which is identical
+   # to calling `register_response` with that value before-hand.
    #
    # For combinations involving the start of a new expression, `null` will be returned as one part
    # of the `Combination`; this indicates no meaningful data from the stack for that node. (The
@@ -257,7 +257,7 @@ Paws.Execution = Execution = class Execution extends Thing
    advance: (response)->
       return undefined if @complete()
 
-      @respond response if response?
+      @register_response response if response?
 
       # If we're continuing to advance a partially-completed `Execution`, ...
       completed = @instructions[0]
@@ -612,9 +612,9 @@ Paws.Operation = Operation = class Operation
    perform: (against)->
       Operation.operations[@op].apply(against, @params)
 
-Operation.register 'advance', (resumption_value)->
+Operation.register 'advance', (response)->
    if process.env['TRACE_REACTOR']
-      warning ">> #{this} ← #{resumption_value}"
+      warning ">> #{this} ← #{response}"
       if @current() instanceof Function
          body = @current().toString()
          wtf term.block body, (line)->   ' │ ' + line.slice 0, -4
@@ -628,10 +628,10 @@ Operation.register 'advance', (resumption_value)->
      #stage.flushed() unless stage.upcoming()
       return
 
-   next = @advance resumption_value
+   next = @advance response
 
    if typeof next is 'function'
-      next.call this, resumption_value
+      next.call this, response
 
    else
       if process.env['TRACE_REACTOR']
