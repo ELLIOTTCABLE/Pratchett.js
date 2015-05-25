@@ -257,10 +257,6 @@ Paws.Execution = Execution = class Execution extends Thing
    advance: (response)->
       return undefined if @complete()
 
-      if this instanceof Native
-         @pristine = no
-         return @bits.shift()
-
       @respond response if response?
 
       # If we're continuing to advance a partially-completed `Execution`, ...
@@ -383,6 +379,15 @@ Paws.Native = Native = class Native extends Execution
       to.bits = @bits.slice 0
 
       return to
+
+   # `advancing` to the next unit of work for a `Native` is substantially simpler than doing so for
+   # a normal `Execution`: we simply remove (and return) another body-section from `bits`.
+   advance: (response)->
+      return undefined if @complete()
+
+      @pristine = no
+      return @bits.shift()
+
 
    # This alternative constructor will automatically generate a series of ‘bits’ that will curry the
    # appropriate number of arguments into a single, final function.
