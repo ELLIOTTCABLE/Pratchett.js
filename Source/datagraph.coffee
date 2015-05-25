@@ -607,6 +607,39 @@ Paws.Operation = Operation = class Operation
    perform: (against)->
       Operation.operations[@op].apply(against, @params)
 
+Operation.register 'advance', (resumption_value)->
+   if process.env['TRACE_REACTOR']
+      warning ">> #{this} ← #{resumption_value}"
+      if @current() instanceof Function
+         body = @current().toString()
+         wtf term.block body, (line)->   ' │ ' + line.slice 0, -4
+      else
+         body = @current().expression().with context: 3, tag: no
+            .toString focus: @current().valueOf()
+         debug term.block body, (line)-> ' │ ' + line.slice 0, -4
+
+   if @complete()
+      warning ' ╰┄ complete!' if process.env['TRACE_REACTOR']
+     #stage.flushed() unless stage.upcoming()
+      return
+
+   next = @advance resumption_value
+
+   if typeof next is 'function'
+      next.call this, resumption_value
+
+   else
+      if process.env['TRACE_REACTOR']
+         warning " ╰┈ ⇢ combo: #{next.subject} × #{next.message}"
+
+      subject = next.subject ? @locals
+      message = next.message ? @locals
+      params  = new Thing(this, subject, message).rename '<receiver params>'
+
+      subject.receiver.clone().queue params
+
+
+Operation.register 'adopt', ()->
 
 # Debugging output
 # ----------------

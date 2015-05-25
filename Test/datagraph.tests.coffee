@@ -323,6 +323,64 @@ describe "Paws' Data types:", ->
 
          Operation.operations = ops
 
+      describe "'advance'", ->
+         it 'exists', ->
+            expect(Operation.operations['advance']).to.be.ok()
+            expect(Operation.operations['advance']).to.be.a 'function'
+
+         it 'advances the execution', ->
+            an_exec = new Native ->
+            sinon.spy an_exec, 'advance'
+
+            op = new Operation 'advance'
+            op.perform an_exec
+
+            expect(an_exec.advance).was.calledOnce()
+
+         it 'does nothing if the execution is complete', ->
+            an_exec = new Native
+            sinon.spy an_exec, 'advance'
+
+            op = new Operation 'advance'
+            op.perform an_exec
+
+            expect(an_exec.advance).was.notCalled()
+         it "calls a Native's next bit,", ->
+            bit = sinon.spy()
+            an_exec = new Native bit
+            a_thing = new Thing
+
+            op = new Operation 'advance', a_thing
+            op.perform an_exec
+
+            expect(bit).was.calledOnce()
+            expect(bit).was.calledWith a_thing
+
+         # FIXME: I don't like how tightly-coupled this test is.
+         it.skip "... or queues a combination for the Execution", ->
+            an_exec = new Execution
+            a_receiver = new Native
+
+            clone = sinon.stub an_exec.receiver, 'clone'
+            clone.returns a_receiver
+
+            op = new Operation 'advance',
+            op.perform an_exec
+
+            expect(clone).was.calledOnce()
+            expect(a_receiver.queue[0]).to.be.ok()
+            expect(a_receiver.queue[0].params[0]).to.be.ok()
+
+            params = a_receiver.queue[0].params[0].metadata
+            expect(params[0]).to.be an_exec
+            expect(params[1]).to.be.ok()
+            expect(params[1]).to.be.ok()
+
+         # TODO: Test defaulting-to-locals functionality
+
+      describe "'adopt'", ->
+         it 'exists'
+
 
    describe 'Execution', ->
       Execution = Paws.Execution
