@@ -10,8 +10,10 @@ expect  = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
 describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
 
-   {  Thing, Label, Execution, Native
+   {  Thing, Label, Execution, Native, parse
    ,  Relation, Combination, Position, Mask, Operation } = Paws
+
+   {  Context, Sequence, Expression } = parse
 
    describe 'Thing', ->
 
@@ -383,13 +385,6 @@ describe "Paws' Data types:", ->
 
 
    describe 'Execution', ->
-      Execution = Paws.Execution
-      Native    = Paws.Native
-
-      parse      = Paws.parse
-      Sequence   = parse.Sequence
-      Expression = parse.Expression
-
       it 'should construct an Native when passed function-bits', ->
          expect(new Execution ->).to.be.an Native
 
@@ -466,7 +461,7 @@ describe "Paws' Data types:", ->
          expect(clone1.results).to.not.be ex.results
          expect(clone1.results).to.eql ex.results
 
-         ex.instructions[0] = new Paws.Position seq2
+         ex.instructions[0] = new Position seq2
          ex.results.unshift new Label 'intermediate value'
          clone2 = ex.clone()
          expect(clone2.instructions[0].expression()).to.be seq2.at 0
