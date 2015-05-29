@@ -206,6 +206,41 @@ describe "Paws' Data types:", ->
          it 'should accept JavaScript primitives', ->
             expect(foo_bar_foo.find 'foo').to.have.length 2
 
+      describe 'default receiver', ->
+         caller = undefined; receiver = undefined
+         beforeEach ->
+            caller   = new Execution
+            receiver = Thing::receiver.clone()
+
+         it 'stages the caller if there is a result', ->
+            a_thing = Thing.construct foo: another_thing = new Thing
+            params = Execution.create_params caller, a_thing, new Label 'foo'
+            sinon.spy caller, 'queue'
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            expect(caller.queue).was.calledOnce()
+
+         it 'does not stage the caller if there is no result', ->
+            a_thing = Thing.construct foo: another_thing = new Thing
+            params = Execution.create_params caller, a_thing, new Label 'bar'
+            sinon.spy caller, 'queue'
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            expect(caller.queue).was.notCalled()
+
+         it 'finds a matching pair-ish Thing in the subject', ->
+            a_thing = Thing.construct foo: another_thing = new Thing
+            params = Execution.create_params caller, a_thing, new Label 'foo'
+            sinon.spy caller, 'queue'
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            expect(caller.queue).was.calledWith sinon.match.has 'params', [another_thing]
 
    describe 'Mask', ->
       describe '#flatten', ->
@@ -865,3 +900,42 @@ describe "Paws' Data types:", ->
                   expect(some_function.firstCall.thisValue).to.have.property 'unit'
                  #expect(some_function.firstCall.thisValue.unit).to.be.a Unit # FIXME
                   expect(some_function.firstCall.thisValue.unit).to.be a.unit
+
+      describe 'default receiver', ->
+         caller = undefined; receiver = undefined
+         beforeEach ->
+            caller   = new Execution
+            receiver = Execution::receiver.clone()
+
+         it 'clones the subject,', ->
+            an_exec = new Execution; something = new Thing
+            params = Execution.create_params caller, an_exec, something
+
+            sinon.spy an_exec, 'clone'
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            expect(an_exec.clone).was.called()
+
+         it 'resumes that clone,', ->
+            an_exec = new Execution; something = new Thing
+            params = Execution.create_params caller, an_exec, something
+            sinon.spy an_exec, 'clone'
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            clone = an_exec.clone.returnValues[0]
+            expect(clone.ops).to.have.length 1
+            expect(clone.ops[0].op).to.be 'advance'
+            expect(clone.ops[0].params).to.contain something
+
+         it 'does not re-stage the caller', ->
+            an_exec = new Execution; something = new Thing
+            params = Execution.create_params caller, an_exec, something
+
+            bit = receiver.advance params
+            bit.apply receiver, [params]
+
+            expect(caller.ops).to.have.length 0

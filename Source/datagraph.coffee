@@ -132,16 +132,20 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
 Thing_init = ->
    # The default receiver for `Thing`s simply preforms a ‘lookup.’
-   Paws.Thing::receiver = new Native (rv, world)->
-      [caller, subject, message] = rv.toArray()
+   Paws.Thing::receiver = new Native (params)->
+      caller  = params.at 0
+      subject = params.at 1
+      message = params.at 2
 
       results = subject.find message
 
+      if results[0]
+         caller.respond results[0].valueish()
+
       # FIXME: Welp, this is horrible error-handling. "Print a warning and freeze forevah!!!"
-      unless results[0]
+      else
          notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}."
 
-      world.stage caller, results[0].valueish() if results[0]
    .rename 'thing✕'
 
 
@@ -205,6 +209,10 @@ Paws.Execution = Execution = class Execution extends Thing
       @ops = new Array
 
       return this
+
+   # Creates a list-thing of the form that receiver `Execution`s expect
+   @create_params: (caller, subject, message)-> new Thing.with(noughtify: no)(arguments...)
+
 
    # Pushes a new `Operation` onto this `Execution`'s `ops`-queue.
    queue: (something)->
@@ -490,9 +498,11 @@ Paws.Native = Native = class Native extends Execution
 Execution_init = ->
    # `Execution`'s default-receiver preforms a “call”-patterned staging; that is, cloning the subject
    # `Execution`, staging that clone, and leaving the caller unstaged.
-   Paws.Execution::receiver = new Native (rv, world)->
-      [caller, subject, message] = rv.toArray()
-      world.stage subject.clone(), message
+   Paws.Execution::receiver = new Native (params)->
+      subject = params.at 1
+      message = params.at 2
+
+      subject.clone().respond message
    .rename 'execution✕'
 
 
@@ -648,7 +658,8 @@ Operation.register 'advance', (response)->
 
       subject = next.subject ? @locals
       message = next.message ? @locals
-      params  = new Thing.with(noughtify: no)(this, subject, message).rename '<receiver params>'
+      params  = Execution.create_params this, subject, message
+      params.rename '<parameters>'
 
       subject.receiver.clone().respond params
 
