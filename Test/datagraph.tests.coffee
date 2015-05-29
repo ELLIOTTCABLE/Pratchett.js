@@ -491,6 +491,36 @@ describe "Paws' Data types:", ->
             expect(ex.ops).to.be.ok()
             expect(ex.ops).to.be.an 'array'
 
+         it 'can be added to', ->
+            ex = new Execution
+            op = new Operation 'foo'
+
+            expect(ex.ops).to.have.length 0
+
+            ex.queue op
+            expect(ex.ops).to.have.length 1
+            expect(ex.ops[0]).to.be op
+
+            a_thing = new Thing
+            ex.queue 'bar', a_thing
+            expect(ex.ops).to.have.length 2
+            expect(ex.ops[1]).to.have.property 'op'
+            expect(ex.ops[1].op).to.be 'bar'
+            expect(ex.ops[1].params).to.contain a_thing
+
+         it "provides a convenience method to quickly add 'advance' operations", ->
+            ex = new Execution
+
+            expect(ex.ops).to.have.length 0
+
+            a_thing = new Thing
+            ex.respond a_thing
+            expect(ex.ops).to.have.length 1
+            expect(ex.ops[0]).to.have.property 'op'
+            expect(ex.ops[0].op).to.be 'advance'
+            expect(ex.ops[0].params).to.contain a_thing
+
+
       describe '#advance', ->
          it "doesn't modify a completed Native", ->
             completed_alien = new Native
