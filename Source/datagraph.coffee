@@ -161,8 +161,8 @@ Paws.Label = Label = class Label extends Thing
       to instanceof Label and
       to.alien == @alien
 
-   # FIXME: I need to double-check the Unicode properties of this. I'd really like to explode by
-   #        codepoint, and I'm not sure how JS handles `split()` and Unicode.
+   # FIXME: JavaScript's `split()` doesn't handle wide-character (surrogate in UTF-16, or 4-byte in
+   #        UTF-8) Unicode very well.
    explode: ->
       it = new Thing
       it.push.apply it, _.map @alien.split(''), (char)-> new Label char
@@ -210,7 +210,7 @@ Paws.Execution = Execution = class Execution extends Thing
 
       return this
 
-   # Creates a list-thing of the form that receiver `Execution`s expect
+   # Creates a list-thing of the form that receiver `Execution`s expect.
    @create_params: (caller, subject, message)-> new Thing.with(noughtify: no)(arguments...)
 
 
@@ -220,6 +220,7 @@ Paws.Execution = Execution = class Execution extends Thing
 
       @ops.push something
 
+   # A convenience method for pushing an 'advance' `Operation`, specifically.
    respond: (response)->
       @queue new Operation 'advance', arguments...
 
@@ -492,8 +493,8 @@ Paws.Native = Native = class Native extends Execution
       return it
 
 Execution_init = ->
-   # `Execution`'s default-receiver preforms a “call”-patterned staging; that is, cloning the subject
-   # `Execution`, staging that clone, and leaving the caller unstaged.
+   # The `Execution` default-receiver is specified to preform a ‘call-pattern’ invocation: cloning
+   # the subject-`Execution`, resuming that clone, and explicitly *not* resuming the caller.
    Paws.Execution::receiver = new Native (params)->
       subject = params.at 1
       message = params.at 2
