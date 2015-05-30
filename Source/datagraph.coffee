@@ -390,8 +390,11 @@ Paws.Native = Native = class Native extends Execution
 
    clone: (to)->
       super (to ?= new Native)
-      _.map Object.getOwnPropertyNames(this), (key)=> to[key] = this[key]
+      _.map Object.getOwnPropertyNames(this), (key)=>
+         to[key] = this[key] unless to[key]?
+
       to.bits = @bits.slice 0
+
       return to
 
    # `advancing` to the next unit of work for a `Native` is substantially simpler than doing so for
