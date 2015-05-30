@@ -377,8 +377,11 @@ Paws.Native = Native = class Native extends Execution
 
    clone: (to)->
       super (to ?= new Native)
-      _.map Object.getOwnPropertyNames(this), (key)=> to[key] = this[key]
+      _.map Object.getOwnPropertyNames(this), (key)=>
+         to[key] = this[key] unless to[key]?
+
       to.bits = @bits.slice 0
+
       return to
 
    # This alternative constructor will automatically generate a series of ‘bits’ that will curry the
