@@ -656,9 +656,10 @@ Operation.register 'advance', (response)->
       if process.env['TRACE_REACTOR']
          warning " ╰┈ ⇢ combo: #{next.subject} × #{next.message}"
 
+      require('assert') next.message?
       subject = next.subject ? @locals
-      message = next.message ? @locals
-      params  = Execution.create_params this, subject, message
+     #message = next.message ? @locals    # this should be impossible.
+      params  = Execution.create_params this, subject, next.message
       params.rename '<parameters>'
 
       subject.receiver.clone().respond params

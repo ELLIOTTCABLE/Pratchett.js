@@ -382,6 +382,7 @@ describe "Paws' Data types:", ->
             op.perform an_exec
 
             expect(an_exec.advance).was.notCalled()
+
          it "calls a Native's next bit,", ->
             bit = sinon.spy()
             an_exec = new Native bit
@@ -393,28 +394,53 @@ describe "Paws' Data types:", ->
             expect(bit).was.calledOnce()
             expect(bit).was.calledWith a_thing
 
-         # FIXME: I don't like how tightly-coupled this test is.
-         it "... or queues a combination for the Execution", ->
-            an_exec = new Execution (new Sequence)
-            a_subject = new Thing; a_message = new Thing
+         it "clones an Combination's receiver", sinon.test ->
+            a_subject = new Label 'foo'
+            an_exec = new Execution parse '_ bar'
             a_receiver = new Native
+            @spy a_subject.receiver, 'clone'
 
-            sinon.stub(an_exec, 'advance').returns new Combination a_subject, a_message
-            sinon.stub(a_subject.receiver, 'clone').returns a_receiver
+            an_exec.advance()
 
             op = new Operation 'advance', new Thing
             op.perform an_exec
 
             expect(a_subject.receiver.clone).was.calledOnce()
-            expect(a_receiver.ops[0]).to.be.ok()
-            expect(a_receiver.ops[0].params[0]).to.be.ok()
+            expect(a_subject.receiver.ops).to.be.empty()
+
+         it '... and queues that cloned-receiver', sinon.test ->
+            an_exec = new Execution (new Sequence)
+            a_subject = new Thing; a_message = new Thing
+            a_receiver = new Native
+
+            @stub(an_exec, 'advance').returns new Combination a_subject, a_message
+            @stub(a_subject.receiver, 'clone').returns a_receiver
+
+            op = new Operation 'advance', new Thing
+            op.perform an_exec
+
+            expect(a_receiver.ops).to.not.be.empty()
+            expect(a_receiver.ops[0].params).to.not.be.empty()
 
             params = a_receiver.ops[0].params[0]
             expect(params.at 0).to.be an_exec
             expect(params.at 1).to.be a_subject
             expect(params.at 2).to.be a_message
 
-         # TODO: Test defaulting-to-locals functionality
+         it 'uses locals at the edges of expressions', sinon.test ->
+            @spy Label::receiver, 'clone'
+            an_exec = new Execution parse 'foo []'
+
+            op = new Operation 'advance', new Thing
+            op.perform an_exec
+
+            receiver = Label::receiver.clone.firstCall.returnValue
+            expect(receiver.ops.length).to.be.above 0
+            expect(receiver.ops[0].params).to.not.be.empty()
+
+            params = receiver.ops[0].params[0]
+            expect(params.at 1).to.be an_exec.locals
+
 
       describe "'adopt'", ->
          it 'exists'
