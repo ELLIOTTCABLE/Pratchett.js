@@ -628,8 +628,11 @@ Paws.Operation = Operation = class Operation
    @operations: new Object
    @register: (op, func)-> @operations[op] = func
 
+   # Takes an `Execution` to preform this operation `against`, preforms the `op`, and returns a
+   # return-value as defined by the operation.
    perform: (against)->
       Operation.operations[@op].apply(against, @params)
+
 
 Operation.register 'advance', (response)->
    if process.env['TRACE_REACTOR']
@@ -666,6 +669,7 @@ Operation.register 'advance', (response)->
 
 
 Operation.register 'adopt', ()->
+
 
 # Debugging output
 # ----------------

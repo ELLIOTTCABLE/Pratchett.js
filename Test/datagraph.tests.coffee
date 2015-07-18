@@ -408,7 +408,7 @@ describe "Paws' Data types:", ->
             expect(a_subject.receiver.clone).was.calledOnce()
             expect(a_subject.receiver.ops).to.be.empty()
 
-         it '... and queues that cloned-receiver', sinon.test ->
+         it 'queues a further advancement operation for that receiver-clone', sinon.test ->
             an_exec = new Execution (new Sequence)
             a_subject = new Thing; a_message = new Thing
             a_receiver = new Native
