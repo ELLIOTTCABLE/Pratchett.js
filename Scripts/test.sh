@@ -15,9 +15,9 @@
 #
 #    npm test --grep 'Parser'             # Run a specific unit-test suite
 #    RESPECT_TRACING=no npm test          # Disable debugging and trcing during the tests
-#    INTEGRATION=no npm test              # Ignore the Rulebook, even if present
+#    INTEGRATION=no npm test              # Run the unit-tests *only* (not the integration tests)
 #    RULEBOOK=no npm test                 # Ignore the Rulebook, even if present
-#    LETTERS=yes npm test                 # To execute the Letters, as well
+#    LETTERS=yes npm test                 # Execute the Letters, as well as the rest of the Rulebook
 
 puts() { printf %s\\n "$@" ;}
 pute() { printf %s\\n "~~ $*" >&2 ;}
