@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-                                                                                      set +o verbose
+                                                                              set +o verbose
 # Usage:
 # ------
 # This will run 'coffee-coverage' across the codebase, and then generate HTML coverage to file

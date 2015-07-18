@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-                                                                                      set +o verbose
+                                                                              set +o verbose
 # Usage:
 # ------
 # This script runs both our test-suites, and, if they've been downloaded, checks conformance with
@@ -55,40 +55,40 @@ fi
 go () { [ -z ${print_commands+x} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 [ -n "$DEBUG_SCRIPTS" ] && puts \
-   "Pre-commit mode:       ${PRE_COMMIT:--}"                      \
-   "Tracing reactor:       ${TRACE_REACTOR:+Yes!}"                \
-   "Verbosity:             '$VERBOSE'"                            \
-   "Printing commands:     ${print_commands:--}"                  \
-   "Test directory:        '$test_files'"                         \
-   "Integration directory: '$integration_files'"                  \
-   "Rulebook directory:    '$rulebook_dir'"                       \
-   "Running "'`bats`'" tests:  ${BATS:--}"                        \
-   "Running integration:   ${INTEGRATION:--}"                     \
-   "Checking rulebook:     ${RULEBOOK:--}"                        \
-   "Checking letters:      ${LETTERS:--}"                         \
+   "Pre-commit mode:       ${PRE_COMMIT:--}"                                  \
+   "Tracing reactor:       ${TRACE_REACTOR:+Yes!}"                            \
+   "Verbosity:             '$VERBOSE'"                                        \
+   "Printing commands:     ${print_commands:--}"                              \
+   "Tests directory:       '$unit_dir'"                                       \
+   "Integration directory: '$integration_dir'"                                \
+   "Rulebook directory:    '$rulebook_dir'"                                   \
+   "Running "'`bats`'" tests:  ${BATS:--}"                                    \
+   "Running integration:   ${INTEGRATION:--}"                                 \
+   "Checking rulebook:     ${RULEBOOK:--}"                                    \
+   "Checking letters:      ${LETTERS:--}"                                     \
    "" >&2
 
 
 mochaify() {
-   go env NODE_ENV=test ./node_modules/.bin/mocha           \
-      --compilers coffee:coffee-script/register             \
-      --reporter "$mocha_reporter" --ui "$mocha_ui"         \
-      "$@"                                                  ;}
+   go env NODE_ENV=test ./node_modules/.bin/mocha                             \
+      --compilers coffee:coffee-script/register                               \
+      --reporter "$mocha_reporter" --ui "$mocha_ui"                           \
+      "$@"                                                                    ;}
 
 batsify() {
    if [ -z "${BATS##[YTyt]*}" ] && command -v bats >/dev/null; then
-      go bats --pretty $BATS_FLAGS "$@"                     ;fi ;}
+      go bats --pretty $BATS_FLAGS "$@"                                       ;fi ;}
 
 ruleify() {
    book="$1"; shift
 
    if [ -z "${RULEBOOK##[YTyt]*}" ] \
    && [ -d "$PWD/$npm_package_config_dirs_rulebook/$book/" ]; then
-      go env NODE_ENV=test ./node_modules/.bin/taper        \
-         --runner "$PWD/Executables/paws.js"                \
-         --runner-param='check'                             \
-         "$PWD/$npm_package_config_dirs_rulebook/$book"/*   \
-         $TAPER_FLAGS -- $CHECK_FLAGS "$@"                  ;fi ;}
+      go env NODE_ENV=test ./node_modules/.bin/taper                          \
+         --runner "$PWD/Executables/paws.js"                                  \
+         --runner-param='check'                                               \
+         "$PWD/$npm_package_config_dirs_rulebook/$book"/*                     \
+         $TAPER_FLAGS -- $CHECK_FLAGS "$@"                                    ;fi ;}
 
 
 if [ -n "${INTEGRATION##[YTyt]*}" ]; then
