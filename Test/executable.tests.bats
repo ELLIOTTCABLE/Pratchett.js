@@ -3,6 +3,12 @@ load 'support'
 
 export COLOUR=no
 
+#@test '`bats` can fail tests' {
+#   pute 'SUCCESS: `bats` is working as intended!'
+#   false
+#   pute '(This line should not be executed, though.)'
+#}
+
 # Usage
 # =====
 @test 'The executable exists as `paws.js`' {
