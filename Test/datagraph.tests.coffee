@@ -305,22 +305,28 @@ describe "Paws' Data types:", ->
          expect(-> Liability()).not.to.throwError()
          expect(Liability()).to.be.a Liability
 
-      it 'constructs with an Execution and a Thing', ->
+      it 'constructs with a custodian and a ward', ->
          a_thing = Thing(); an_exec = Execution()
          expect(-> Liability an_exec, a_thing).not.to.throwError()
-         expect(Liability an_exec, a_thing).to.be.a Liability
+
+         li = Liability an_exec, a_thing
+         expect(li).to.be.a Liability
+         expect(li.custodian).to.be an_exec
+         expect(li.ward).to.be a_thing
 
       it 'creates write-exclusive (multiple-sequential-read) responsibility, by default', ->
          a_thing = Thing(); an_exec = Execution()
 
          li = Liability an_exec, a_thing
-         expect(li.license).to.be false
+         expect(li.read()).to.be yes
+         expect(li.write()).to.be no
 
       it 'can be instructed to construct as write-responsibility, instead', ->
          a_thing = Thing(); an_exec = Execution()
 
-         li = Liability an_exec, a_thing, true
-         expect(li.license).to.be true
+         li = Liability an_exec, a_thing, yes
+         expect(li.read()).to.be no
+         expect(li.write()).to.be yes
 
       describe 'LiabilityFamily', ->
          it 'exists', ->

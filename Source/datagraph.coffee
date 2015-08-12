@@ -628,39 +628,39 @@ Relation.from = (it)->
 # This is a an intersection-type representing the ‘responsibility’ mapping between an object, and
 # the `Execution` responsible for it. It encapsulates:
 #
-#  - the `Thing` that the responsibility is `for`,
+#  - the `ward` `Thing` that the responsibility is for,
 #  - the `custodian` `Execution` currently responsible for it,
 #  - and the `license`ing-status of that `Execution` (`true` for 'write'-exclusivity, `false` for
 #    'read'-only.)
 Paws.Liability = Liability = delegated('for', Thing) class Liability
-   constructor: constructify(return:@) (@custodian, @for, license = no)->
-      @license = license is yes or license is 'write'
+   constructor: constructify(return:@) (@custodian, @ward, license = 'read')->
+      @_write = license is yes or license is 'write'
 
-   write: ->     @license
-   read:  -> not @license
+   write: ->     @_write
+   read:  -> not @_write
 
    # This simply determines if two `Liability`s are precisely identical.
    compare: (other)->
       return true if this is other
 
-      other.license     is @license    &&
+      other._write      is @_write     &&
       other.custodian   is @custodian  &&
-      other.for         is @for
+      other.ward        is @ward
 
 Paws.Liability.Family = LiabilityFamily = delegated('custodians', Array) class LiabilityFamily
    constructor: constructify(return:@) (first)->
-      @license = first.license
+      @_write = first._write
 
       @members = new Array
       @add first, yes
 
-   write: ->     @license
-   read:  -> not @license
+   write: ->     @_write
+   read:  -> not @_write
 
    add: (it, first = false)->
       if not first
-         return false if @license
-         return false if it.license
+         return false if @_write
+         return false if it._write
          return false if @includes it
 
       @members.push it
