@@ -11,7 +11,7 @@ describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
 
    {  Thing, Label, Execution, Native, parse
-   ,  Relation, Combination, Position, Mask, Operation } = Paws
+   ,  Relation, Liability, Combination, Position, Mask, Operation } = Paws
 
    {  Context, Sequence, Expression } = parse
 
@@ -293,6 +293,149 @@ describe "Paws' Data types:", ->
             a_mask = new Mask Thing.construct {child: parent_thing}
             another_mask = new Mask parent_thing
             expect(a_mask.containedBy another_mask).to.be false
+
+   describe 'Liability', ->
+      it 'exists', ->
+         expect(Liability).to.be.ok()
+         expect(Liability).to.be.a 'function'
+
+      it 'constructs', ->
+         expect(-> new Liability).not.to.throwError()
+         expect(new Liability).to.be.a Liability
+         expect(-> Liability()).not.to.throwError()
+         expect(Liability()).to.be.a Liability
+
+      it 'constructs with a custodian and a ward', ->
+         a_thing = Thing(); an_exec = Execution()
+         expect(-> Liability an_exec, a_thing).not.to.throwError()
+
+         li = Liability an_exec, a_thing
+         expect(li).to.be.a Liability
+         expect(li.custodian).to.be an_exec
+         expect(li.ward).to.be a_thing
+
+      it 'creates write-exclusive (multiple-sequential-read) responsibility, by default', ->
+         a_thing = Thing(); an_exec = Execution()
+
+         li = Liability an_exec, a_thing
+         expect(li.read()).to.be yes
+         expect(li.write()).to.be no
+
+      it 'can be instructed to construct as write-responsibility, instead', ->
+         a_thing = Thing(); an_exec = Execution()
+
+         li = Liability an_exec, a_thing, yes
+         expect(li.read()).to.be no
+         expect(li.write()).to.be yes
+
+      describe 'LiabilityFamily', ->
+         it 'exists', ->
+            expect(Liability.Family).to.not.be undefined
+            expect(Liability.Family).to.be.a 'function'
+
+         it 'constructs', ->
+            li = new Liability Execution(), Thing()
+
+            expect(-> new Liability.Family li).not.to.throwError()
+            expect(new Liability.Family li).to.be.a Liability.Family
+            expect(-> Liability.Family li).not.to.throwError()
+            expect(Liability.Family li).to.be.a Liability.Family
+
+         it 'assumes its write-license from the first member', ->
+            li = new Liability Execution(), Thing(), no
+
+            family = new Liability.Family li
+            expect(family.read()).to.be.ok()
+
+            li = new Liability Execution(), Thing(), yes
+
+            family = new Liability.Family li
+            expect(family.write()).to.be.ok()
+
+         it 'sets `associates` on the first member', ->
+            an_exec = new Execution
+            li = new Liability an_exec, Thing()
+
+            family = new Liability.Family li
+            expect(an_exec.associates).to.be family
+
+         it "accepts new 'read' members if it is a 'read' family", ->
+            li1 = new Liability Execution(), Thing()
+            li2 = new Liability Execution(), Thing()
+
+            family = new Liability.Family li1
+            expect(family.read()).to.be yes
+
+            rv = family.add li2
+            expect(rv).to.be.ok()
+            expect(family.members).to.contain li2
+
+         it "rejects new 'write' members if it is a 'read' family", ->
+            li1 = new Liability Execution(), Thing()
+            li2 = new Liability Execution(), Thing(), yes
+
+            family = new Liability.Family li1
+            expect(family.read()).to.be yes
+
+            rv = family.add li2
+            expect(rv).to.not.be.ok()
+            expect(family.members).to.not.contain li2
+
+         it "rejects all members if it is a 'write' family", ->
+            li1 = new Liability Thing(), Execution(), yes
+            li2 = new Liability Thing(), Execution()
+            li3 = new Liability Thing(), Execution(), yes
+
+            family = new Liability.Family li1
+            expect(family.write()).to.be yes
+
+            rv = family.add li2
+            expect(rv).to.not.be.ok()
+            expect(family.members).to.not.contain li2
+
+            rv = family.add li3
+            expect(rv).to.not.be.ok()
+            expect(family.members).to.not.contain li3
+
+         it 'sets `associates` on successfully-added members', ->
+            family = new Liability.Family Liability(Execution(), Thing())
+
+            an_exec = new Execution
+            li = new Liability an_exec, Thing()
+
+            family.add li
+            expect(an_exec.associates).to.be family
+
+         it "doesn't set `associates` on members that can't be added", ->
+            family = new Liability.Family Liability(Execution(), Thing(), no)
+
+            an_exec = new Execution
+            li = new Liability an_exec, Thing(), yes
+
+            family.add li
+            expect(an_exec.associates).to.be undefined
+
+         it 'can remove members', ->
+            li1 = new Liability Execution(), Thing()
+            li2 = new Liability Execution(), Thing()
+
+            family = new Liability.Family li1
+            family.add li2
+            expect(family.members).to.contain li2
+
+            rv = family.remove li2
+            expect(rv).to.be.ok()
+            expect(family.members).to.not.contain li2
+
+         it "resets `associates` on removed custodians", ->
+            an_exec = new Execution()
+            li = new Liability an_exec, Thing()
+            family = new Liability.Family Liability(Execution(), Thing())
+            family.add li
+            expect(an_exec.associates).to.be family
+
+            family.remove li
+            expect(an_exec.associates).to.be undefined
 
 
    describe 'Label', ->
