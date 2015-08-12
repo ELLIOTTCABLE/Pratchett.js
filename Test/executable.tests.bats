@@ -12,7 +12,7 @@ export COLOUR=no
 
 @test 'The executable responds to `--version`' {
    run paws.js --version
-   [ "$status" -eq 1 ]
+   [ "$status" -eq 0 ]
    [ -n "$output" ]
 }
 
