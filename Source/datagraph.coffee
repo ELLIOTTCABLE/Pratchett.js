@@ -299,6 +299,10 @@ Paws.Execution = Execution = class Execution extends Thing
 
       @ops = new Array
 
+      # If this belongs to a `LiabilityFamily` (i.e. is participating with other 'read'-access
+      # `Execution`s, it will be linked here by `LiabilityFamily#add()`.
+      @associates = undefined
+
       return this
 
    # Creates a list-thing of the form that receiver `Execution`s expect.
@@ -620,6 +624,55 @@ Relation.from = (it)->
       return new Relation(it, @_?.own ? no)
    if _.isArray(it)
       return it.map (el) => @from el
+
+# This is a an intersection-type representing the ‘responsibility’ mapping between an object, and
+# the `Execution` responsible for it. It encapsulates:
+#
+#  - the `Thing` that the responsibility is `for`,
+#  - the `custodian` `Execution` currently responsible for it,
+#  - and the `license`ing-status of that `Execution` (`true` for 'write'-exclusivity, `false` for
+#    'read'-only.)
+Paws.Liability = Liability = delegated('for', Thing) class Liability
+   constructor: constructify(return:@) (@custodian, @for, license = no)->
+      @license = license is yes or license is 'write'
+
+   write: ->     @license
+   read:  -> not @license
+
+   # This simply determines if two `Liability`s are precisely identical.
+   compare: (other)->
+      return true if this is other
+
+      other.license     is @license    &&
+      other.custodian   is @custodian  &&
+      other.for         is @for
+
+Paws.Liability.Family = LiabilityFamily = delegated('custodians', Array) class LiabilityFamily
+   constructor: constructify(return:@) (first)->
+      @license = first.license
+
+      @members = new Array
+      @add first, yes
+
+   write: ->     @license
+   read:  -> not @license
+
+   add: (it, first = false)->
+      if not first
+         return false if @license
+         return false if it.license
+         return false if @includes it
+
+      @members.push it
+      it.custodian.associates = this
+
+   remove: (it)->
+      _(@members)
+         .remove( (member)-> member.compare it ) # FIXME: Wasteful.
+         .forEach (member)-> member.custodian.associates = undefined
+         .commit()
+
+   includes: (it)-> _(@members).any (member)-> member.compare it
 
 
 # A `Combination` represents a single operation in the Paws semantic. An instance of this class
