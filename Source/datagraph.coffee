@@ -25,6 +25,51 @@ Paws.debugging.infect Paws
 
 # Core data-types
 # ===============
+# The Paws object-space implements a single graph (in the computer-science sense) of homogenous(!)
+# objects. Each object, or node in that graph, is called a `Thing`; and is singly-linked to an
+# ordered list of other nodes.
+#
+# The first member of the metadata on a `Thing` (referred to as the ‘noughtie’) is generally
+# reserved for special use from within Paws; and thus Paws' lists are effectively one-indexed.
+#
+#  > In addition to these links to other nodes that *every* `Thing` has, some `Thing`s carry around
+#    additional information; these are implemented as additional JavaScript types, such as `Label`
+#    (which carries around identity, and a description in the form of a Unicode string) or
+#    `Execution` (which encapsulates procedure and execution-status information.)
+#
+#    The Paws model is to consider that underlying information as ‘data’ (the actual *concerns* of a
+#    Paws program), and the links *between* those data as ‘metadata’; describing **the relationships
+#    amongst** the actual data.
+#
+# Although objects appear from within Paws to be ordered lists of other objects; they are often
+# *treated* as ersatz key-value-dictionaries. To this purpose, a single key-value ‘pair’ is
+# often represented as a list-`Thing` containing only a key `Label`, and the associated value.
+#
+# Each (type of) object also has a `receiver` associated with it, involved in the evaluation
+# process; an `Execution` for a procedure that receives messages ‘sent’ to the object in question.
+# This defines the (default) action taken when the object is, for example, the subject on the left-
+# hand-side of a simple expression.
+#
+# The default receiver for a flavour of object depends on the additional data it carries around
+# (that is, the JavaScript type of the node). For instance, the default receiver for plain `Thing`s
+# (those carrying no additional data around) is an equivalent to the `#find()` operation; that is,
+# to treat the subject-object as a dictionary, and the message-object as a key to search that
+# dictionary for. The default for any object, however, can be overridden per-object, changing how a
+# given node in the graph responds to `Combination`s with other objects. (See the documentation for
+# `Execution` for more exposition on the evaluation model.)
+#
+# ---- ---- ----
+#
+# The links from one `Thing` to another are encoded as `Relation` objects, which are further
+# annotated with the property of **‘ownership’**: an object that ‘owns’ an object below it in the
+# graph is claiming that object as a component of the *overall data-structure* that the parent
+# object represents. (Put simply: a series of ownership-annotated links in the datagraph describe a
+# single data-structure as a subgraph thereof.)
+#
+# These `Relation`s are stored in an ordered `Array`; manipulable via `::set()`, `::push()`,
+# `::pop()`, `::shift()`, and `::unshift()`. When structured as a dictionary (a list of key-value
+# ‘pairs’), the values are searchable by `::find()`; and the apparent key / value of a pair are
+# exposed by `::keyish()` and `::valueish()`.
 Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    constructor: constructify(return:@) (elements...)->
       @id = uuid.v4()
@@ -34,30 +79,6 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       @metadata.unshift undefined if @_?.noughtify != no
 
    rename: (name)-> @name = name ; return this
-
-   # Construct a generic ‘key/value’ style `Thing` from a JavaScript `Object`-representation
-   # thereof. These representations will have JavaScript strings as the keys (which will be
-   # converted into the `Label` of a pair), and a Paws `Object`-type as the values.
-   #
-   # For instance, given `{foo: thing_A, bar: thing_B}` will be constructed into the following:
-   #
-   #    [, [, ‘foo’, thing_B], [, ‘bar’, thing_B]]
-   #
-   # The ‘pair-ish’ values are always owned by the generated structure; as are, by default, the
-   # objects passed in. The latter is overridable with `.with(own: no)`.
-   #
-   # @option own: Whether to construct the structure's `Relation`s as `own`ing the objects passed in
-   #---
-   # TODO: Support functions, so this can replace µPaws' applyGlobals.
-   @construct: (representation)->
-      members = for key, value of representation
-         value = Native.synchronous value if _.isFunction value
-         value = @construct value unless value instanceof Thing
-         value.rename key if @_?.names
-         relation = Relation(value, @_?.own ? yes)
-         Thing.pair( key, relation ).owned()
-
-      return Thing members...
 
    at: (idx)->       @metadata[idx]?.to
    set: (idx, to)->  @metadata[idx] = Relation.from to
@@ -127,12 +148,33 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    owned:    -> new Relation this, yes
    disowned: -> new Relation this, no
 
-   # These definitions have to be deferred, because `Native` isn't defined yet.
-   receiver: undefined
+# Constructs a generic ‘key/value’ style `Thing` from a `representation` (a JavaScript `Object`-
+# hash) thereof. This convenience method expects arguments constructed as pairs of 1. any string (as
+# the key, which will be converted into the `Label`), and 2. a Paws `Thing`-subclass (as the value.)
+# These may be nested.
+#
+#  > For instance, given `{foo: thing_A, bar: thing_B}`, `construct()` will product a `Thing`
+#    resembling the following (disregarding noughties):
+#
+#        ((‘foo’, thing_B), (‘bar’, thing_B))
+#
+# The ‘pair-ish’ values are always owned by their container; as are, by default, the ‘leaf’ objects
+# passed in. (The latter is a behaviour configurable by `.with(own: no)`.)
+#
+# @option own: Whether to construct the structure's `Relation`s as `own`ing the leaf-objects
+Thing.construct = (representation)->
+   members = for key, value of representation
+      value = Native.synchronous value if _.isFunction value
+      value = @construct value unless value instanceof Thing
+      value.rename key if @_?.names
+      relation = Relation(value, @_?.own ? yes)
+      Thing.pair( key, relation ).owned()
 
-Thing_init = ->
+   return Thing members...
+
+Thing.init_receiver = ->
    # The default receiver for `Thing`s simply preforms a ‘lookup.’
-   Paws.Thing::receiver = new Native (params)->
+   Thing::receiver = new Native (params)->
       caller  = params.at 0
       subject = params.at 1
       message = params.at 2
@@ -149,6 +191,22 @@ Thing_init = ->
    .rename 'thing✕'
 
 
+# A `Label` is a type of `Thing` which encapsulates a static Unicode string, serving two purposes:
+#
+# 1. Unique-comparison: Two `Label`s originally created with equivalent sequences of Unicode
+#    codepoints will `compare()` as equal. That is, across codebases, `Label`s share identity, even
+#    when they don't share objective content / metadata relationships.
+# 2. Description: Although not designed to be used to manipulate character-data as a general
+#    string-type, `Label`s can be used to associate an arbitrary Unicode sequence with some other
+#    data, as a name or description. (Hence, ‘label.’)
+#
+# ---- ---- ----
+#
+# Due to their intented use as descriptions and comparators, the string-data associated with a
+# `Label` cannot be mutated after creation; and they cannot be combined or otherwise manipulated.
+# However, they *can* be `explode()`d into an ordered-list of individual codepoints, each
+# represented as a new `Label`; and then manipulated in that form. These poor-man's mutable-strings
+# (colloquially called ‘character soups’) are provided as a primitive form of string-manipulation.
 Paws.Label = Label = class Label extends Thing
    constructor: constructify(return:@) (@alien)->
 
@@ -162,32 +220,65 @@ Paws.Label = Label = class Label extends Thing
       to.alien == @alien
 
    # FIXME: JavaScript's `split()` doesn't handle wide-character (surrogate in UTF-16, or 4-byte in
-   #        UTF-8) Unicode very well.
+   #        UTF-8) Unicode -very-well.- (at all!)
    explode: ->
       it = new Thing
       it.push.apply it, _.map @alien.split(''), (char)-> new Label char
       it
 
 
-# `Execution`s store the context necessary to ‘hold’ a Paws script, partially-executed, until the
-# next time it is advanced to produce a `Combination` for the reactor.
+# *Programs* in Paws are a series of nested sequences-of-Paws-objects. For programs that originate
+# as text (not all Paws programs do!), those `Thing`s are created at parse-time; Paws doesn't
+# operate on text (or an intermediat representation thereof) in the way that many programming-
+# languages do.
 #
-# Each time an `Execution` is advanced, that ‘current location’ at which it will be held is moved
-# forward; either along the chain of words in the current expression, or diving into (or later back
-# out of) sub-expressions within the current expression. That ‘current location’ is encoded into a
-# stack of `Position`s stored in `instructions`; each time a new sub-expression is entered, a new
-# `Position` for that expression is shifted onto the `instructions` stack. (Correspondingly, when a
-# sequence of expressions is completed, that element is discarded from the stack.) *NB: This means
-# the `instructions` stack lists *completed* nodes; ones for which a `Combination` has already been
-# generated.)*
+# The primary way you interact with code in Paws, is this, the `Execution`. An `Execution`, however,
+# doesn't represent a simple invocable procedure, the way a `Function` might in JavaScript; instead,
+# it represents the *partial completion thereof*. When you invoke a Paws `Execution`, you're not
+# spawning a wholesale evaluation of that procedure, but rather *continuing* a previous evaluation.
 #
-# In addition, the `results` of previous combinations, for each layer of the `instructions` stack,
-# are stored in a second stack. These are used as the left-hand side of combinations (as well as the
-# right-hand side when dropping out of a sub-expression.)
+# Each time you invoke an `Execution`, the script is advanced a single step to produce a new
+# computational task, in the form of a ‘combination:’ a subject-object, and a message-object to be
+# sent to it. The `receiver` (another `Execution`, see the above `Thing` documentation) of the
+# *subject* will then be invoked in turn, and handed the message-object. (This means that each
+# intentional step in a Paws program necessarily involves at *least* two effective steps; the
+# invocation of the `Execution` intended, and then the invocation of the resulting subject's
+# `receiver`.)
 #
-# Finally, an `Execution` contains the objective evaluation context of the instructions it contains;
-# this is in the form of a `locals` object, against which the initial word in any expression will be
-# combined.
+# Obviously, however, as Paws is an asynchronous language, *any amount* of actual work can happen
+# following an instigator's invocation of an `Execution`; for instance, although the default-
+# receivers are all implemented as `Native`s, completable in a single invocation as an atomic
+# operation ... a custom receiver could preform any amount of work, before producing a result-value
+# for the combination that caused it.
+#
+# Further, a crucial aspect of Paws is the ability to *branch* `Execution`-flow. This is acheived by
+# `clone()`ing a partially-evaluated `Execution`. As the original procedure progresses, its
+# instructions are gradually processed and discarded; meanwhile, however, an earlier clone's will
+# *not* be. When so-branched, an `Execution`'s state is all duplicated to the clone, unaffected by
+# changes to the original `Execution`'s position or objective-context.
+#
+# **Nota bene:** While clones do not share *additions* to their respective context, `locals`, the
+#                clone made is *shallow in nature*. This means that the two `Execution`s' `locals`
+#                objects share the original assignments (that is, the original pairs) created prior
+#                to the cloning. This further means that either clone can modify an existing
+#                assignment instead of appending an overriding pair, thus making the change visible
+#                to prior clones, if desired.
+#
+# ---- ---- ----
+#
+# This implementation stores the `Execution` information as three crucial elements:
+#
+# 1. A stack of positions in a `Script`, as `Position`s in the `instructions` array,
+# 2. a further stack of the `results` of outer `instruction`s,
+# 3. and its objective evaluation context, a `Thing` accessible as `locals`.
+#
+# The position is primarily maintained by `::advance()`; diving into and climbing back out of sub-
+# expressions to produce `Combination`s for the reactor. As it digs into a sub-expression, the
+# position in the outer `Expression` is maintained in the `instructions` stack; while the results of
+# the last `Combination` for each outer expression are correspondingly stored in `results`.
+#
+# **Nota anche: The `instructions` stack lists *completed* nodes; ones for which a `Combination` has
+#               already been generated.)**
 Paws.Execution = Execution = class Execution extends Thing
    constructor: constructify (@begin)->
       if typeof @begin == 'function' then return Native.apply this, arguments
@@ -344,39 +435,39 @@ Paws.Execution = Execution = class Execution extends Thing
       upcoming_value = upcoming.valueOf()
       return new Combination null, upcoming_value
 
-   # These definitions have to be deferred, because `Execution` isn't defined yet.
-   receiver: undefined
 
-
+# Correspondingly to normal `Execution`s, some procedures are provided by the implementation (or
+# those extending Paws with the API, such as yourself) as `Native`s. These consist of chunks of
+# JavaScript code to be executed each time the faux-`Execution` is invoked.
+#
+# To imitate the behaviour of a natural `Execution`, `Native` procedures are advanced destructively
+# each time they are invoked: a chunk of behaviour is discarded. Similarly, each of these `bits` of
+# behaviour can be separately argumented with ‘results’ when invoked (again, just as a regular
+# `Execution` must be parameterized on each reinvocation.) This can best be visualized as an
+# explicit coroutine, with each `yield` being represented by the end of one `Function` and beginning
+# of the next.
+#
+# To further imitate the cloning-behaviour of `Execution`s, we shallow-clone any JavaScript members
+# added by the `Native`'s `bits` during their evaluation to clones of the `Native` itself.
+#
+# *Note:* All of the `Native`s provided by this implementation are stored in a separate project,
+#         `primitives`. See `primitives/infrastructure.coffee` for the majority thereof.
+#
+# ---- ---- ----
+#
+# We implement `Native`s as an array of `bits`; `Function`s that receive the Paws resumption-value
+# as their sole argument. Instead of storing information on the objecive `locals`, `Native`s'
+# implementations have the option of storing partial progress on the `Native` instance itself; to
+# this end, `this` within the body of a `Function`-bit will be the `Native` instance being invoked.
+# (Note that although the *enumerable properties* will be copied from the `Native` to a clone
+# thereof, the *object-identity* will obviously have changed.)
+#
+# Of great use, we also provide the `.synchronous()` convenience function; although most `Native`s
+# imitate fully-asynchronous, coroutine-style procedures, this function can be used to construct
+# faux-synchronous-style procedures that consume all of their parameters before evaluating and
+# producing a result. (This expidently allows `Native` procedures to be written as single,
+# synchronous `Function`s, that accept multiple arguments and `return` a single result.)
 Paws.Native = Native = class Native extends Execution
-
-   # An `Native` is an `Execution` that's implemented with JavaScript code, instead of as a series
-   # of Paws combinations. These are the primitive building-blocks with which Paws programs are
-   # built.
-   #
-   # Most `Native`s are exposed to Paws code through ‘bags’ of `Native`s stored under useful names
-   # on the `locals` of the first (root-level) `Execution` in a Paws program; notably, the
-   # primitives described by the Paws specification are exposed in such a bag, named
-   # “infrastructure.”
-   #
-   # `Native`s in this implementation consist of a series of ‘bits’, each of which is a JavaScript
-   # `Function`. Each ‘bit’ of the `Native` implements a (clearly synchronous, as they are written
-   # in JavaScript) set of operations to be preformed upon the next resumption of the `Execution`
-   # represented by this `Native`. (It can be easier to conceptualize an `Native` as an explicit
-   # coroutine, with the `return` statement of one bit and the argument of the following bit acting
-   # somewhat like a traditional `yield` statement.)
-   #
-   # The first `Function`-bit will be invoked upon resumption of the `Native`, and then discarded
-   # (thus causing the following `Function` to receive the resumption thereafter.) Upon resumption,
-   # the `Function` will be invoked with only one parameter: `response`, whatever value was included
-   # with the resumption operation.
-   #
-   # In addition, `this` within the body of the `bit`-function will be this `Native` itself, giving
-   # the `Native`'s implementation convenient access to a place to store incrementally-constructed
-   # results between the invocations of bits. (Note that the actual `Native` object referred to
-   # during the invocation of subsequent bits may *not* be the same, as the `Native` may have been
-   # branched! Any own-properties of the `Native` will have been copied, if so; but the object-
-   # identity will be different.)
    constructor: constructify(return:@) (@bits...)->
       delete @begin
       delete @instructions
@@ -406,99 +497,98 @@ Paws.Native = Native = class Native extends Execution
       return @bits.shift()
 
 
-   # This alternative constructor will automatically generate a series of ‘bits’ that will curry the
-   # appropriate number of arguments into a single, final function.
-   #
-   # Instead of having to write individual function-bits for your `Native` that collect the
-   # appropriate set of resumption-values into a series of “arguments” that you need for your task,
-   # you can use this convenience constructor for the common situation that you're treating an
-   # `Execution` as equivalent to a synchronous JavaScript function.
-   #
-   # ----
-   #
-   # This takes a single function, and checks the number of arguments it requires before generating
-   # the corresponding bits to acquire those arguments.
-   #
-   # Then, once the resultant `Native` has been resumed the appropriate number of times (plus one
-   # extra initial resumption with a `caller` as the value, as is standard coproductive practice in
-   # Paws), the synchronous JavaScript passed in as the argument here will be invoked.
-   #
-   # That invocation will provide the arguments recorded in the function's implementation, as well
-   # as a context-object containing the following information available on `this`:
-   #
-   # caller
-   #  : The first resumption-value provided to the generated `Native`. Usually, itself, an
-   #    `Execution`, in the coproductive pattern.
-   # execution
-   #  : The original `this`. That is, the generated `Native` that was constructed from the function.
-   #
-   # After your function executes, if it results in a non-null return value, then the `caller`
-   # provided as the first response Paws-side will be resumed one final time with that as the
-   # corresponding response. (Hence the name of this method: it provides a ‘synchronous’ (ish)
-   # result after all the parameters have been asynchronously collected.)
-   #
-   # @param { function(... [Thing]
-   #                , this:{caller: Execution, this}): ?Thing }
-   #    synch_body   The synchronous function we'll generate an Execution to match
-   @synchronous: (synch_body) ->
-      advancements = synch_body.length + 1
+# This alternative constructor will automatically generate a series of ‘bits’ that will curry the
+# appropriate number of arguments into a single, final function.
+#
+# Instead of having to write individual function-bits for your `Native` that collect the appropriate
+# set of resumption-values into a series of “arguments” that you need for your task, you can use
+# this convenience constructor for the common situation that you're treating an `Execution` as
+# equivalent to a synchronous JavaScript function.
+#
+# ----
+#
+# This takes a single function, and checks the number of arguments it requires before generating the
+# corresponding bits to acquire those arguments.
+#
+# Then, once the resultant `Native` has been resumed the appropriate number of times (plus one extra
+# initial resumption with a `caller` as the value, as is standard coproductive practice in Paws),
+# the synchronous JavaScript passed in as the argument here will be invoked.
+#
+# That invocation will provide the arguments recorded in the function's implementation, as well as a
+# context-object containing the following information available on `this`:
+#
+# caller
+#  : The first resumption-value provided to the generated `Native`. Usually, itself, an `Execution`,
+#    in the coproductive pattern.
+# execution
+#  : The original `this`. That is, the generated `Native` that was constructed from the function.
+#
+# After your function executes, if it results in a non-null return value, then the `caller` provided
+# as the first response Paws-side will be resumed one final time with that as the corresponding
+# response. (Hence the name of this method: it provides a ‘synchronous’ (ish) result after all the
+# parameters have been asynchronously collected.)
+#
+# @param { function(... [Thing], this:{caller: Execution, this}): ?Thing }
+#    synch_body   The synchronous function we'll generate an Execution to match
+Native.synchronous = (synch_body) ->
+   advancements = synch_body.length + 1
 
-      # First, we construct the *middle* bits of the coproductive pattern (that is, the ones that
-      # handle all but the *last* actual argument the passed function requires.) These are pretty
-      # generic: they simply partially-apply their RV to the *last* bit (which will be defined
-      # below.) Thus, they participate in currying their argument into the final invocation of
-      # the synchronous function.
-      bits = new Array(advancements - 1).join().split(',').map ->
-         (caller, value)->
-            # FIXME: Pretty this up with prototype extensions. (#last, anybody?)
-            @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], value
-            caller.respond this
-
-      # Next, we construct the *first* bit, which is a special case responsible for receiving the
-      # `caller` (as is usually the case in the coproductive pattern.) It takes its resumption-
-      # value, and curries it into *every* following bit. (Notice that both the middle bits, above,
-      # and the concluding bit, below, save a spot for a `caller` argument.)
-      bits[0] = (caller)->
-         @bits = @bits.map (bit)=> _.partial bit, caller
+   # First, we construct the *middle* bits of the coproductive pattern (that is, the ones that
+   # handle all but the *last* actual argument the passed function requires.) These are pretty
+   # generic: they simply partially-apply their RV to the *last* bit (which will be defined
+   # below.) Thus, they participate in currying their argument into the final invocation of
+   # the synchronous function.
+   bits = new Array(advancements - 1).join().split(',').map ->
+      (caller, value)->
+         # FIXME: Pretty this up with prototype extensions. (#last, anybody?)
+         @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], value
          caller.respond this
 
-      # Now, the complex part. The *final* bit has quite a few arguments curried into it:
-      #
-      #  - Immediately (at generate-time), the locals we'll need within the body: the `Paws` API,
-      #    and the `synch_body` we were passed. This is necessary, because we're building the body
-      #    in a new JavaScript environment, due to the `eval`-y `Function` constructor;
-      #  - Second (later on, throughout invocation-time), the `caller` curried in by the first bit;
-      #  - Third, any *actual arguments* curried in by intermediate bits.
-      #
-      # In addition to these, it's got one final argument (the actual resumption-value with which
-      # this final bit is invoked, after all the other bits have been exhausted).
-      #
-      # These values are curred into a function we construct within the body-string below, that
-      # proceeds to provide the *actual* arguments to the synchronous `func`, as well as
-      # constructing a context-object to act as the `this` described above.
-      #---
-      # FIXME: Remove the `Paws` pass, if it's unnecessary
-      arg_names = ['synch_body', 'caller'].concat Array(advancements).join('_').split('')
+   # Next, we construct the *first* bit, which is a special case responsible for receiving the
+   # `caller` (as is usually the case in the coproductive pattern.) It takes its resumption-
+   # value, and curries it into *every* following bit. (Notice that both the middle bits, above,
+   # and the concluding bit, below, save a spot for a `caller` argument.)
+   bits[0] = (caller)->
+      @bits = @bits.map (bit)=> _.partial bit, caller
+      caller.respond this
 
-      last_bit = """
-         var that = { caller: caller, execution: this }
-         var result = synch_body.apply(that, [].slice.call(arguments, 2))
-         if (typeof result !== 'undefined' && result !== null) {
-            caller.respond(result) }
-      """
+   # Now, the complex part. The *final* bit has quite a few arguments curried into it:
+   #
+   #  - Immediately (at generate-time), the locals we'll need within the body: the `Paws` API,
+   #    and the `synch_body` we were passed. This is necessary, because we're building the body
+   #    in a new JavaScript environment, due to the `eval`-y `Function` constructor;
+   #  - Second (later on, throughout invocation-time), the `caller` curried in by the first bit;
+   #  - Third, any *actual arguments* curried in by intermediate bits.
+   #
+   # In addition to these, it's got one final argument (the actual resumption-value with which
+   # this final bit is invoked, after all the other bits have been exhausted).
+   #
+   # These values are curred into a function we construct within the body-string below, that
+   # proceeds to provide the *actual* arguments to the synchronous `func`, as well as
+   # constructing a context-object to act as the `this` described above.
+   #---
+   # FIXME: Remove the `Paws` pass, if it's unnecessary
+   arg_names = ['synch_body', 'caller'].concat Array(advancements).join('_').split('')
 
-      bits[advancements - 1] = _.partial Function(arg_names..., last_bit), synch_body
+   last_bit = """
+      var that = { caller: caller, execution: this }
+      var result = synch_body.apply(that, [].slice.call(arguments, 2))
+      if (typeof result !== 'undefined' && result !== null) {
+         caller.respond(result) }
+   """
+
+   bits[advancements - 1] = _.partial Function(arg_names..., last_bit), synch_body
 
 
-      it = new Native bits...
-      it.synchronous = synch_body
+   it = new Native bits...
+   it.synchronous = synch_body
 
-      return it
+   return it
 
-Execution_init = ->
+Execution.init_receiver = ->
    # The `Execution` default-receiver is specified to preform a ‘call-pattern’ invocation: cloning
    # the subject-`Execution`, resuming that clone, and explicitly *not* resuming the caller.
-   Paws.Execution::receiver = new Native (params)->
+   Execution::receiver = new Native (params)->
       subject = params.at 1
       message = params.at 2
 
@@ -509,18 +599,6 @@ Execution_init = ->
 # Supporting types
 # ================
 Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
-   # Given a `Thing` (or `Array`s thereof), this will return a `Relation` to that thing.
-   #
-   # @option own: Whether to create new `Relation`s as `owns: yes`
-   @from: (it)->
-      if it instanceof Relation
-         it.owned @_?.own ? it.owns
-         return it
-
-      if it instanceof Thing
-         return new Relation(it, @_?.own ? no)
-      if _.isArray(it)
-         return it.map (el) => @from el
 
    constructor: constructify (@to, @owns = false)->
       @to.clone this if @to instanceof Relation
@@ -529,6 +607,19 @@ Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
 
    owned:    selfify (val)-> @owns = val ? yes
    disowned: selfify      -> @owns = no
+
+# Given a `Thing` (or `Array`s thereof), this will return a `Relation` to that thing.
+#
+# @option own: Whether to create new `Relation`s as `owns: yes`
+Relation.from = (it)->
+   if it instanceof Relation
+      it.owned @_?.own ? it.owns
+      return it
+
+   if it instanceof Thing
+      return new Relation(it, @_?.own ? no)
+   if _.isArray(it)
+      return it.map (el) => @from el
 
 
 # A `Combination` represents a single operation in the Paws semantic. An instance of this class
@@ -748,7 +839,7 @@ Native::toString = ->
 
 # Initialization
 # ==============
-Thing_init()
-Execution_init()
+Thing.init_receiver()
+Execution.init_receiver()
 
 debug "++ Datagraph available"
