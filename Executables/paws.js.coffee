@@ -64,15 +64,17 @@ if verbosity() >= debugging.verbosities['info']
    wtf process.env
 
 choose = ->
-   if (argf.pager == true and not process.env['_PAGINATED'])
+   if argf.pager == true and not process.env['_PAGINATED']
       return page()
 
-   if (argf.help)
-      return help()
-   if (argf.version)
-      return version()
+   if argf.help or (_.isEmpty(argv[0]) and !sources.length)
+      return help ->
+         process.exit 1
 
-   help() if _.isEmpty(argv[0]) and !sources.length
+   if argf.version
+      version()
+      process.exit 0
+
 
    switch operation = argv.shift()
 
@@ -202,7 +204,7 @@ page = (cb)->
    Paws.wtf "-- Invocation via `sh -c`:", params.join ' '
    kexec params.join ' '
 
-help = -> page -> readFilesAsync([extra('help.mustache'), extra('figlets.mustache.asv')]).then ([template, figlets])->
+help = (cb)-> page -> readFilesAsync([extra('help.mustache'), extra('figlets.mustache.asv')]).then ([template, figlets])->
    figlets = records_from figlets
 
    divider = term.invert( new Array(Math.ceil((term.columns + 1) / 2)).join('- ') )
@@ -242,6 +244,7 @@ help = -> page -> readFilesAsync([extra('help.mustache'), extra('figlets.mustach
             "   #{line}"
 
    version()
+   cb()
 
 version = ->
    # TODO: Extract this `git describe`-style, platform-independant?
@@ -252,7 +255,6 @@ version = ->
       Paws.js release #{release}, “#{release_name}”
          conforming to: #{spec_name}
    """ + "\n"
-   process.exit 1
 
 ENV 'BLINK'
 goodbye = (code = 0)->
