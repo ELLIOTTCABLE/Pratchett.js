@@ -18,30 +18,26 @@ describe "Paws' Data types:", ->
    describe 'Thing', ->
 
       describe 'Relation', ->
-         describe '##from', ->
-            it 'should return the passed value if it is already a Relation', ->
-               rel = new Relation(new Thing)
-               expect(Relation.from rel).to.be rel
-            it 'should return a relation *to* the passed value if not', ->
-               thing = new Thing
-               expect(Relation.from thing).to.be.a Relation
-               expect(Relation.from(thing).to).to.be thing
-
+         describe '##from_array', ->
             it 'should ensure all elements of a passed array are Relations', ->
                thing1 = new Thing; thing2 = new Thing; thing3 = new Thing
-               array = [thing1, new Relation(thing2), thing3]
-               expect(Relation.from array).to.be.an 'array'
-               expect(Relation.from(array).every (el) -> el instanceof Relation).to.be.ok()
+               arr = [thing1, new Relation(thing2), thing3]
+               expect(Relation.from_array arr).to.be.an 'array'
+               expect(Relation.from_array(arr).every (el) -> el instanceof Relation).to.be.ok()
 
             it 'should be able to change the ownership of relations', ->
                thing1 = new Thing; thing2 = new Thing; thing3 = new Thing
-               array = [thing1, new Relation(thing2, false), new Relation(thing3, true)]
+               arr = [thing1, new Relation(thing2, false), new Relation(thing3, true)]
                expect( # TODO: This could be cleaner.
-                  Relation.with(own: yes).from(array).every (el) -> el.owns
+                  Relation.with(own: yes).from_array(arr).every (el) -> el.owns
                ).to.be.ok()
 
          it 'should default to non-owning', ->
             expect((new Relation).owns).to.be false
+
+         it 'should copy data to a new Relation if passed an existing one', ->
+            rel = new Relation(new Thing, new Thing)
+            expect(new Relation rel).to.eql rel
 
          describe '#clone', ->
             it 'should return a new Relation', ->
@@ -153,6 +149,7 @@ describe "Paws' Data types:", ->
                expect(clone.at i).to.be.ok()
                expect(rel).not.to.be clone.metadata[i]
                expect(rel.to).to.be clone.metadata[i].to
+
          it 'should apply new metadata to any passed Thing', ->
             thing1 = new Thing new Thing, new Thing, new Thing
             thing2 = new Thing new Thing

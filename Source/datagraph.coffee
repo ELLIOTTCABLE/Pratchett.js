@@ -81,13 +81,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    rename: (name)-> @name = name ; return this
 
    at: (idx)->       @metadata[idx]?.to
-   set: (idx, to)->  @metadata[idx] = Relation.from to
+   set: (idx, to)->  @metadata[idx] = new Relation to
 
    inject: (things...)->
       @push ( _.flatten _.map things, (thing)-> thing.toArray() )...
 
    push: (elements...)->
-      @metadata = @metadata.concat Relation.from elements
+      @metadata = @metadata.concat Relation.from_array elements
    pop: ->
       @metadata.pop()
    shift: ->
@@ -139,12 +139,17 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # TODO: Option to include the noughty
    toArray: (cb)-> @metadata.slice(1).map (rel)-> (cb ? _.identity) rel?.to
 
+   # Convenience method to create a ‘pair-ish’ `Thing` (one with only two members, the first of
+   # which is a string-ish ‘key.’)
    @pair: (key, value)->
       new Thing(Label(key), value)
+
+   # FIXME: This is ... not precise. /=
    isPair:   -> @metadata[1] and @metadata[2]
    keyish:   -> @at 1
    valueish: -> @at 2
 
+   # Convenience methods to create `Relation`s *to* this `Thing`.
    owned:    -> new Relation this, yes
    disowned: -> new Relation this, no
 
@@ -608,25 +613,28 @@ Execution.init_receiver = ->
 Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
 
    constructor: constructify (@to, @owns = false)->
-      @to.clone this if @to instanceof Relation
+      return @to.clone this if @to instanceof Relation
+      return this
 
    clone: -> new Relation @to, @owns
 
    owned:    selfify (val)-> @owns = val ? yes
    disowned: selfify      -> @owns = no
 
-# Given a `Thing` (or `Array`s thereof), this will return a `Relation` to that thing.
+# Given an array of `Thing`s, this will return `Relation`s to those `Thing`s.
 #
 # @option own: Whether to create new `Relation`s as `owns: yes`
-Relation.from = (it)->
-   if it instanceof Relation
-      it.owned @_?.own ? it.owns
-      return it
+#---
+# TODO: Pass objects and shit onwards to Thing.construct
+Relation.from_array = (them)->
+  #if _.isArray(it)
+   return them.map (it)=>
+      if it instanceof Relation
+         it.owned @_?.own ? it.owns
+         return it
 
-   if it instanceof Thing
-      return new Relation(it, @_?.own ? no)
-   if _.isArray(it)
-      return it.map (el) => @from el
+      if it instanceof Thing
+         return new Relation(it, @_?.own ? no)
 
 # This is a an intersection-type representing the ‘responsibility’ mapping between an object, and
 # the `Execution` responsible for it. It encapsulates:
