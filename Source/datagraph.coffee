@@ -608,7 +608,8 @@ Execution.init_receiver = ->
 Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
 
    constructor: constructify (@to, @owns = false)->
-      @to.clone this if @to instanceof Relation
+      return @to.clone this if @to instanceof Relation
+      return this
 
    clone: -> new Relation @to, @owns
 

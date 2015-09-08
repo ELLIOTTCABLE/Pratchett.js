@@ -43,6 +43,10 @@ describe "Paws' Data types:", ->
          it 'should default to non-owning', ->
             expect((new Relation).owns).to.be false
 
+         it 'should copy data to a new Relation if passed an existing one', ->
+            rel = new Relation(new Thing, new Thing)
+            expect(new Relation rel).to.eql rel
+
          describe '#clone', ->
             it 'should return a new Relation', ->
                rel = new Relation(new Thing, yes)
