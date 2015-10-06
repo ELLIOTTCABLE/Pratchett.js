@@ -139,12 +139,17 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # TODO: Option to include the noughty
    toArray: (cb)-> @metadata.slice(1).map (rel)-> (cb ? _.identity) rel?.to
 
+   # Convenience method to create a ‘pair-ish’ `Thing` (one with only two members, the first of
+   # which is a string-ish ‘key.’)
    @pair: (key, value)->
       new Thing(Label(key), value)
+
+   # FIXME: This is ... not precise. /=
    isPair:   -> @metadata[1] and @metadata[2]
    keyish:   -> @at 1
    valueish: -> @at 2
 
+   # Convenience methods to create `Relation`s *to* this `Thing`.
    owned:    -> new Relation this, yes
    disowned: -> new Relation this, no
 
