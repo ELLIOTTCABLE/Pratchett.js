@@ -81,13 +81,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    rename: (name)-> @name = name ; return this
 
    at: (idx)->       @metadata[idx]?.to
-   set: (idx, to)->  @metadata[idx] = Relation.from to
+   set: (idx, to)->  @metadata[idx] = new Relation to
 
    inject: (things...)->
       @push ( _.flatten _.map things, (thing)-> thing.toArray() )...
 
    push: (elements...)->
-      @metadata = @metadata.concat Relation.from elements
+      @metadata = @metadata.concat Relation.from_array elements
    pop: ->
       @metadata.pop()
    shift: ->
@@ -621,18 +621,20 @@ Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
    owned:    selfify (val)-> @owns = val ? yes
    disowned: selfify      -> @owns = no
 
-# Given a `Thing` (or `Array`s thereof), this will return a `Relation` to that thing.
+# Given an array of `Thing`s, this will return `Relation`s to those `Thing`s.
 #
 # @option own: Whether to create new `Relation`s as `owns: yes`
-Relation.from = (it)->
-   if it instanceof Relation
-      it.owned @_?.own ? it.owns
-      return it
+#---
+# TODO: Pass objects and shit onwards to Thing.construct
+Relation.from_array = (them)->
+  #if _.isArray(it)
+   return them.map (it)=>
+      if it instanceof Relation
+         it.owned @_?.own ? it.owns
+         return it
 
-   if it instanceof Thing
-      return new Relation(it, @_?.own ? no)
-   if _.isArray(it)
-      return it.map (el) => @from el
+      if it instanceof Thing
+         return new Relation(it, @_?.own ? no)
 
 # This is a an intersection-type representing the ‘responsibility’ mapping between an object, and
 # the `Execution` responsible for it. It encapsulates:
