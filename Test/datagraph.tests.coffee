@@ -391,6 +391,15 @@ describe "Paws' Data types:", ->
          expect(foo.alien).to.be.a 'string'
          expect(foo.alien).to.be 'foo'
 
+      it 'accepts an existing Label instead of an alien, which it then clones', ->
+         orig = new Label 'bar'
+         bar = new Label orig
+         expect(bar).to.be.a Label
+         expect(bar).to.not.be orig
+
+         expect(bar.alien).to.be.a 'string'
+         expect(bar.alien).to.be 'bar'
+
       describe '#clone', ->
          it 'retains metadata', ->
             foo = new Label 'foo'
