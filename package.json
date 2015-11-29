@@ -64,6 +64,8 @@
                      , "sinon-expect"           : "~0.2.0"
                      , "coffee-coverage"        : "~0.4.5"
                      , "coveralls"              : "~2.11.2"
+                     , "node-inspector"         : "~0.12.3"
+                     , "chokidar-cli"           : "~1.2.0"
 
                      , "taper"                  : "~0.5.0"
                      , "yamljs"                 : "~0.2.1"                                        }

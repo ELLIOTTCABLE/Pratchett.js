@@ -14,14 +14,18 @@
 #    npm test
 #
 #    npm test --grep 'Parser'             # Run a specific unit-test suite
+#    WATCH=yes npm test                   # Watch filesystem for changes, and re-run tests
 #    RESPECT_TRACING=no npm test          # Disable debugging and trcing during the tests
 #    INTEGRATION=no npm test              # Run the unit-tests *only* (not the integration tests)
 #    RULEBOOK=no npm test                 # Ignore the Rulebook, even if present
 #    LETTERS=yes npm test                 # Execute the Letters, as well as the rest of the Rulebook
+#    DEBUGGER=yes npm test                # Make the Blink debugger-tools on localhost:8080
 
 puts() { printf %s\\n "$@" ;}
 pute() { printf %s\\n "~~ $*" >&2 ;}
+argq() { printf "'%s' " "$@" ;}
 
+source_dir="$npm_package_config_dirs_source"
 unit_dir="$npm_package_config_dirs_test"
 integration_dir="$npm_package_config_dirs_integration"
 rulebook_dir="$npm_package_config_dirs_rulebook"
@@ -34,12 +38,16 @@ echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)' && DEBUG_SC
 [ -n "$DEBUG_SCRIPTS" ] && pute "Script debugging enabled (in: `basename $0`)."
 [ -n "$DEBUG_SCRIPTS" ] && VERBOSE="${VERBOSE:-7}"
 
+# Configuration-variable setup
+# ----------------------------
 if [ -n "${PRE_COMMIT##[NFnf]*}" ]; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling pre-commit mode."
    mocha_reporter=dot
    RESPECT_TRACING=no
+   WATCH=no
    INTEGRATION=no
    RULEBOOK=no
+   DEBUGGER=no
 fi
 
 if [ -n "$*" ] && [ -z "$BATS" ];      then BATS='no'    ;fi
@@ -51,12 +59,33 @@ if [ -n "${RESPECT_TRACING##[YTyt]*}" ]; then
    unset TRACE_REACTOR
 fi
 
+if [ -n "${DEBUGGER##[NFnf]*}" ]; then
+   if [ ! -x "./node_modules/.bin/node-debug" ]; then
+      pute 'You must `npm install node-inspector` to use the $DEBUGGER flag!'
+      exit
+   fi
+
+   WATCH='no'
+
+   [ -z "${DEBUG_MODULES##[NFnf]*}" ] && hidden='--hidden node_modules/'
+   node_debugger="./node_modules/.bin/node-debug $hidden --cli --config './Scripts/node-inspectorrc.json'"
+fi
+
+if [ -n "${WATCH##[NFnf]*}" ]; then
+   if [ ! -x "./node_modules/.bin/chokidar" ]; then
+      pute 'You must `npm install chokidar-cli` to use the $WATCH flag!'
+      exit
+   fi
+fi
+
 [ -z "${SILENT##[NFnf]*}${QUIET##[NFnf]*}" ] && [ "${VERBOSE:-4}" -gt 6 ] && print_commands=yes
-go () { [ -z ${print_commands+x} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 [ -n "$DEBUG_SCRIPTS" ] && puts \
    "Pre-commit mode:       ${PRE_COMMIT:--}"                                  \
    "Tracing reactor:       ${TRACE_REACTOR:+Yes!}"                            \
+   "Watching filesystem:   ${WATCH:--}"                                       \
+   "Running debugger:      ${DEBUGGER:--}"                                    \
+   "Debugging modules:     ${DEBUG_MODULES:--}"                               \
    "Verbosity:             '$VERBOSE'"                                        \
    "Printing commands:     ${print_commands:--}"                              \
    "Tests directory:       '$unit_dir'"                                       \
@@ -69,8 +98,12 @@ go () { [ -z ${print_commands+x} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
    "" >&2
 
 
+# Helper-function setup
+# ---------------------
+go () { [ -z ${print_commands+x} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
+
 mochaify() {
-   go env NODE_ENV=test ./node_modules/.bin/mocha                             \
+   go env NODE_ENV=test $node_debugger ./node_modules/.bin/mocha              \
       --compilers coffee:coffee-script/register                               \
       --reporter "$mocha_reporter" --ui "$mocha_ui"                           \
       "$@"                                                                    ;}
@@ -83,12 +116,26 @@ ruleify() {
    book="$1"; shift
 
    if [ -z "${RULEBOOK##[YTyt]*}" ] \
-   && [ -d "$PWD/$npm_package_config_dirs_rulebook/$book/" ]; then
-      go env NODE_ENV=test ./node_modules/.bin/taper                          \
-         --runner "$PWD/Executables/paws.js"                                  \
-         --runner-param='check'                                               \
-         "$PWD/$npm_package_config_dirs_rulebook/$book"/*                     \
+   && [ -d "$PWD/$rulebook_dir/$book/" ]; then
+      go env NODE_ENV=test $node_debugger ./node_modules/.bin/taper           \
+         --runner "$PWD/Executables/paws.js" --runner-param='check'           \
+         "$PWD/$rulebook_dir/$book"/*                                         \
          $TAPER_FLAGS -- $CHECK_FLAGS "$@"                                    ;fi ;}
+
+
+# Execution of tests
+# ------------------
+if [ -n "${WATCH##[NFnf]*}" ]; then
+   [ "${VERBOSE:-4}" -gt 7 ] && chokidar_verbosity='--verbose'
+
+   unset WATCH
+   export VERBOSE TRACE_REACTOR BATS INTEGRATION RULEBOOK LETTERS
+   go exec chokidar \
+      "$source_dir" "$unit_dir" ${INTEGRATION:+"$integration_dir"} ${RULEBOOK:+"$rulebook_dir"} \
+      "${chokidar_verbosity:---silent}"                                       \
+      --initial --ignore '**/.*'                                              \
+      $CHOKIDAR_FLAGS -c "$0 $(argq "$@")"
+fi
 
 
 if [ -n "${INTEGRATION##[YTyt]*}" ]; then
@@ -111,9 +158,9 @@ ruleify "The Gauntlet"
 [ -n "${LETTERS##[NFnf]*}" ] && \
    ruleify "The Letters" --expose-specification
 
-if [ ! -d "$PWD/$npm_package_config_dirs_rulebook" ]; then
+if [ ! -d "$PWD/$rulebook_dir" ]; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Rulebook directory not found."
 
-   puts 'Clone the rulebook from this URL to `./'$npm_package_config_dirs_rulebook'` to check Rulebook compliance:'
+   puts 'Clone the rulebook from this URL to `./'$rulebook_dir'` to check Rulebook compliance:'
    puts '   <https://github.com/Paws/Rulebook.git>'
 fi
