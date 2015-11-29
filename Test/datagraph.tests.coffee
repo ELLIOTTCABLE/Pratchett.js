@@ -36,15 +36,22 @@ describe "Paws' Data types:", ->
             expect((new Relation).owns).to.be false
 
          it 'should copy data to a new Relation if passed an existing one', ->
-            rel = new Relation(new Thing, new Thing)
+            rel = new Relation new Thing, yes
+            expect(new Relation rel).to.not.be rel
             expect(new Relation rel).to.eql rel
 
          describe '#clone', ->
             it 'should return a new Relation', ->
-               rel = new Relation(new Thing, yes)
+               a_thing = new Thing
+               rel = new Relation a_thing
                expect(rel.clone()).to.not.be rel
-               expect(rel.clone().to).to.be rel.to
-               expect(rel.clone().owns).to.be rel.owns
+               expect(rel.clone().to).to.be a_thing
+               expect(rel.clone().owns).to.be no
+
+            it "doesn't change the existing ownership of a cloned Relation", ->
+               rel = new Relation new Thing, yes
+               expect(rel.clone().owns).to.be yes
+
 
       describe '##construct', ->
          it 'should construct a Thing', ->
@@ -112,8 +119,59 @@ describe "Paws' Data types:", ->
             expect(pair.at 1).to.be.a Label
             expect(pair.at 2).to.be.an Execution
 
-      describe '##pair', ->
-         it.skip 'should be tested...'
+      describe '#define', ->
+         describe '##pair', ->
+            it 'creates a new Thing', ->
+               expect(Thing.pair()).to.be.a Thing
+
+            it 'turns the first argument into a Label', ->
+               a_pair = Thing.pair 'foo'
+               expect(a_pair.at 1).to.be.a Label
+               expect(a_pair.at(1).alien).to.be 'foo'
+
+               a_pair = Thing.pair Label('bar')
+               expect(a_pair.at 1).to.be.a Label
+               expect(a_pair.at(1).alien).to.be 'bar'
+
+            it 'ensures the creates pair owns the key, but not the value, by default', ->
+               foo = new Thing
+               a_pair = Thing.pair 'foo', foo
+
+               expect(a_pair.at(1).alien).to.be 'foo'
+               expect(a_pair.metadata[1]).to.be.owned()
+               expect(a_pair.at(2)).to.be foo
+               expect(a_pair.metadata[2]).to.not.be.owned()
+
+            it 'can be instructed to create the pair as owning the value', ->
+               foo = new Thing
+               a_pair = Thing.pair 'foo', foo, yes
+
+               expect(a_pair.at(2)).to.be foo
+               expect(a_pair.metadata[2]).to.be.owned()
+
+            it 'will not change the existing ownership of a Relation', ->
+               foo = new Thing
+               rel = new Relation foo, yes
+               a_pair = Thing.pair 'foo', rel
+
+               expect(a_pair.at(2)).to.be foo
+               expect(a_pair.metadata[2]).to.be.owned()
+
+            it 'will, however, *override* the existing ownership of a Relation', ->
+               foo = new Thing
+               rel = new Relation foo, yes
+               a_pair = Thing.pair 'foo', rel, no
+
+               expect(a_pair.at(2)).to.be foo
+               expect(a_pair.metadata[2]).to.not.be.owned()
+
+         it 'adds a pair to the end of the receiver', ->
+            a_thing = Thing.construct foo: new Thing
+            another_thing = new Thing
+
+            a_thing.define 'bar', another_thing
+            expect(a_thing.find('bar')[0].valueish()).to.be another_thing
+
 
       uuid_regex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/
       it 'should have a UUID', ->
