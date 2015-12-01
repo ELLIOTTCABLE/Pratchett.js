@@ -80,14 +80,29 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    rename: selfify (name)-> @name = name
 
-   at: (idx)->       @metadata[idx]?.to
-   set: (idx, to)->  @metadata[idx] = new Relation to
+   at:         (idx)->     @metadata[idx]?.to
+   set:        (idx, to)-> @metadata[idx] = new Relation this, to
+
+   own_at:     (idx)->     @metadata[idx] = @metadata[idx].as_owned()
+   disown_at:  (idx)->     @metadata[idx] = @metadata[idx].as_contained()
 
    inject: (things...)->
       @push ( _.flatten _.map things, (thing)-> thing.toArray() )...
 
    push: (elements...)->
-      @metadata = @metadata.concat Relation.from_array elements
+      relations = elements.map (it)=>
+         if it instanceof Relation
+            rel = it.clone()
+            rel.from = this
+
+         if it instanceof Thing
+            rel = new Relation this, it
+
+         rel.owns = @_?.own if @_?.own?
+         return rel
+
+      @metadata = @metadata.concat relations
+
    pop: ->
       @metadata.pop()
    shift: ->
@@ -109,9 +124,12 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # ownership don't affect the original.
    clone: (to)->
       to ?= new Thing.with(noughtify: no)()
-      to.metadata = @metadata.map (rel)-> rel?.clone()
-
       to.name = @name unless to.name?
+
+      to.metadata = @metadata.map (rel)->
+         rel = rel?.clone()
+         rel?.from = to
+         rel
 
       return to
 
@@ -143,8 +161,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # which is a string-ish ‘key.’)
    @pair: (key, value, own)->
       it = new Thing
-      it.push new Relation Label(key), yes
-      it.push new Relation value, own
+      it.push Label(key).owned_by it
+      it.push value.contained_by(it, own) if value
       return it
 
    # A further convenience to add a new pair to the end of a ‘dictionary-ish’ `Thing`.
@@ -153,16 +171,16 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # specifies whether the *`value`* is to be further owned by the dictionary-structure as well.
    define: (key, value, own)->
       pair = Thing.pair key, value, own
-      @push pair.owned()
+      @push pair.owned_by this
 
    # FIXME: This is ... not precise. /=
    isPair:   -> @metadata[1] and @metadata[2]
    keyish:   -> @at 1
    valueish: -> @at 2
 
-   # Convenience methods to create `Relation`s *to* this `Thing`.
-   owned:    -> new Relation this, yes
-   disowned: -> new Relation this, no
+   # Convenience methods to create `Relation`s *to* the receiver.
+   contained_by: (other, own)-> new Relation other, this, own # Defaults to `no`
+   owned_by:     (other)->      new Relation other, this, yes
 
 # Constructs a generic ‘key/value’ style `Thing` from a `representation` (a JavaScript `Object`-
 # hash) thereof. This convenience method expects arguments constructed as pairs of 1. any string (as
@@ -177,17 +195,23 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 # The ‘pair-ish’ values are always owned by their container; as are, by default, the ‘leaf’ objects
 # passed in. (The latter is a behaviour configurable by `.with(own: no)`.)
 #
-# @option own: Whether to construct the structure's `Relation`s as `own`ing the leaf-objects
-# @option names: Whether to `rename` the resulting `Thing` according to the key it's being assigned
+# @option own: Construct the structure as as `own`ing newly-created sub-Things
+# @option names: `rename` the constructed `Thing`s according to the key they're being assigned to
 Thing.construct = (representation)->
    pairs = for key, value of representation
-      value = Native.synchronous value if _.isFunction value
-      value = @construct value unless value instanceof Thing
-      value.rename key if @_?.names
-      relation = Relation(value, @_?.own ? yes)
-      Thing.pair( key, relation ).owned()
 
-   # FIXME: Why am I *passing on* with-flags? I need to fix that system, if this is necessary.
+      if _.isFunction value
+         value = Native.synchronous value
+
+      else unless value instanceof Thing or value instanceof Relation
+         value = @construct value
+
+      leave_ownership_alone = value instanceof Relation
+      should_own = @_?.own ? (if leave_ownership_alone then undefined else yes)
+
+      rel.to.rename key if @_?.names
+      Thing.pair key, value, should_own
+
    return Thing.with(own: yes) pairs...
 
 Thing.init_receiver = ->
@@ -361,8 +385,9 @@ Paws.Execution = Execution = class Execution extends Thing
       super (to ?= new Execution)
       to.pristine    = @pristine
 
-      to.locals      = @locals.clone().rename('locals')
-      to.define        'locals', to.locals.owned()
+      # FIXME: Remove old 'locals' from the Exec's cloned metadata?
+      to.locals      = @locals.clone().rename 'locals'
+      to.define        'locals', to.locals, yes
 
       to.advancements = @advancements if @advancements?
 
@@ -627,36 +652,41 @@ Execution.init_receiver = ->
 # ================
 Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
 
-   constructor: constructify (to, owns)->
-      if to instanceof Relation
-         it      = to.clone this
+   constructor: constructify(return:@) (from, to, owns)->
+      if from instanceof Relation
+         from.clone this
       else
-         it      = this
-         it.to   = to
-         it.owns = false
+         @from = from
+         @to   = to
+         @owns = false
 
-      it.owns    = owns if owns?
+      @owns    = owns if owns?
+
+   # Copy the receiver `Relation` to a new `Relation` instance. (Can also overwrite the contents of
+   # an existing `Relation`, if passed, with this receiver's state.)
+   #---
+   # FIXME: Make truly immutable (i.e. refuse to modify once this Relation has been used in a Thing)
+   clone: (other)->
+      other ?= new Relation
+      other.from = @from
+      other.to   = @to
+      other.owns = @owns
+
+      return other
+
+   as_contained: (own)->
+      it = @clone()
+      it.owns = own ? no
+      return it
+   as_owned: ->
+      it = @clone()
+      it.owns = yes
       return it
 
-   clone: -> new Relation @to, @owns
+   # Provided for API-parity with `Thing`
+   contained_by: (other, own)-> new Relation other, @to, own ? @owns
+   owned_by:     (other)->      new Relation other, @to, yes
 
-   owned:    selfify (val)-> @owns = val ? yes
-   disowned: selfify      -> @owns = no
-
-# Given an array of `Thing`s, this will return `Relation`s to those `Thing`s.
-#
-# @option own: Whether to create new `Relation`s as `owns: yes`
-#---
-# TODO: Pass objects and shit onwards to Thing.construct
-Relation.from_array = (them)->
-  #if _.isArray(it)
-   return them.map (it)=>
-      if it instanceof Relation
-         it.owned @_?.own ? it.owns
-         return it
-
-      if it instanceof Thing
-         return new Relation(it, @_?.own ? no)
 
 # This is a an intersection-type representing the ‘responsibility’ mapping between an object, and
 # the `Execution` responsible for it. It encapsulates:

@@ -18,38 +18,25 @@ describe "Paws' Data types:", ->
    describe 'Thing', ->
 
       describe 'Relation', ->
-         describe '##from_array', ->
-            it 'should ensure all elements of a passed array are Relations', ->
-               thing1 = new Thing; thing2 = new Thing; thing3 = new Thing
-               arr = [thing1, new Relation(thing2), thing3]
-               expect(Relation.from_array arr).to.be.an 'array'
-               expect(Relation.from_array(arr).every (el) -> el instanceof Relation).to.be.ok()
-
-            it 'should be able to change the ownership of relations', ->
-               thing1 = new Thing; thing2 = new Thing; thing3 = new Thing
-               arr = [thing1, new Relation(thing2, false), new Relation(thing3, true)]
-               expect( # TODO: This could be cleaner.
-                  Relation.with(own: yes).from_array(arr).every (el) -> el.owns
-               ).to.be.ok()
-
          it 'should default to non-owning', ->
             expect((new Relation).owns).to.be false
 
          it 'should copy data to a new Relation if passed an existing one', ->
-            rel = new Relation new Thing, yes
+            rel = new Relation new Thing, new Thing, yes
             expect(new Relation rel).to.not.be rel
             expect(new Relation rel).to.eql rel
 
          describe '#clone', ->
             it 'should return a new Relation', ->
-               a_thing = new Thing
-               rel = new Relation a_thing
-               expect(rel.clone()).to.not.be rel
-               expect(rel.clone().to).to.be a_thing
+               a_thing = new Thing; another_thing = new Thing
+               rel = new Relation a_thing, another_thing
+               expect(rel.clone()     ).to.not.be rel
+               expect(rel.clone().from).to.be a_thing
+               expect(rel.clone().to  ).to.be another_thing
                expect(rel.clone().owns).to.be no
 
             it "doesn't change the existing ownership of a cloned Relation", ->
-               rel = new Relation new Thing, yes
+               rel = new Relation new Thing, new Thing, yes
                expect(rel.clone().owns).to.be yes
 
 
@@ -133,7 +120,7 @@ describe "Paws' Data types:", ->
                expect(a_pair.at 1).to.be.a Label
                expect(a_pair.at(1).alien).to.be 'bar'
 
-            it 'ensures the creates pair owns the key, but not the value, by default', ->
+            it 'ensures the created pair owns the key, but not the value, by default', ->
                foo = new Thing
                a_pair = Thing.pair 'foo', foo
 
@@ -151,7 +138,7 @@ describe "Paws' Data types:", ->
 
             it 'will not change the existing ownership of a Relation', ->
                foo = new Thing
-               rel = new Relation foo, yes
+               rel = new Relation null, foo, yes
                a_pair = Thing.pair 'foo', rel
 
                expect(a_pair.at(2)).to.be foo
@@ -159,7 +146,7 @@ describe "Paws' Data types:", ->
 
             it 'will, however, *override* the existing ownership of a Relation', ->
                foo = new Thing
-               rel = new Relation foo, yes
+               rel = new Relation null, foo, yes
                a_pair = Thing.pair 'foo', rel, no
 
                expect(a_pair.at(2)).to.be foo
@@ -199,14 +186,29 @@ describe "Paws' Data types:", ->
          it 'should return a new Thing', ->
             thing = new Thing
             expect(thing.clone()).to.not.be thing
-         it 'should have identical metadata', ->
+
+         it 'that has identical metadata,', ->
             thing = new Thing new Thing, new Thing, new Thing
             clone = thing.clone()
+
             expect(clone.metadata).to.have.length 4
-            thing.metadata.forEach (rel, i) -> if rel
+            clone.metadata.forEach (rel, i) -> if rel
                expect(clone.at i).to.be.ok()
-               expect(rel).not.to.be clone.metadata[i]
-               expect(rel.to).to.be clone.metadata[i].to
+               expect(rel).not.to.be thing.metadata[i]
+               expect(rel.to).to.be  thing.metadata[i].to
+
+         it 'except with updated backlinks', ->
+            thing = new Thing new Thing, new Thing, new Thing
+            clone = thing.clone()
+
+            clone.metadata.forEach (rel, i) -> if rel
+               expect(rel.from).to.not.be thing
+               expect(rel.from).to.be     clone
+
+         it 'handles empty elements gracefully', ->
+            thing = new Thing new Thing, undefined, new Thing
+
+            expect(-> thing.clone()).to.not.throwError()
 
          it 'should apply new metadata to any passed Thing', ->
             thing1 = new Thing new Thing, new Thing, new Thing
