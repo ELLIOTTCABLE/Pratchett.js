@@ -124,9 +124,12 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # ownership don't affect the original.
    clone: (to)->
       to ?= new Thing.with(noughtify: no)()
-      to.metadata = @metadata.map (rel)-> rel?.clone()
-
       to.name = @name unless to.name?
+
+      to.metadata = @metadata.map (rel)->
+         rel = rel?.clone()
+         rel?.from = to
+         rel
 
       return to
 

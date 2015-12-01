@@ -186,14 +186,29 @@ describe "Paws' Data types:", ->
          it 'should return a new Thing', ->
             thing = new Thing
             expect(thing.clone()).to.not.be thing
-         it 'should have identical metadata', ->
+
+         it 'that has identical metadata,', ->
             thing = new Thing new Thing, new Thing, new Thing
             clone = thing.clone()
+
             expect(clone.metadata).to.have.length 4
-            thing.metadata.forEach (rel, i) -> if rel
+            clone.metadata.forEach (rel, i) -> if rel
                expect(clone.at i).to.be.ok()
-               expect(rel).not.to.be clone.metadata[i]
-               expect(rel.to).to.be clone.metadata[i].to
+               expect(rel).not.to.be thing.metadata[i]
+               expect(rel.to).to.be  thing.metadata[i].to
+
+         it 'except with updated backlinks', ->
+            thing = new Thing new Thing, new Thing, new Thing
+            clone = thing.clone()
+
+            clone.metadata.forEach (rel, i) -> if rel
+               expect(rel.from).to.not.be thing
+               expect(rel.from).to.be     clone
+
+         it 'handles empty elements gracefully', ->
+            thing = new Thing new Thing, undefined, new Thing
+
+            expect(-> thing.clone()).to.not.throwError()
 
          it 'should apply new metadata to any passed Thing', ->
             thing1 = new Thing new Thing, new Thing, new Thing
