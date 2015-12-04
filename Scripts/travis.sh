@@ -33,7 +33,7 @@ for ARG; do case $ARG in
          1.*)
             [ -n "$DEBUG_SCRIPTS" ] && pute 'Updating `npm`'
             npm install -g npm
-            [ -n "$DEBUG_SCRIPTS" ] && pute '`npm` now at: ' npm --version    ;;
+            [ -n "$DEBUG_SCRIPTS" ] && pute '`npm` now at: ' $(npm --version) ;;
          *)
             [ -n "$DEBUG_SCRIPTS" ] && pute '`npm` appears up-to-date'
                                                                               ;; esac
