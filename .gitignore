@@ -5,6 +5,7 @@ Executables/**/*.js
 Source/**/*.js
 Test/**/*.js
 Test/Rulebook/
+Test/.tests-succeeded
 
 Documentation/
 Library/*.bundle.js

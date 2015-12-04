@@ -20,6 +20,11 @@
 #    RULEBOOK=no npm test                 # Ignore the Rulebook, even if present
 #    LETTERS=yes npm test                 # Execute the Letters, as well as the rest of the Rulebook
 #    DEBUGGER=yes npm test                # Make the Blink debugger-tools on localhost:8080
+#
+# If the tests pass as invoked, then a `.tests-succeeded` file is created to cache this status, with
+# SHA-sums of the source-code and test files; this cache allows automatic pre-commit runs to be
+# omitted when tests have been already run. (NOTE: This intentionally ignores `--grep` and other
+# flags; meaning that it's possible to commit broken code by excluding broken tests!)
 
 puts() { printf %s\\n "$@" ;}
 pute() { printf %s\\n "~~ $*" >&2 ;}
@@ -29,8 +34,11 @@ source_dir="$npm_package_config_dirs_source"
 unit_dir="$npm_package_config_dirs_test"
 integration_dir="$npm_package_config_dirs_integration"
 rulebook_dir="$npm_package_config_dirs_rulebook"
+
 mocha_ui="$npm_package_config_mocha_ui"
 mocha_reporter="$npm_package_config_mocha_reporter"
+
+cache_file="$unit_dir/.tests-succeeded"
 
 # FIXME: This should support *excluded* modules with a minus, as per `node-debug`:
 #        https://github.com/visionmedia/debug
@@ -100,7 +108,7 @@ fi
 
 # Helper-function setup
 # ---------------------
-go () { [ -z ${print_commands+x} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
+go () { [ -z ${print_commands+0} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 mochaify() {
    go env NODE_ENV=test $node_debugger ./node_modules/.bin/mocha              \
@@ -122,9 +130,30 @@ ruleify() {
          "$PWD/$rulebook_dir/$book"/*                                         \
          $TAPER_FLAGS -- $CHECK_FLAGS "$@"                                    ;fi ;}
 
+cache() {
+   shasum "$source_dir"/* "$unit_dir"/* "$integration_dir"/* 2>/dev/null      ;}
+
+gen_cache() {
+  #if [ -z "${WATCH##[NFnf]*}" ] && [ -z "${INTEGRATION##[YTyt]*}" ]; then
+   if [ -z "${WATCH##[NFnf]*}" ]; then
+      [ -n "$DEBUG_SCRIPTS" ] && pute "Generating cache of successful test-status"
+      cache >"$cache_file"
+      true                                                                    ;fi ;}
+
+check_cache() {
+   if [ -n "$DEBUG_SCRIPTS" ]; then
+      pute "Checking test-status cache"
+      [ -f "$cache_file" ] && shasum -c "$cache_file"
+   else
+      [ -f "$cache_file" ] && shasum -c "$cache_file" >/dev/null 2>&1         ;fi ;}
 
 # Execution of tests
 # ------------------
+if [ -n "${PRE_COMMIT##[NFnf]*}" ] && check_cache; then
+   [ -n "$DEBUG_SCRIPTS" ] && pute "Pre-commit: Using existing test exit-status."
+   exit 0
+fi
+
 if [ -n "${WATCH##[NFnf]*}" ]; then
    [ "${VERBOSE:-4}" -gt 7 ] && chokidar_verbosity='--verbose'
 
@@ -164,3 +193,5 @@ if [ ! -d "$PWD/$rulebook_dir" ]; then
    puts 'Clone the rulebook from this URL to `./'$rulebook_dir'` to check Rulebook compliance:'
    puts '   <https://github.com/Paws/Rulebook.git>'
 fi
+
+gen_cache
