@@ -111,7 +111,9 @@ fi
 go () { [ -z ${print_commands+0} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 mochaify() {
-   go env NODE_ENV=test $node_debugger ./node_modules/.bin/mocha              \
+   go env NODE_ENV=test $node_debugger                                        \
+      "./node_modules/.bin/${node_debugger:+_}mocha"                          \
+      ${node_debugger:+--no-timeouts}                                         \
       --compilers coffee:coffee-script/register                               \
       --reporter "$mocha_reporter" --ui "$mocha_ui"                           \
       "$@"                                                                    ;}
