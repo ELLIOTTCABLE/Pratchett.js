@@ -1,5 +1,9 @@
 #!/usr/bin/env bats
+puts() { printf %s\\n "$@" ;}
+pute() { printf %s\\n "~~ $*" >&2 ;}
+
 load 'support'
+
 
 export COLOUR=no
 export PAGINATE=no
