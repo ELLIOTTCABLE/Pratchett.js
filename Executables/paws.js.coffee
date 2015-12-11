@@ -50,6 +50,13 @@ argv = argf._
 if argf.V || argf.verbose
    debugging.VERBOSE 6
 
+ENV ['PAGINATE'], type: 'boolean', value: null
+ENV ['PAGINATED'], immutable: yes, infect: yes, handler: (paginated)->
+   info "-- Already paginated, disabling pagination"
+   debugging.paginate no if paginated; return paginated
+
+debugging.paginate(argf.paginate ? argf.pager) if _.isBoolean debugging.paginate()
+
 
 sources = _([argf.e, argf.expr, argf.expression])
    .flatten().compact().map (expression, i)-> { from: '--expression #' + i, code: expression }
@@ -64,21 +71,26 @@ if verbosity() >= debugging.verbosities['info']
    wtf process.env
 
 choose = ->
-   if argf.pager == true and not process.env['_PAGINATED']
-      return page()
-
-   if argf.help or (_.isEmpty(argv[0]) and !sources.length)
-      return help ->
-         process.exit 1
+   if debugging.paginate()
+      info '-- Trying to paginate,'
+      return page choose
 
    if argf.version
-      version()
-      process.exit 0
+      info '-- Writing version and exiting.'
+      return version -> process.exit 0
 
+   if argf.help
+      info '-- Displaying help-text and exiting.'
+      return help -> process.exit 0
+
+   if (_.isEmpty(argv[0]) and !sources.length)
+      notice '-- No operation specified, displaying usage and exiting.'
+      return help -> process.exit 1
 
    switch operation = argv.shift()
 
       when 'pa', 'parse'
+         info '-- Invoking parse operation'
          go = -> _.forEach sources, (source)->
             info "-- Parse-tree for '#{term.bold source.from}':"
             seq = Paws.parse Paws.parse.prepare source.code
@@ -94,6 +106,7 @@ choose = ->
       # FIXME: Single TAP count / output, for all Collections
       # FIXME: OHFUCK, any input files need to be started *in serial*, despite asynchronicity
       when 'ch', 'check'
+         info '-- Invoking check operation'
          {Collection} = require '../Source/rule.coffee'
          readSourcesAsync(argv).then (files)->
             # FIXME: Promisify this a bit more.
@@ -145,12 +158,14 @@ choose = ->
             here.start() if argf.start == true
 
       when 'in', 'interact', 'interactive'
+         info '-- Invoking interact operation'
          Interactive = require '../Source/interactive.coffee'
          interact = new Interactive
          interact.on 'close', -> goodbye 0
          interact.start()
 
       when 'st', 'start'
+         info '-- Invoking start operation'
          go = -> _.forEach sources, (source)->
             info "-- Staging '#{term.bold source.from}' from the command-line ..."
             root = Paws.generateRoot source.code, path.basename source.from, '.paws'
@@ -180,7 +195,9 @@ process.nextTick choose
 # FIXME: Check for existence of `less` if `$PAGER` is not defined.
 # FIXME: `less` seems to mangle the emoji heart above by default.
 page = (cb)->
-   if process.env['_PAGINATED'] or argf.pager == false
+   if debugging.paginated() or debugging.paginate() == no
+      info '-- Refusing to paginate: ' +
+         if debugging.paginated() then 'already paginated.' else 'pagination disabled.'
       return cb()
 
    # A simpler hack, to send `-R` to `less`, if possible.
@@ -191,8 +208,8 @@ page = (cb)->
    escapeShellArg = (cmd)-> "'" + cmd.replace(/\'/g, "'\\''") + "'"
 
    process.env['SIMPLE_ANSI'] = true
-   process.env['_PAGINATED'] = true
-   process.env['_PAGINATED_COLUMNS'] = term.columns
+   process.env['PAGINATED'] = true
+   process.env['PAGINATED_COLUMNS'] = term.columns # XXX: Would `COLUMNS` work?
 
    # These are passed to `"sh" "-c" ...` by `kexec()`.
    params = process.argv.slice()
@@ -214,7 +231,7 @@ help = (cb)-> page -> readFilesAsync([extra('help.mustache'), extra('figlets.mus
    usage = divider + "\n" + _(figlets).sample() + template + divider
    #  -- standard 80-column terminal -------------------------------------------------|
 
-   out.write mustache.render usage+"\n",
+   usage = mustache.render usage+"\n",
       heart: if colour() then heart else '<3'
       b: ->(text, r)-> term.bold r text
       u: ->(text, r)-> term.underline r text
@@ -243,18 +260,17 @@ help = (cb)-> page -> readFilesAsync([extra('help.mustache'), extra('figlets.mus
          else
             "   #{line}"
 
-   version()
-   cb()
+   out.write usage, 'utf8', -> version cb
 
-version = ->
-   # TODO: Extract this `git describe`-style, platform-independant?
+version = (cb)->
+   # TODO: Extract this `git describe`-style, platform-independent?
    release      = module.package['version'].split('.')[0]
    release_name = module.package['version-name']
    spec_name    = module.package['spec-name']
    out.write """
       Paws.js release #{release}, “#{release_name}”
          conforming to: #{spec_name}
-   """ + "\n"
+   """ + "\n", 'utf8', cb
 
 ENV 'BLINK'
 goodbye = (code = 0)->
