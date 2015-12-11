@@ -28,6 +28,8 @@ _.modifier = passthrough (result, args)-> result ? args[0]
 tput = new blessed.Tput term: process.env.TERM
 
 _.terminal = term =
+   strip: require 'strip-ansi'
+
    tput: tput
 
    sgr: sgr = (flags...)-> csi flags.join(';') + 'm'
@@ -53,7 +55,7 @@ _.terminal = term =
    block: (text, cb)=>
       lines = text.split "\n"
       lines = _(lines).map (line, i)=>
-         sanitized_line = if debugging.colour then line.replace /\x1b.*?[ABCDGsum]/g, '' else line
+         sanitized_line = if debugging.colour then term.strip line else line
          spacing = Math.max 0, term.columns - sanitized_line.length
          line = line + new Array(spacing).join ' '
          if cb then cb line, i, sanitized_line, text else line

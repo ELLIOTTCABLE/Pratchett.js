@@ -261,6 +261,33 @@ help = (cb)-> page -> readFilesAsync([extra('help.mustache'), extra('figlets.mus
 
       link:  ->(text, r)->
          if colour() then term.sgr(34) + term.underline(r text) + term.sgr(39) else r text
+
+      arcane: ->(text, r)-> if argf.arcane then r text else ''
+      important: ->(text, r)->
+         info '-- Disabling blink' unless debugging.blink()
+         carets = (arr...)->
+            if colour() and term.tput.max_colors == 256
+               arr[0] = term.xfg 52, arr[0]
+               arr[1] = term.xfg 124, arr[1]
+               arr[2] = term.xfg 196, arr[2]
+            else if colour()
+               arr[0] = term.fg 10, arr[0]
+               arr[1] = term.fg 1, arr[1]
+               arr[2] = term.fg 11, arr[2]
+            return arr
+
+         # FIXME: Why isn't exit-blink in the termcap o_O?
+         blink = if debugging.blink() then [ term.sgr(5), term.sgr(25) ] else ['', '']
+
+         # FIXME: This Unicode may be fuuuuugly on Linux / Windows.
+         wrap = [ carets('❮ ','❮ ','❮ ').join(''), carets(' ❯',' ❯',' ❯').reverse().join('') ]
+
+         line = blink[0]+wrap[0]+blink[1] + r(text) + blink[0]+wrap[1]+blink[1]
+
+        #padding = _.floor (term.columns - term.strip(line).length) / 2
+         padding = _.floor (80- term.strip(line).length) / 2
+         (_.repeat ' ', padding) + line
+
       prompt: -> # Probably only makes sense inside {{pre}}. Meh.
          if colour() and not debugging.simple_ansi()
             term.sgr(27) + term.csi('3D') + term.fg(7, prompt+' ') + term.sgr(7) + term.sgr(90)
@@ -288,7 +315,7 @@ version = (cb)->
          conforming to: #{spec_name}
    """ + "\n", 'utf8', cb
 
-ENV 'BLINK'
+ENV 'BLINK', value: colour()
 goodbye = (code = 0)->
    if not process.env['_PAGINATED'] and verbosity() >= debugging.verbosities['error']
       salutation = _(salutations).sample()
