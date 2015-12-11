@@ -235,14 +235,30 @@ help = (cb)-> page -> readFilesAsync([extra('help.mustache'), extra('figlets.mus
       heart: if colour() then heart else '<3'
       b: ->(text, r)-> term.bold r text
       u: ->(text, r)-> term.underline r text
-      c: ->(text, r)-> if colour() then term.invert r text else '`'+r(text)+'`'
+      c: ->(text, r)-> if colour() then term.invert ' '+r(text)+' ' else '`'+r(text)+'`'
 
-      op:   ->(text, r)-> term.fg 2, r text
-      bgop: ->(text, r)-> term.bg 2, r text
-      flag: ->(text, r)-> term.fg 6, r text
-      bgflag: ->(text, r)-> term.bg 6, r text
+      # `op` and `flag` are meant to be used inline in other text, as they surround their content
+      # with backticks when COLOUR is disabled. The other four are meant to be used in code-samples
+      # or headlines, where backticks are unnecessary.
+      op:      ->(text, r)-> if colour() then term.fg 2, r text else '`'+r(text)+'`'
+      bgop:    ->(text, r)-> term.bg 2, r text
+      opdef:   ->(text, r)-> term.fg 2, r text
 
-      title: ->(text, r)-> term.bold term.underline r text
+      flag:    ->(text, r)-> if colour() then term.fg 6, r text else '`'+r(text)+'`'
+      bgflag:  ->(text, r)-> term.bg 6, r text
+      flagdef: ->(text, r)-> term.fg 6, r text
+
+      var:     ->(text, r)-> if colour() then term.fg 5, r text else '`'+r(text)+'`'
+      bgvar:   ->(text, r)-> term.bg 5, r text
+      vardef:  ->(text, r)-> term.fg 5, r text
+
+      title: ->(text, r)->
+         text = r text.toUpperCase() # FIXME: Well, will obviously break with embedded codes ...
+         if colour()
+            term.bold term.underline text
+         else
+            text + "\n" + _.repeat '=', text.length
+
       link:  ->(text, r)->
          if colour() then term.sgr(34) + term.underline(r text) + term.sgr(39) else r text
       prompt: -> # Probably only makes sense inside {{pre}}. Meh.
