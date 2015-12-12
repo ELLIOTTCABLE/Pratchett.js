@@ -27,6 +27,7 @@ addons:
 
 
 before_install:
+ - case "$(npm --version)" in 1.*) npm install -g npm ;; esac
  - npm run-script ci -- --prep
  - export PATH="$PATH:$HOME/bats/bin/"
 

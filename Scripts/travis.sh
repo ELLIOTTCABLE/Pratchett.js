@@ -36,14 +36,6 @@ for ARG; do case $ARG in
    --prep)
       [ -n "$DEBUG_SCRIPTS" ] && pute "Preforming Travis preperations"
 
-      case "$(npm --version)" in
-         1.*)
-            [ -n "$DEBUG_SCRIPTS" ] && pute 'Updating `npm`'
-            go npm install -g npm
-            [ -n "$DEBUG_SCRIPTS" ] && pute '`npm` now at: '"$(npm --version)";;
-         *)
-            [ -n "$DEBUG_SCRIPTS" ] && pute '`npm` appears recent'
-                                                                              ;; esac
       [ -n "$DEBUG_SCRIPTS" ] && pute "Installing travis-after-all ..."
       go npm install 'travis-after-all@^1.4.4'
 
