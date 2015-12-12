@@ -17,4 +17,7 @@ printf "%s\n%s"                                                               \
    "$(coffee -cbp --no-header ./Executables/paws.js.coffee)"                  \
       > ./Executables/paws.js
 
+[ -d ".git" ] && \
+   git update-index --assume-unchanged Executables/paws.js
+
 pegjs 'Source/cPaws.pegjs' 'Library/cPaws-parser.js'
