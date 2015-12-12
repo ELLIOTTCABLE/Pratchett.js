@@ -15,6 +15,11 @@
 puts() { printf %s\\n "$@" ;}
 pute() { printf %s\\n "~~ $*" >&2 ;}
 
+rulebook_dir="$npm_package_config_dirs_rulebook"
+coverage_dir="$npm_package_config_dirs_coverage"
+
+coverage_file="./$coverage_dir/lcov.info"
+
 # FIXME: This should support *excluded* modules with a minus, as per `node-debug`:
 #        https://github.com/visionmedia/debug
 if echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)'; then
@@ -40,7 +45,7 @@ for ARG; do case $ARG in
             [ -n "$DEBUG_SCRIPTS" ] && pute '`npm` appears recent'
                                                                               ;; esac
       [ -n "$DEBUG_SCRIPTS" ] && pute "Installing travis-after-all ..."
-      npm install 'travis-after-all@^1.4.4'
+      go npm install 'travis-after-all@^1.4.4'
 
       if [ -n "${BATS##[NFnf]*}" ] && [ ! -e "$HOME/bats/bin/bats" ]; then
          [ -n "$DEBUG_SCRIPTS" ] && pute 'Installing `bats` ...'
@@ -50,7 +55,12 @@ for ARG; do case $ARG in
 
       if [ -n "${RULEBOOK##[NFnf]*}" ]; then
          [ -n "$DEBUG_SCRIPTS" ] && pute "Cloning Rulebook ..."
-         go git clone --depth 1 "https://github.com/Paws/Rulebook.git" "./Test/Rulebook"
+         go git clone --depth 1 "https://github.com/Paws/Rulebook.git" "$rulebook_dir"
+      fi
+
+      if [ -n "${COVERAGE##[NFnf]*}" ]; then
+         [ -n "$DEBUG_SCRIPTS" ] && pute "Installing coveralls ..."
+         go npm install 'coveralls@^2.11.6'
       fi
 
       exit 0;;
@@ -72,7 +82,14 @@ for ARG; do case $ARG in
       export LETTERS=yes INTEGRATION=yes npm_package_config_mocha_reporter='dot'
 
       if "$(npm bin)/travis-after-all"; then
-         COVERAGE=yes go ./Scripts/test.sh
+         # On the last Travis worker, if the overall build has succeeded, we re-run *all* the tests
+         # to generate coverage information and submit it to Coveralls.io.
+         export COVERAGE=yes BATS=yes RULEBOOK=yes LETTERS=yes
+         go ./Scripts/travis.sh --prep
+         go ./Scripts/test.sh
+
+         [ ! -s "$coverage_file" ] || exit 66
+         cat "$coverage_file" | "$(npm bin)/coveralls"
       else
          exit 0
       fi

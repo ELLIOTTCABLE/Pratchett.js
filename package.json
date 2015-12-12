@@ -56,20 +56,13 @@
 , "optionalDependencies":{
                        "kexec"                  : "^2.0.2"                                        }
 
-,  "devDependencies" :{"glob"                   : "^6.0.1"
-                     , "docco"                  : "~0.7.0"
-
-                     , "browserify"             : "~3.33.0"
-                     , "coffeeify"              : "~0.6.0"
-
-                     , "mocha"                  : "^2.3.4"
+,  "devDependencies" :{"mocha"                  : "^2.3.4"
                      , "expect.js"              : "^0.3.1"
                      , "sinon"                  : "^1.17.2"
                      , "sinon-expect"           : "^0.2.0"
 
                      , "coffee-coverage"        : "^0.7.0"
                      , "istanbul"               : "^0.4.1"
-                     , "coveralls"              : "^2.11.6"
 
                      , "node-inspector"         : "^0.12.3"
                      , "chokidar-cli"           : "^1.2.0"
