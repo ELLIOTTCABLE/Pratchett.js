@@ -5,24 +5,37 @@ branches:
 
 language: node_js
 node_js:
- - "0.11"
+ - "node"
+ - "4.2"
+ - "0.12"
  - "0.10"
-#- "0.8"
 
-matrix:
-   allow_failures:
-#   - node_js: "0.8"
+env:
+   matrix:
+    - UNIT=yes # dummy
+    - BATS=yes
+   #- RULEBOOK=yes
+   global:
+    - RULEBOOK=no # Pending completion of the queueless reactor!
+    - CXX=g++-4.8
+addons:
+   apt:
+      sources:
+       - ubuntu-toolchain-r-test
+      packages:
+       - g++-4.8
 
 
 before_install:
- - ./Scripts/travis.sh --prep
+ - case "$(npm --version)" in 1.*) npm install -g npm ;; esac
+ - npm run-script ci -- --prep
  - export PATH="$PATH:$HOME/bats/bin/"
 
 script:
- - ./Scripts/travis.sh --test
+ - npm run-script ci -- --test
 
 after_success:
- - ./Scripts/travis.sh --after
+ - npm run-script ci -- --after
 
 cache:
    directories:

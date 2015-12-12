@@ -10,7 +10,7 @@ Paws   = require '../Source/Paws.coffee'
 ,  parse, debugging, utilities: _                                                           } = Paws
 
 
-describe "Paws' Rulebook support:", ->
+describe.skip "Paws' Rulebook support:", ->
    Rule       = require '../Source/rule.coffee'
    Collection = Rule.Collection
 

@@ -13,55 +13,116 @@
 #
 #    npm test
 #
-#    npm test --grep 'Parser'             # Run a specific unit-test suite
-#    RESPECT_TRACING=no npm test          # Disable debugging and trcing during the tests
+#    npm test -- --grep 'Parser'          # Run a specific unit-test suite
+#    BATS=no npm test                     # Disable execution of any shell-tests
 #    INTEGRATION=no npm test              # Run the unit-tests *only* (not the integration tests)
 #    RULEBOOK=no npm test                 # Ignore the Rulebook, even if present
 #    LETTERS=yes npm test                 # Execute the Letters, as well as the rest of the Rulebook
+#
+#    WATCH=yes npm test                   # Watch filesystem for changes, and automatically re-run
+#    DEBUGGER=yes npm test                # Expose the Blink debugger-tools on localhost:8080
+#    COVERAGE=yes npm test                # Generate a coverage report with Istanbul
+#    RESPECT_TRACING=no npm test          # Disable debugging and tracing during the tests
+#
+# Given `$COVERAGE`, a coverage-report will be constructed as the test suites execute. By default,
+# this results in an HTML page (`Docs/Coverage/index.html`), and a textual summary along with the
+# test-output.
+#
+# If the tests pass as invoked, then a `.tests-succeeded` file is created to cache this status, with
+# SHA-sums of the source-code and test files; this cache allows automatic pre-commit runs to be
+# omitted when tests have been already run. (NOTE: This intentionally ignores `--grep` and other
+# flags; meaning that it's possible to commit broken code by excluding broken tests!)
 
 puts() { printf %s\\n "$@" ;}
 pute() { printf %s\\n "~~ $*" >&2 ;}
+argq() { printf "'%s' " "$@" ;}
 
+source_dir="$npm_package_config_dirs_source"
 unit_dir="$npm_package_config_dirs_test"
 integration_dir="$npm_package_config_dirs_integration"
 rulebook_dir="$npm_package_config_dirs_rulebook"
+coverage_dir="$npm_package_config_dirs_coverage"
+
 mocha_ui="$npm_package_config_mocha_ui"
 mocha_reporter="$npm_package_config_mocha_reporter"
 
+cache_file="$unit_dir/.tests-succeeded"
+
+export NODE_ENV='test'
+
 # FIXME: This should support *excluded* modules with a minus, as per `node-debug`:
 #        https://github.com/visionmedia/debug
-echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)' && DEBUG_SCRIPTS=0
-[ -n "$DEBUG_SCRIPTS" ] && pute "Script debugging enabled (in: `basename $0`)."
-[ -n "$DEBUG_SCRIPTS" ] && VERBOSE="${VERBOSE:-7}"
+if echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)'; then    # 1.  $DEBUG_SCRIPTS
+   pute "Script debugging enabled (in: `basename $0`)."
+   DEBUG_SCRIPTS=yes
+   VERBOSE="${VERBOSE:-7}"
+fi
 
-if [ -n "${PRE_COMMIT##[NFnf]*}" ]; then
+
+# Configuration-variable setup
+# ----------------------------
+if [ -n "${CI##[NFnf]*}" ]; then                                                 # 2.  $CI
+   [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling CI mode."
+
+   # The Travis parallelizes across a matrix; and each invocation runs only a single suite.
+   [ -z "${COVERAGE##[NFnf]*}" ] && [ -n "${BATS##[NFnf]*}${RULEBOOK##[NFnf]*}" ] && non_mocha=yes
+fi
+
+if [ -n "${PRE_COMMIT##[NFnf]*}" ]; then                                         # 3.  $PRE_COMMIT
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling pre-commit mode."
    mocha_reporter=dot
+   WATCH=no
+   DEBUGGER=no
    RESPECT_TRACING=no
    INTEGRATION=no
    RULEBOOK=no
 fi
 
-if [ -n "$*" ] && [ -z "$BATS" ];      then BATS='no'    ;fi
-if [ -n "$*" ] && [ -z "$RULEBOOK" ];  then RULEBOOK='no';fi
+# Conveniences so I don't have to keep typing `YTyt` :P
+[ -z "${INTEGRATION##[YTyt]*}" ]    && integration=yes                           # 4.  $INTEGRATION
+[ -n "${COVERAGE##[NFnf]*}" ]       && coverage=yes                              # 5.  $COVERAGE
 
-if [ -n "${RESPECT_TRACING##[YTyt]*}" ]; then
+# When raw arguments are passed for `mocha`, don't run the other suites
+[ -n "$*" ] && [ -z "$BATS" ]       && BATS=no                                   # 6.  $BATS
+[ -n "$*" ] && [ -z "$RULEBOOK" ]   && RULEBOOK=no                               # 7.  $RULEBOOK
+
+if [ -n "${RESPECT_TRACING##[YTyt]*}" ]; then                                    # 8.  $RESPECT_TRACING
    [ -n "$DEBUG_SCRIPTS" ] && pute "Disrespecting tracing flags"
-   VERBOSE='4'          # 'warning' and worse
+   VERBOSE=4            # 'warning' and worse
    unset TRACE_REACTOR
 fi
 
+if [ -n "${DEBUGGER##[NFnf]*}" ]; then                                           # 9.  $DEBUGGER
+   [ ! -x "./node_modules/.bin/node-debug" ] && \
+      pute 'You must `npm install node-inspector` to use the $DEBUGGER flag!' && exit 127
+
+   WATCH='no'
+
+   [ -z "${DEBUG_MODULES##[NFnf]*}" ] && \
+      hidden='--hidden node_modules/'
+   node_debugger="./node_modules/.bin/node-debug $hidden --cli --config './Scripts/node-inspectorrc.json'"
+fi
+
+if [ -n "${WATCH##[NFnf]*}" ]; then                                              # 10. $WATCH
+   [ ! -x "./node_modules/.bin/chokidar" ] &&
+      pute 'You must `npm install chokidar-cli` to use the $WATCH flag!' && exit 127
+fi
+                                                                                 # 11. $print_commands
 [ -z "${SILENT##[NFnf]*}${QUIET##[NFnf]*}" ] && [ "${VERBOSE:-4}" -gt 6 ] && print_commands=yes
-go () { [ -z ${print_commands+x} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 [ -n "$DEBUG_SCRIPTS" ] && puts \
    "Pre-commit mode:       ${PRE_COMMIT:--}"                                  \
    "Tracing reactor:       ${TRACE_REACTOR:+Yes!}"                            \
+   "Watching filesystem:   ${WATCH:--}"                                       \
+   "Running debugger:      ${DEBUGGER:--}"                                    \
+   "Generating coverage:   ${COVERAGE:--}"                                    \
+   "Debugging modules:     ${DEBUG_MODULES:--}"                               \
    "Verbosity:             '$VERBOSE'"                                        \
    "Printing commands:     ${print_commands:--}"                              \
    "Tests directory:       '$unit_dir'"                                       \
    "Integration directory: '$integration_dir'"                                \
    "Rulebook directory:    '$rulebook_dir'"                                   \
+   "Coverage directory:    '$coverage_dir'"                                   \
    "Running "'`bats`'" tests:  ${BATS:--}"                                    \
    "Running integration:   ${INTEGRATION:--}"                                 \
    "Checking rulebook:     ${RULEBOOK:--}"                                    \
@@ -69,8 +130,15 @@ go () { [ -z ${print_commands+x} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
    "" >&2
 
 
+# Helper-function setup
+# ---------------------
+go () { [ -z ${print_commands+0} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
+
 mochaify() {
-   go env NODE_ENV=test ./node_modules/.bin/mocha                             \
+   [ -z $non_mocha ] && go $node_debugger                                     \
+      "./node_modules/.bin/${node_debugger:+_}${coverage:+_}mocha"            \
+      ${node_debugger:+ --no-timeouts }                                       \
+      ${coverage:+ --require './Library/register-coffee-coverage.js' }        \
       --compilers coffee:coffee-script/register                               \
       --reporter "$mocha_reporter" --ui "$mocha_ui"                           \
       "$@"                                                                    ;}
@@ -82,21 +150,61 @@ batsify() {
 ruleify() {
    book="$1"; shift
 
-   if [ -z "${RULEBOOK##[YTyt]*}" ] \
-   && [ -d "$PWD/$npm_package_config_dirs_rulebook/$book/" ]; then
-      go env NODE_ENV=test ./node_modules/.bin/taper                          \
-         --runner "$PWD/Executables/paws.js"                                  \
-         --runner-param='check'                                               \
-         "$PWD/$npm_package_config_dirs_rulebook/$book"/*                     \
+   if [ -d "$PWD/$rulebook_dir/$book/" ]; then
+      go env NODE_ENV=test $node_debugger ./node_modules/.bin/taper           \
+         --runner "$PWD/Executables/paws.js" --runner-param='check'           \
+         "$PWD/$rulebook_dir/$book"/*                                         \
          $TAPER_FLAGS -- $CHECK_FLAGS "$@"                                    ;fi ;}
 
+cache() {
+   shasum "$source_dir"/* "$unit_dir"/* "$integration_dir"/* 2>/dev/null      ;}
 
-if [ -n "${INTEGRATION##[YTyt]*}" ]; then
-   mochaify "$unit_dir"/*.tests.coffee "$@"
-   batsify "$unit_dir"/*.tests.bats
-else
-   mochaify "$unit_dir"/*.tests.coffee "$integration_dir/"*.tests.coffee "$@"
-   batsify "$unit_dir"/*.tests.bats "$integration_dir/"*.tests.bats
+gen_cache() {
+   if [ -z "${CI##[NFnf]*}${WATCH##[NFnf]*}${INTEGRATION##[YTyt]*}" ]; then
+      [ -n "$DEBUG_SCRIPTS" ] && pute "Generating cache of successful test-status"
+      cache >"$cache_file"
+      true                                                                    ;fi ;}
+
+check_cache() {
+   if [ -n "$DEBUG_SCRIPTS" ]; then
+      pute "Checking test-status cache"
+      [ -f "$cache_file" ] && shasum -c "$cache_file"
+   else
+      [ -f "$cache_file" ] && shasum -c "$cache_file" >/dev/null 2>&1         ;fi ;}
+
+
+# Pre-execution
+# -------------
+if [ -n "${PRE_COMMIT##[NFnf]*}" ] && check_cache; then
+   [ -n "$DEBUG_SCRIPTS" ] && pute "Pre-commit: Using existing test exit-status."
+   exit 0
+fi
+
+if [ -n "${WATCH##[NFnf]*}" ]; then
+   [ "${VERBOSE:-4}" -gt 7 ] && chokidar_verbosity='--verbose'
+
+   unset WATCH
+   export VERBOSE TRACE_REACTOR BATS INTEGRATION RULEBOOK LETTERS
+   go exec chokidar \
+      "$source_dir" "$unit_dir" ${integration:+"$integration_dir"} ${RULEBOOK:+"$rulebook_dir"} \
+      "${chokidar_verbosity:---silent}"                                       \
+      --initial --ignore '**/.*'                                              \
+      $CHOKIDAR_FLAGS -c "$0 $(argq "$@")"
+fi
+
+
+# Execution of tests
+# ------------------
+if [ -n "$integration" ]                                                         # 1. Mocha,
+   then mochaify "$unit_dir"/*.tests.coffee "$integration_dir/"*.tests.coffee "$@"
+   else mochaify "$unit_dir"/*.tests.coffee "$@"
+fi
+                                                                                 # 2. Istanbul,
+[ -n "$coverage" ] && istanbul report --config='Scripts/istanbul.config.js' $COVERAGE_REPORTER
+
+if [ -n "$integration" ]                                                         # 3. bats,
+   then batsify "$unit_dir"/*.tests.bats "$integration_dir/"*.tests.bats
+   else batsify "$unit_dir"/*.tests.bats
 fi
 
 if ! command -v bats >/dev/null; then
@@ -106,14 +214,18 @@ if ! command -v bats >/dev/null; then
    puts '   <https://github.com/sstephenson/bats>'
 fi
 
-ruleify "The Ladder"
-ruleify "The Gauntlet"
-[ -n "${LETTERS##[NFnf]*}" ] && \
-   ruleify "The Letters" --expose-specification
+if [ -z "${RULEBOOK##[YTyt]*}" ]; then
+   ruleify "The Ladder"                                                          # 4. Rulebooks,
+   ruleify "The Gauntlet"
+   [ -n "${LETTERS##[NFnf]*}" ] && \
+      ruleify "The Letters" --expose-specification
 
-if [ ! -d "$PWD/$npm_package_config_dirs_rulebook" ]; then
-   [ -n "$DEBUG_SCRIPTS" ] && pute "Rulebook directory not found."
+   if [ ! -d "$PWD/$rulebook_dir" ]; then
+      [ -n "$DEBUG_SCRIPTS" ] && pute "Rulebook directory not found."
 
-   puts 'Clone the rulebook from this URL to `./'$npm_package_config_dirs_rulebook'` to check Rulebook compliance:'
-   puts '   <https://github.com/Paws/Rulebook.git>'
+      puts 'Clone the rulebook from this URL to `./'$rulebook_dir'` to check Rulebook compliance:'
+      puts '   <https://github.com/Paws/Rulebook.git>'
+   fi
 fi
+
+gen_cache                                                                        # 5. cache!
