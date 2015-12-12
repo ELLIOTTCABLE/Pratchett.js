@@ -71,7 +71,7 @@ for ARG; do case $ARG in
 
       export LETTERS=yes INTEGRATION=yes npm_package_config_mocha_reporter='dot'
 
-      if true; then
+      if "$(npm bin)/travis-after-all"; then
          COVERAGE=yes go ./Scripts/test.sh
       else
          exit 0

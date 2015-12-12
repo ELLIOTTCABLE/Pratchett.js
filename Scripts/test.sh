@@ -150,8 +150,7 @@ batsify() {
 ruleify() {
    book="$1"; shift
 
-   if [ -z "${RULEBOOK##[YTyt]*}" ] \
-   && [ -d "$PWD/$rulebook_dir/$book/" ]; then
+   if [ -d "$PWD/$rulebook_dir/$book/" ]; then
       go env NODE_ENV=test $node_debugger ./node_modules/.bin/taper           \
          --runner "$PWD/Executables/paws.js" --runner-param='check'           \
          "$PWD/$rulebook_dir/$book"/*                                         \
@@ -216,16 +215,18 @@ if ! command -v bats >/dev/null; then
    puts '   <https://github.com/sstephenson/bats>'
 fi
 
-ruleify "The Ladder"                                                             # 4. Rulebooks,
-ruleify "The Gauntlet"
-[ -n "${LETTERS##[NFnf]*}" ] && \
-   ruleify "The Letters" --expose-specification
+if [ -z "${RULEBOOK##[YTyt]*}" ]; then
+   ruleify "The Ladder"                                                          # 4. Rulebooks,
+   ruleify "The Gauntlet"
+   [ -n "${LETTERS##[NFnf]*}" ] && \
+      ruleify "The Letters" --expose-specification
 
-if [ ! -d "$PWD/$rulebook_dir" ]; then
-   [ -n "$DEBUG_SCRIPTS" ] && pute "Rulebook directory not found."
+   if [ ! -d "$PWD/$rulebook_dir" ]; then
+      [ -n "$DEBUG_SCRIPTS" ] && pute "Rulebook directory not found."
 
-   puts 'Clone the rulebook from this URL to `./'$rulebook_dir'` to check Rulebook compliance:'
-   puts '   <https://github.com/Paws/Rulebook.git>'
+      puts 'Clone the rulebook from this URL to `./'$rulebook_dir'` to check Rulebook compliance:'
+      puts '   <https://github.com/Paws/Rulebook.git>'
+   fi
 fi
 
 gen_cache                                                                        # 5. cache!
