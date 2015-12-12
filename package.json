@@ -12,13 +12,14 @@
 ,           "bin" : {"paws.js" : "Executables/paws.js"}
 
 ,       "scripts" :{
-        "prepublish" : "./Scripts/build.sh"
+             "build" : "./Scripts/build.sh"
+,       "prepublish" : "./Scripts/build.sh"
+
+,             "test" : "./Scripts/test.sh"
+,               "ci" : "./Scripts/travis.sh"
 
 ,             "repl" : "./Scripts/repl.js"
-,             "test" : "./Scripts/test.sh"
 ,            "clean" : "./Scripts/clean.sh"
-,         "coverage" : "./Scripts/coverage.sh 3> ./Library/Coverage.html"
-,        "coveralls" : "./Scripts/coveralls.sh"
 ,   "install-git-hooks" :
                        "./Scripts/install-git-hooks.sh"
 }
@@ -28,8 +29,10 @@
                   , "test"       : "Test"
                   , "rulebook"   : "Test/Rulebook"
                   , "integration": "Test/Integration"
-                  , "instrumentation"
-                                 : "Source" }
+                  , "documentation"
+                                 : "Docs"
+                  , "coverage"
+                                 : "Docs/Coverage" }
 ,         "mocha" :{"ui"         : "bdd"
                   , "reporter"   : "spec" }
 ,           "git" :{"hooks"      : "prepare-commit-msg pre-commit post-merge post-checkout" }
@@ -53,18 +56,14 @@
 , "optionalDependencies":{
                        "kexec"                  : "^2.0.2"                                        }
 
-,  "devDependencies" :{"glob"                   : "^6.0.1"
-                     , "browserify"             : "~3.33.0"
-                     , "coffeeify"              : "~0.6.0"
-                     , "docco"                  : "~0.7.0"
-
-                     , "mocha"                  : "^2.3.4"
-                     , "mocha-lcov-reporter"    : "^1.0.0"
+,  "devDependencies" :{"mocha"                  : "^2.3.4"
                      , "expect.js"              : "^0.3.1"
                      , "sinon"                  : "^1.17.2"
                      , "sinon-expect"           : "^0.2.0"
+
                      , "coffee-coverage"        : "^0.7.0"
-                     , "coveralls"              : "^2.11.6"
+                     , "istanbul"               : "^0.4.1"
+
                      , "node-inspector"         : "^0.12.3"
                      , "chokidar-cli"           : "^1.2.0"
 
