@@ -17,12 +17,14 @@ pute() { printf %s\\n "~~ $*" >&2 ;}
 
 # FIXME: This should support *excluded* modules with a minus, as per `node-debug`:
 #        https://github.com/visionmedia/debug
-echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)' && DEBUG_SCRIPTS=0
-[ -n "$DEBUG_SCRIPTS" ] && pute "Script debugging enabled (in: `basename $0`)."
-[ -n "$DEBUG_SCRIPTS" ] && VERBOSE="${VERBOSE:-7}"
+if echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)'; then
+   pute "Script debugging enabled (in: `basename $0`)."
+   DEBUG_SCRIPTS=yes
+   VERBOSE="${VERBOSE:-7}"
+fi
 
 [ -z "${SILENT##[NFnf]*}${QUIET##[NFnf]*}" ] && [ "${VERBOSE:-4}" -gt 6 ] && print_commands=yes
-go() { [ -z ${print_commands+x} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
+go() { [ -z ${print_commands+0} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 
 for ARG; do case $ARG in

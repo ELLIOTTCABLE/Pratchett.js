@@ -19,20 +19,21 @@ requested_hook="$1"
 default_hooks="$npm_package_config_git_hooks"
 
 
-# FIXME: This should really support comma-seperated DEBUG values, as per `node-debug`:
+# FIXME: This should support *excluded* modules with a minus, as per `node-debug`:
 #        https://github.com/visionmedia/debug
-[ "$DEBUG" = 'Paws.js:scripts' ] && DEBUG_SCRIPTS=0
-[ -n "$DEBUG_SCRIPTS" ] && pute "Script debugging enabled (in: `basename $0`)."
-[ -n "$DEBUG_SCRIPTS" ] && VERBOSE="${VERBOSE:-7}"
+if echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)'; then
+   pute "Script debugging enabled (in: `basename $0`)."
+   DEBUG_SCRIPTS=yes
+   VERBOSE="${VERBOSE:-7}"
+fi
 
 [ -n "$DEBUG_SCRIPTS" ] && puts \
    "Requested hook:        '$1'"                                              \
    "Default hooks:         '$npm_package_config_git_hooks'"                   \
    "" >&2
 
-if [ ! -d ".git" ]; then
-   pute 'You must be in the root directory of a `git` project to use this script!'
-   exit 1                                                                     ;fi
+[ ! -d ".git" ] && \
+   pute 'You must be in the root directory of a `git` project to use this script!' && exit 1
 
 mkdir -p "$hook_dir"
 
@@ -70,7 +71,5 @@ install_hook() {
    done
 }
 
-if [ -n "$requested_hook" ]; then
-   install_hook $requested_hook
-else for default_hook in $default_hooks; do
-   install_hook $default_hook          ; done                                 ;fi
+for hook in ${requested_hooks:-$default_hooks}; do
+   install_hook $hook                                                         ;done

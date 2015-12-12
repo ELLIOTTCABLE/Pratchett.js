@@ -52,20 +52,23 @@ export NODE_ENV='test'
 
 # FIXME: This should support *excluded* modules with a minus, as per `node-debug`:
 #        https://github.com/visionmedia/debug
-echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)' && DEBUG_SCRIPTS=0
-[ -n "$DEBUG_SCRIPTS" ] && pute "Script debugging enabled (in: `basename $0`)."
-[ -n "$DEBUG_SCRIPTS" ] && VERBOSE="${VERBOSE:-7}"
+if echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)'; then    # 1.  $DEBUG_SCRIPTS
+   pute "Script debugging enabled (in: `basename $0`)."
+   DEBUG_SCRIPTS=yes
+   VERBOSE="${VERBOSE:-7}"
+fi
+
 
 # Configuration-variable setup
 # ----------------------------
-if [ -n "${CI##[NFnf]*}" ]; then
+if [ -n "${CI##[NFnf]*}" ]; then                                                 # 2.  $CI
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling CI mode."
 
    # The Travis parallelizes across a matrix; and each invocation runs only a single suite.
    [ -z "${VAR##[NFnf]*}" ] && [ -n "${BATS##[NFnf]*}${RULEBOOK##[NFnf]*}" ] && non_mocha=yes
 fi
 
-if [ -n "${PRE_COMMIT##[NFnf]*}" ]; then
+if [ -n "${PRE_COMMIT##[NFnf]*}" ]; then                                         # 3.  $PRE_COMMIT
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling pre-commit mode."
    mocha_reporter=dot
    WATCH=no
@@ -76,34 +79,35 @@ if [ -n "${PRE_COMMIT##[NFnf]*}" ]; then
 fi
 
 # Conveniences so I don't have to keep typing `YTyt` :P
-[ -z "${INTEGRATION##[YTyt]*}" ]    && integration=yes
-[ -n "${COVERAGE##[NFnf]*}" ]       && coverage=yes
+[ -z "${INTEGRATION##[YTyt]*}" ]    && integration=yes                           # 4.  $INTEGRATION
+[ -n "${COVERAGE##[NFnf]*}" ]       && coverage=yes                              # 5.  $COVERAGE
 
 # When raw arguments are passed for `mocha`, don't run the other suites
-[ -n "$*" ] && [ -z "$BATS" ]       && BATS=no
-[ -n "$*" ] && [ -z "$RULEBOOK" ]   && RULEBOOK=no
+[ -n "$*" ] && [ -z "$BATS" ]       && BATS=no                                   # 6.  $BATS
+[ -n "$*" ] && [ -z "$RULEBOOK" ]   && RULEBOOK=no                               # 7.  $RULEBOOK
 
-if [ -n "${RESPECT_TRACING##[YTyt]*}" ]; then
+if [ -n "${RESPECT_TRACING##[YTyt]*}" ]; then                                    # 8.  $RESPECT_TRACING
    [ -n "$DEBUG_SCRIPTS" ] && pute "Disrespecting tracing flags"
-   VERBOSE='4'          # 'warning' and worse
+   VERBOSE=4            # 'warning' and worse
    unset TRACE_REACTOR
 fi
 
-if [ -n "${DEBUGGER##[NFnf]*}" ]; then
+if [ -n "${DEBUGGER##[NFnf]*}" ]; then                                           # 9.  $DEBUGGER
    [ ! -x "./node_modules/.bin/node-debug" ] && \
       pute 'You must `npm install node-inspector` to use the $DEBUGGER flag!' && exit 127
 
    WATCH='no'
 
-   [ -z "${DEBUG_MODULES##[NFnf]*}" ] && hidden='--hidden node_modules/'
+   [ -z "${DEBUG_MODULES##[NFnf]*}" ] && \
+      hidden='--hidden node_modules/'
    node_debugger="./node_modules/.bin/node-debug $hidden --cli --config './Scripts/node-inspectorrc.json'"
 fi
 
-if [ -n "${WATCH##[NFnf]*}" ]; then
+if [ -n "${WATCH##[NFnf]*}" ]; then                                              # 10. $WATCH
    [ ! -x "./node_modules/.bin/chokidar" ] &&
       pute 'You must `npm install chokidar-cli` to use the $WATCH flag!' && exit 127
 fi
-
+                                                                                 # 11. $print_commands
 [ -z "${SILENT##[NFnf]*}${QUIET##[NFnf]*}" ] && [ "${VERBOSE:-4}" -gt 6 ] && print_commands=yes
 
 [ -n "$DEBUG_SCRIPTS" ] && puts \
@@ -193,14 +197,14 @@ fi
 
 # Execution of tests
 # ------------------
-if [ -n "$integration" ]
+if [ -n "$integration" ]                                                         # 1. Mocha,
    then mochaify "$unit_dir"/*.tests.coffee "$integration_dir/"*.tests.coffee "$@"
    else mochaify "$unit_dir"/*.tests.coffee "$@"
 fi
-
+                                                                                 # 2. Istanbul,
 [ -n "$coverage" ] && istanbul report --config='Scripts/istanbul.config.js' $COVERAGE_REPORTER
 
-if [ -n "$integration" ]
+if [ -n "$integration" ]                                                         # 3. bats,
    then batsify "$unit_dir"/*.tests.bats "$integration_dir/"*.tests.bats
    else batsify "$unit_dir"/*.tests.bats
 fi
@@ -212,7 +216,7 @@ if ! command -v bats >/dev/null; then
    puts '   <https://github.com/sstephenson/bats>'
 fi
 
-ruleify "The Ladder"
+ruleify "The Ladder"                                                             # 4. Rulebooks,
 ruleify "The Gauntlet"
 [ -n "${LETTERS##[NFnf]*}" ] && \
    ruleify "The Letters" --expose-specification
@@ -224,4 +228,4 @@ if [ ! -d "$PWD/$rulebook_dir" ]; then
    puts '   <https://github.com/Paws/Rulebook.git>'
 fi
 
-gen_cache
+gen_cache                                                                        # 5. cache!
