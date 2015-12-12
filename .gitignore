@@ -7,7 +7,6 @@ Test/**/*.js
 Test/Rulebook/
 Test/.tests-succeeded
 
-Documentation/
+Docs/Coverage
 Library/*.bundle.js
 Library/*-parser.js
-Library/Coverage.html

@@ -13,13 +13,20 @@
 #
 #    npm test
 #
-#    npm test --grep 'Parser'             # Run a specific unit-test suite
-#    WATCH=yes npm test                   # Watch filesystem for changes, and re-run tests
-#    RESPECT_TRACING=no npm test          # Disable debugging and trcing during the tests
+#    npm test -- --grep 'Parser'          # Run a specific unit-test suite
+#    BATS=no npm test                     # Disable execution of any shell-tests
 #    INTEGRATION=no npm test              # Run the unit-tests *only* (not the integration tests)
 #    RULEBOOK=no npm test                 # Ignore the Rulebook, even if present
 #    LETTERS=yes npm test                 # Execute the Letters, as well as the rest of the Rulebook
-#    DEBUGGER=yes npm test                # Make the Blink debugger-tools on localhost:8080
+#
+#    WATCH=yes npm test                   # Watch filesystem for changes, and automatically re-run
+#    DEBUGGER=yes npm test                # Expose the Blink debugger-tools on localhost:8080
+#    COVERAGE=yes npm test                # Generate a coverage report with Istanbul
+#    RESPECT_TRACING=no npm test          # Disable debugging and tracing during the tests
+#
+# Given `$COVERAGE`, a coverage-report will be constructed as the test suites execute. By default,
+# this results in an HTML page (`Docs/Coverage/index.html`), and a textual summary along with the
+# test-output.
 #
 # If the tests pass as invoked, then a `.tests-succeeded` file is created to cache this status, with
 # SHA-sums of the source-code and test files; this cache allows automatic pre-commit runs to be
@@ -34,11 +41,14 @@ source_dir="$npm_package_config_dirs_source"
 unit_dir="$npm_package_config_dirs_test"
 integration_dir="$npm_package_config_dirs_integration"
 rulebook_dir="$npm_package_config_dirs_rulebook"
+coverage_dir="$npm_package_config_dirs_coverage"
 
 mocha_ui="$npm_package_config_mocha_ui"
 mocha_reporter="$npm_package_config_mocha_reporter"
 
 cache_file="$unit_dir/.tests-succeeded"
+
+export NODE_ENV='test'
 
 # FIXME: This should support *excluded* modules with a minus, as per `node-debug`:
 #        https://github.com/visionmedia/debug
@@ -48,18 +58,30 @@ echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)' && DEBUG_SC
 
 # Configuration-variable setup
 # ----------------------------
+if [ -n "${CI##[NFnf]*}" ]; then
+   [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling CI mode."
+
+   # The Travis parallelizes across a matrix; and each invocation runs only a single suite.
+   [ -z "${VAR##[NFnf]*}" ] && [ -n "${BATS##[NFnf]*}${RULEBOOK##[NFnf]*}" ] && non_mocha=yes
+fi
+
 if [ -n "${PRE_COMMIT##[NFnf]*}" ]; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling pre-commit mode."
    mocha_reporter=dot
-   RESPECT_TRACING=no
    WATCH=no
+   DEBUGGER=no
+   RESPECT_TRACING=no
    INTEGRATION=no
    RULEBOOK=no
-   DEBUGGER=no
 fi
 
-if [ -n "$*" ] && [ -z "$BATS" ];      then BATS='no'    ;fi
-if [ -n "$*" ] && [ -z "$RULEBOOK" ];  then RULEBOOK='no';fi
+# Conveniences so I don't have to keep typing `YTyt` :P
+[ -z "${INTEGRATION##[YTyt]*}" ]    && integration=yes
+[ -n "${COVERAGE##[NFnf]*}" ]       && coverage=yes
+
+# When raw arguments are passed for `mocha`, don't run the other suites
+[ -n "$*" ] && [ -z "$BATS" ]       && BATS=no
+[ -n "$*" ] && [ -z "$RULEBOOK" ]   && RULEBOOK=no
 
 if [ -n "${RESPECT_TRACING##[YTyt]*}" ]; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Disrespecting tracing flags"
@@ -68,10 +90,8 @@ if [ -n "${RESPECT_TRACING##[YTyt]*}" ]; then
 fi
 
 if [ -n "${DEBUGGER##[NFnf]*}" ]; then
-   if [ ! -x "./node_modules/.bin/node-debug" ]; then
-      pute 'You must `npm install node-inspector` to use the $DEBUGGER flag!'
-      exit
-   fi
+   [ ! -x "./node_modules/.bin/node-debug" ] && \
+      pute 'You must `npm install node-inspector` to use the $DEBUGGER flag!' && exit 127
 
    WATCH='no'
 
@@ -80,10 +100,8 @@ if [ -n "${DEBUGGER##[NFnf]*}" ]; then
 fi
 
 if [ -n "${WATCH##[NFnf]*}" ]; then
-   if [ ! -x "./node_modules/.bin/chokidar" ]; then
-      pute 'You must `npm install chokidar-cli` to use the $WATCH flag!'
-      exit
-   fi
+   [ ! -x "./node_modules/.bin/chokidar" ] &&
+      pute 'You must `npm install chokidar-cli` to use the $WATCH flag!' && exit 127
 fi
 
 [ -z "${SILENT##[NFnf]*}${QUIET##[NFnf]*}" ] && [ "${VERBOSE:-4}" -gt 6 ] && print_commands=yes
@@ -93,12 +111,14 @@ fi
    "Tracing reactor:       ${TRACE_REACTOR:+Yes!}"                            \
    "Watching filesystem:   ${WATCH:--}"                                       \
    "Running debugger:      ${DEBUGGER:--}"                                    \
+   "Generating coverage:   ${COVERAGE:--}"                                    \
    "Debugging modules:     ${DEBUG_MODULES:--}"                               \
    "Verbosity:             '$VERBOSE'"                                        \
    "Printing commands:     ${print_commands:--}"                              \
    "Tests directory:       '$unit_dir'"                                       \
    "Integration directory: '$integration_dir'"                                \
    "Rulebook directory:    '$rulebook_dir'"                                   \
+   "Coverage directory:    '$coverage_dir'"                                   \
    "Running "'`bats`'" tests:  ${BATS:--}"                                    \
    "Running integration:   ${INTEGRATION:--}"                                 \
    "Checking rulebook:     ${RULEBOOK:--}"                                    \
@@ -111,9 +131,10 @@ fi
 go () { [ -z ${print_commands+0} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 mochaify() {
-   go env NODE_ENV=test $node_debugger                                        \
-      "./node_modules/.bin/${node_debugger:+_}mocha"                          \
-      ${node_debugger:+--no-timeouts}                                         \
+   [ -z $non_mocha ] && go $node_debugger                                     \
+      "./node_modules/.bin/${node_debugger:+_}${coverage:+_}mocha"            \
+      ${node_debugger:+ --no-timeouts }                                       \
+      ${coverage:+ --require './Library/register-coffee-coverage.js' }        \
       --compilers coffee:coffee-script/register                               \
       --reporter "$mocha_reporter" --ui "$mocha_ui"                           \
       "$@"                                                                    ;}
@@ -149,8 +170,9 @@ check_cache() {
    else
       [ -f "$cache_file" ] && shasum -c "$cache_file" >/dev/null 2>&1         ;fi ;}
 
-# Execution of tests
-# ------------------
+
+# Pre-execution
+# -------------
 if [ -n "${PRE_COMMIT##[NFnf]*}" ] && check_cache; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Pre-commit: Using existing test exit-status."
    exit 0
@@ -162,19 +184,25 @@ if [ -n "${WATCH##[NFnf]*}" ]; then
    unset WATCH
    export VERBOSE TRACE_REACTOR BATS INTEGRATION RULEBOOK LETTERS
    go exec chokidar \
-      "$source_dir" "$unit_dir" ${INTEGRATION:+"$integration_dir"} ${RULEBOOK:+"$rulebook_dir"} \
+      "$source_dir" "$unit_dir" ${integration:+"$integration_dir"} ${RULEBOOK:+"$rulebook_dir"} \
       "${chokidar_verbosity:---silent}"                                       \
       --initial --ignore '**/.*'                                              \
       $CHOKIDAR_FLAGS -c "$0 $(argq "$@")"
 fi
 
 
-if [ -n "${INTEGRATION##[YTyt]*}" ]; then
-   mochaify "$unit_dir"/*.tests.coffee "$@"
-   batsify "$unit_dir"/*.tests.bats
-else
-   mochaify "$unit_dir"/*.tests.coffee "$integration_dir/"*.tests.coffee "$@"
-   batsify "$unit_dir"/*.tests.bats "$integration_dir/"*.tests.bats
+# Execution of tests
+# ------------------
+if [ -n "$integration" ]
+   then mochaify "$unit_dir"/*.tests.coffee "$integration_dir/"*.tests.coffee "$@"
+   else mochaify "$unit_dir"/*.tests.coffee "$@"
+fi
+
+[ -n "$coverage" ] && istanbul report --config='Scripts/istanbul.config.js' $COVERAGE_REPORTER
+
+if [ -n "$integration" ]
+   then batsify "$unit_dir"/*.tests.bats "$integration_dir/"*.tests.bats
+   else batsify "$unit_dir"/*.tests.bats
 fi
 
 if ! command -v bats >/dev/null; then

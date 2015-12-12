@@ -32,30 +32,48 @@ for ARG; do case $ARG in
       case "$(npm --version)" in
          1.*)
             [ -n "$DEBUG_SCRIPTS" ] && pute 'Updating `npm`'
-            npm install -g npm
-            [ -n "$DEBUG_SCRIPTS" ] && pute '`npm` now at: ' $(npm --version) ;;
+            go npm install -g npm
+            [ -n "$DEBUG_SCRIPTS" ] && pute '`npm` now at: '"$(npm --version)";;
          *)
-            [ -n "$DEBUG_SCRIPTS" ] && pute '`npm` appears up-to-date'
+            [ -n "$DEBUG_SCRIPTS" ] && pute '`npm` appears recent'
                                                                               ;; esac
+      [ -n "$DEBUG_SCRIPTS" ] && pute "Installing travis-after-all ..."
+      npm install 'travis-after-all@^1.4.4'
 
-      if [ ! -e "$HOME/bats/bin/bats" ]                                       ;then
+      if [ -n "${BATS##[NFnf]*}" ] && [ ! -e "$HOME/bats/bin/bats" ]; then
          [ -n "$DEBUG_SCRIPTS" ] && pute 'Installing `bats` ...'
          go git clone --depth 1 "https://github.com/sstephenson/bats.git" "./bats"
          go ./bats/install.sh "$HOME/bats"
-      else
-         [ -n "$DEBUG_SCRIPTS" ] && pute 'Found `bats` in Travis cache'       ;fi
+      fi
 
-      go git clone --depth 1 "https://github.com/Paws/Rulebook.git" "./Test/Rulebook"
-                                                                              ;;
+      if [ -n "${RULEBOOK##[NFnf]*}" ]; then
+         [ -n "$DEBUG_SCRIPTS" ] && pute "Cloning Rulebook ..."
+         go git clone --depth 1 "https://github.com/Paws/Rulebook.git" "./Test/Rulebook"
+      fi
+
+      exit 0;;
+
    --test)
       [ -n "$DEBUG_SCRIPTS" ] && pute "Invoking tests"
 
-      if [ -z "$BATS" ];      then export BATS='yes'                          ;fi
-      if [ -z "$RULEBOOK" ];  then export RULEBOOK='yes'                      ;fi
-      if [ -z "$LETTERS" ];   then export LETTERS='yes'                       ;fi
+      export INTEGRATION=yes npm_package_config_mocha_reporter='list'
 
-      go npm run-script test -- --reporter list
-                                                                              ;;
+      if   [ -n "${BATS##[NFnf]*}" ];     then export RULEBOOK=no
+      elif [ -n "${RULEBOOK##[NFnf]*}" ]; then export BATS=no LETTERS=yes
+                                          else export BATS=no RULEBOOK=no     ;fi
+
+      go ./Scripts/test.sh;;
+
    --after)
-      go npm run-script coveralls
-                                                                              ;; esac; done
+      [ -n "$DEBUG_SCRIPTS" ] && pute "Finishing up"
+
+      export LETTERS=yes INTEGRATION=yes npm_package_config_mocha_reporter='dot'
+
+      if true; then
+         COVERAGE=yes go ./Scripts/test.sh
+      else
+         exit 0
+      fi
+      ;;
+
+esac; done
