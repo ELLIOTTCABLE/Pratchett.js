@@ -14,8 +14,9 @@ env:
    matrix:
     - UNIT=yes # dummy
     - BATS=yes
-    - RULEBOOK=yes
+   #- RULEBOOK=yes
    global:
+    - RULEBOOK=no # Pending completion of the queueless reactor!
     - CXX=g++-4.8
 addons:
    apt:

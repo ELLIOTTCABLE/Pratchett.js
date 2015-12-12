@@ -81,14 +81,17 @@ for ARG; do case $ARG in
 
       export LETTERS=yes INTEGRATION=yes npm_package_config_mocha_reporter='dot'
 
+      # On the last Travis worker, if the overall build has succeeded, we re-run *all* the tests to
+      # generate coverage information and submit it to Coveralls.io.
       if "$(npm bin)/travis-after-all"; then
-         # On the last Travis worker, if the overall build has succeeded, we re-run *all* the tests
-         # to generate coverage information and submit it to Coveralls.io.
-         export COVERAGE=yes BATS=yes RULEBOOK=yes LETTERS=yes
+         [ -n "$DEBUG_SCRIPTS" ] && pute "Build succeeded, generating coverage!"
+         export COVERAGE=yes BATS="${BATS:-yes}"
+         export RULEBOOK="${RULEBOOK:-yes}" LETTERS="${LETTERS:-yes}"
          go ./Scripts/travis.sh --prep
          go ./Scripts/test.sh
 
-         [ ! -s "$coverage_file" ] || exit 66
+         [ -n "$DEBUG_SCRIPTS" ] && pute "Coverage taken, sending '$coverage_file' to Coveralls"
+         [ -s "$coverage_file" ] || exit 66
          cat "$coverage_file" | "$(npm bin)/coveralls"
       else
          exit 0

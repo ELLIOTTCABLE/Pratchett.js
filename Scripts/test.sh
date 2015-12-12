@@ -65,7 +65,7 @@ if [ -n "${CI##[NFnf]*}" ]; then                                                
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling CI mode."
 
    # The Travis parallelizes across a matrix; and each invocation runs only a single suite.
-   [ -z "${VAR##[NFnf]*}" ] && [ -n "${BATS##[NFnf]*}${RULEBOOK##[NFnf]*}" ] && non_mocha=yes
+   [ -z "${COVERAGE##[NFnf]*}" ] && [ -n "${BATS##[NFnf]*}${RULEBOOK##[NFnf]*}" ] && non_mocha=yes
 fi
 
 if [ -n "${PRE_COMMIT##[NFnf]*}" ]; then                                         # 3.  $PRE_COMMIT
@@ -160,8 +160,7 @@ cache() {
    shasum "$source_dir"/* "$unit_dir"/* "$integration_dir"/* 2>/dev/null      ;}
 
 gen_cache() {
-  #if [ -z "${WATCH##[NFnf]*}" ] && [ -z "${INTEGRATION##[YTyt]*}" ]; then
-   if [ -z "${WATCH##[NFnf]*}" ]; then
+   if [ -z "${CI##[NFnf]*}${WATCH##[NFnf]*}${INTEGRATION##[YTyt]*}" ]; then
       [ -n "$DEBUG_SCRIPTS" ] && pute "Generating cache of successful test-status"
       cache >"$cache_file"
       true                                                                    ;fi ;}
