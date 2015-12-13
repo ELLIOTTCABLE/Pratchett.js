@@ -26,20 +26,20 @@ Paws.debugging.infect Paws
 # Core data-types
 # ===============
 # The Paws object-space implements a single graph (in the computer-science sense) of homogenous(!)
-# objects. Each object, or node in that graph, is called a `Thing`; and is singly-linked to an
+# objects. Each object, or node in that graph, is called a `Thing`; and is singly-linked² to an
 # ordered list of other nodes.
 #
-# The first member of the metadata on a `Thing` (referred to as the ‘noughtie’) is generally
+# The first member of the metadata-links¹ on a `Thing` (referred to as the ‘noughtie’) is generally
 # reserved for special use from within Paws; and thus Paws' lists are effectively one-indexed.
 #
-#  > In addition to these links to other nodes that *every* `Thing` has, some `Thing`s carry around
-#    additional information; these are implemented as additional JavaScript types, such as `Label`
-#    (which carries around identity, and a description in the form of a Unicode string) or
-#    `Execution` (which encapsulates procedure and execution-status information.)
+# In addition to these links to other nodes that every `Thing` has, some `Thing`s carry around
+# additional information; these are implemented as additional JavaScript types, such as `Label`
+# (which carries around identity, and a description in the form of a Unicode string) or `Execution`
+# (which encapsulates procedure and execution-status information.)
 #
-#    The Paws model is to consider that underlying information as ‘data’ (the actual *concerns* of a
-#    Paws program), and the links *between* those data as ‘metadata’; describing **the relationships
-#    amongst** the actual data.
+# The Paws model is to consider that underlying information as ‘data’ (the actual *concerns* of a
+# Paws program), and the links *between* those data as ‘metadata’; describing **the relationships
+# amongst** the actual data.
 #
 # Although objects appear from within Paws to be ordered lists of other objects; they are often
 # *treated* as ersatz key-value-dictionaries. To this purpose, a single key-value ‘pair’ is
@@ -52,24 +52,48 @@ Paws.debugging.infect Paws
 #
 # The default receiver for a flavour of object depends on the additional data it carries around
 # (that is, the JavaScript type of the node). For instance, the default receiver for plain `Thing`s
-# (those carrying no additional data around) is an equivalent to the `::find()` operation; that is,
-# to treat the subject-object as a dictionary, and the message-object as a key to search that
+# (those carrying no additional data around) is an equivalent to the `::find` operation; that is, to
+# treat the subject-object as a dictionary, and the message-object as a key to search that
 # dictionary for. The default for any object, however, can be overridden per-object, changing how a
 # given node in the graph responds to `Combination`s with other objects. (See the documentation for
 # `Execution` for more exposition on the evaluation model.)
 #
 # ---- ---- ----
 #
-# The links from one `Thing` to another are encoded as `Relation` objects, which are further
+# 1. The links from one `Thing` to another are encoded as `Relation` objects, which are further
 # annotated with the property of **‘ownership’**: an object that ‘owns’ an object below it in the
 # graph is claiming that object as a component of the *overall data-structure* that the parent
 # object represents. (Put simply: a series of ownership-annotated links in the datagraph describe a
 # single data-structure as a subgraph thereof.)
 #
-# These `Relation`s are stored in an ordered `Array`; manipulable via `::set()`, `::push()`,
-# `::pop()`, `::shift()`, and `::unshift()`. When structured as a dictionary (a list of key-value
-# ‘pairs’, usually created with `::define()`), the values are searchable by `::find()`; and the
-# apparent key / value of a pair are exposed by `::keyish()` and `::valueish()`.
+# 2. Note that although Paws objects are, by default, singly-linked, each `Thing` *also* includes
+# seperate reverse-links to all of the `Thing`s that ‘own’ it, to facilitate responsibility
+# calculations. (Although actual ownership flows only-downwards along the graph, responsibility
+# existing lower on the graph can still preclude owning ancestors from being adopted; so these back-
+# links are maintained on those descendants as hints that they have adopted.)
+#
+# ---- ---- ----
+#
+# `Thing`s are obtained via ...
+#  - direct creation `new Thing` with a list of children,
+#  - by `::clone`ing an existing `Thing`,
+#  - or by following a JavaScript template, with `.construct`, below.
+#
+# Their `Relation`s to children are stored in an ordered `Array`, manipulable ...
+#  - as an ordered set, via `::at`, `::set`, `::push`, `::pop`, `::shift`, and `::unshift`,
+#  - and as a dictionary, with ‘pairs’ created by `::define()` and queried by `::find`.
+#
+# The ownership amongst a structure's elements is exposed through:
+#  - `::own_at`, `::disown_at`, and `::is_owned_by`, to control and query children and parents'
+#    ownership relationships,
+#  - or directly, as `Relations`, via `::owned_by` and `::contained_by`. All methods that take a
+#    `Thing`, can also be given a pre-constructed `Relation` indicating the desired relationship. It
+#    won't be used directly, but the relationship will be imitated by the produced changes:
+#
+#         a_thing.set(1, another_thing.owned_by(a_thing))
+#         # Equivalent to:
+#         a_thing.set(1, another_thing)
+#         a_thing.own_at(1)
 Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    constructor: constructify(return:@) (elements...)->
       @id = uuid.v4()
