@@ -26,20 +26,20 @@ Paws.debugging.infect Paws
 # Core data-types
 # ===============
 # The Paws object-space implements a single graph (in the computer-science sense) of homogenous(!)
-# objects. Each object, or node in that graph, is called a `Thing`; and is singly-linked to an
+# objects. Each object, or node in that graph, is called a `Thing`; and is singly-linked² to an
 # ordered list of other nodes.
 #
-# The first member of the metadata on a `Thing` (referred to as the ‘noughtie’) is generally
+# The first member of the metadata-links¹ on a `Thing` (referred to as the ‘noughtie’) is generally
 # reserved for special use from within Paws; and thus Paws' lists are effectively one-indexed.
 #
-#  > In addition to these links to other nodes that *every* `Thing` has, some `Thing`s carry around
-#    additional information; these are implemented as additional JavaScript types, such as `Label`
-#    (which carries around identity, and a description in the form of a Unicode string) or
-#    `Execution` (which encapsulates procedure and execution-status information.)
+# In addition to these links to other nodes that every `Thing` has, some `Thing`s carry around
+# additional information; these are implemented as additional JavaScript types, such as `Label`
+# (which carries around identity, and a description in the form of a Unicode string) or `Execution`
+# (which encapsulates procedure and execution-status information.)
 #
-#    The Paws model is to consider that underlying information as ‘data’ (the actual *concerns* of a
-#    Paws program), and the links *between* those data as ‘metadata’; describing **the relationships
-#    amongst** the actual data.
+# The Paws model is to consider that underlying information as ‘data’ (the actual *concerns* of a
+# Paws program), and the links *between* those data as ‘metadata’; describing **the relationships
+# amongst** the actual data.
 #
 # Although objects appear from within Paws to be ordered lists of other objects; they are often
 # *treated* as ersatz key-value-dictionaries. To this purpose, a single key-value ‘pair’ is
@@ -52,39 +52,96 @@ Paws.debugging.infect Paws
 #
 # The default receiver for a flavour of object depends on the additional data it carries around
 # (that is, the JavaScript type of the node). For instance, the default receiver for plain `Thing`s
-# (those carrying no additional data around) is an equivalent to the `::find()` operation; that is,
-# to treat the subject-object as a dictionary, and the message-object as a key to search that
+# (those carrying no additional data around) is an equivalent to the `::find` operation; that is, to
+# treat the subject-object as a dictionary, and the message-object as a key to search that
 # dictionary for. The default for any object, however, can be overridden per-object, changing how a
 # given node in the graph responds to `Combination`s with other objects. (See the documentation for
 # `Execution` for more exposition on the evaluation model.)
 #
 # ---- ---- ----
 #
-# The links from one `Thing` to another are encoded as `Relation` objects, which are further
+# 1. The links from one `Thing` to another are encoded as `Relation` objects, which are further
 # annotated with the property of **‘ownership’**: an object that ‘owns’ an object below it in the
 # graph is claiming that object as a component of the *overall data-structure* that the parent
 # object represents. (Put simply: a series of ownership-annotated links in the datagraph describe a
 # single data-structure as a subgraph thereof.)
 #
-# These `Relation`s are stored in an ordered `Array`; manipulable via `::set()`, `::push()`,
-# `::pop()`, `::shift()`, and `::unshift()`. When structured as a dictionary (a list of key-value
-# ‘pairs’, usually created with `::define()`), the values are searchable by `::find()`; and the
-# apparent key / value of a pair are exposed by `::keyish()` and `::valueish()`.
+# 2. Note that although Paws objects are, by default, singly-linked, each `Thing` *also* includes
+# seperate reverse-links to all of the `Thing`s that ‘own’ it, to facilitate responsibility
+# calculations. (Although actual ownership flows only-downwards along the graph, responsibility
+# existing lower on the graph can still preclude owning ancestors from being adopted; so these back-
+# links are maintained on those descendants as hints that they have adopted.)
+#
+# ---- ---- ----
+#
+# `Thing`s are obtained via ...
+#  - direct creation `new Thing` with a list of children,
+#  - by `::clone`ing an existing `Thing`,
+#  - or by following a JavaScript template, with `.construct`, below.
+#
+# Their `Relation`s to children are stored in an ordered `Array`, manipulable ...
+#  - as an ordered set, via `::at`, `::set`, `::push`, `::pop`, `::shift`, and `::unshift`,
+#  - and as a dictionary, with ‘pairs’ created by `::define()` and queried by `::find`.
+#
+# The ownership amongst a structure's elements is exposed through:
+#  - `::own_at`, `::disown_at`, and `::is_owned_by`, to control and query children and parents'
+#    ownership relationships,
+#  - or directly, as `Relations`, via `::owned_by` and `::contained_by`. All methods that take a
+#    `Thing`, can also be given a pre-constructed `Relation` indicating the desired relationship. It
+#    won't be used directly, but the relationship will be imitated by the produced changes:
+#
+#         a_thing.set(1, another_thing.owned_by(a_thing))
+#         # Equivalent to:
+#         a_thing.set(1, another_thing)
+#         a_thing.own_at(1)
 Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    constructor: constructify(return:@) (elements...)->
       @id = uuid.v4()
       @metadata = new Array
+      @owners = new Array
       @push elements... if elements.length
 
       @metadata.unshift undefined if @_?.noughtify != no
 
    rename: selfify (name)-> @name = name
 
-   at:         (idx)->     @metadata[idx]?.to
-   set:        (idx, to)-> @metadata[idx] = new Relation this, to
+   # N.B.: Multiple Relations `from` and `to` the *same pair of Things* can exist in `@owners`,
+   # because they can exist in the @metadata of the parent, and one of them could be deleted,
+   # leaving the second.
+   _add_owner: (rel)-> @owners.push rel unless _.contains @owners, rel                   ;return rel
+   _del_owner: (rel)-> _.pull @owners, rel                                               ;return rel
 
-   own_at:     (idx)->     @metadata[idx] = @metadata[idx].as_owned()
-   disown_at:  (idx)->     @metadata[idx] = @metadata[idx].as_contained()
+   at:  (idx)->  @metadata[idx]?.to
+   set: (idx, it)->
+      prev = @metadata[idx]
+      rel  = @metadata[idx] = if it? then new Relation this, it
+
+      prev.to._del_owner prev if prev?.owns
+      rel .to._add_owner rel  if rel?.owns
+
+      rel
+
+   own_at: (idx)->
+      if (prev = @metadata[idx])? and not prev.owns
+         @metadata[idx] = prev.as_owned()
+         @metadata[idx].to._add_owner @metadata[idx]
+      else prev
+
+   disown_at: (idx)->
+      if (prev = @metadata[idx])? and prev.owns
+         @metadata[idx] = prev.as_contained()
+         @metadata[idx].to._del_owner prev
+         @metadata[idx]
+      else prev
+
+   # FIXME: Okay, this naming is becoming a mess.
+   is_owned_by: (other)->
+      if other instanceof Relation
+         _.contains @owners, other
+      else
+         _.any @owners, 'from', other
+
+   is_not_owned_by: (other)-> not @is_owned_by other
 
    inject: (things...)->
       @push ( _.flatten _.map things, (thing)-> thing.toArray() )...
@@ -98,23 +155,36 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          if it instanceof Thing
             rel = new Relation this, it
 
-         rel.owns = @_?.own if @_?.own?
-         return rel
+         rel?.owns = @_?.own if @_?.own?
+         rel.to._add_owner rel if rel?.owns
+
+         rel
 
       @metadata = @metadata.concat relations
 
    pop: ->
-      @metadata.pop()
+      rel = @metadata.pop()
+      rel.to._del_owner rel if rel?.owns
+      return rel?.to
+
    shift: ->
       noughty = @metadata.shift()
-      result = @metadata.shift()
+      rel     = @metadata.shift()
       @metadata.unshift noughty
-      result
+
+      rel.to._del_owner rel if rel?.owns
+      rel
+
    unshift: (other)->
-      # TODO: include-noughtie optional
+      @push other
+      rel = @metadata.pop()
+
       noughty = @metadata.shift()
-      @metadata.unshift other
+      @metadata.unshift rel
       @metadata.unshift noughty
+
+      rel.to._add_owner rel if rel?.owns
+      rel
 
    compare: (to)-> to == this
 
@@ -236,8 +306,10 @@ Thing.init_receiver = ->
 # A `Label` is a type of `Thing` which encapsulates a static Unicode string, serving two purposes:
 #
 # 1. Unique-comparison: Two `Label`s originally created with equivalent sequences of Unicode
-#    codepoints will `compare()` as equal. That is, across codebases, `Label`s share identity, even
-#    when they don't share objective content / metadata relationships.
+#    codepoints will `::compare` as equal. Across codebases, `Label`s share identity, even when they
+#    don't share objective content / metadata relationships.
+#
+#    That is: `foo ['bar']` will find the same object assigned with a different instance of `'bar'`.
 # 2. Description: Although not designed to be used to manipulate character-data as a general
 #    string-type, `Label`s can be used to associate an arbitrary Unicode sequence with some other
 #    data, as a name or description. (Hence, ‘label.’)
@@ -246,7 +318,7 @@ Thing.init_receiver = ->
 #
 # Due to their intented use as descriptions and comparators, the string-data associated with a
 # `Label` cannot be mutated after creation; and they cannot be combined or otherwise manipulated.
-# However, they *can* be `explode()`d into an ordered-list of individual codepoints, each
+# However, they *can* be `::explode`d into an ordered-list of individual codepoints, each
 # represented as a new `Label`; and then manipulated in that form. These poor-man's mutable-strings
 # (colloquially called ‘character soups’) are provided as a primitive form of string-manipulation.
 Paws.Label = Label = class Label extends Thing
@@ -296,7 +368,7 @@ Paws.Label = Label = class Label extends Thing
 # for the combination that caused it.
 #
 # Further, a crucial aspect of Paws is the ability to *branch* `Execution`-flow. This is acheived by
-# `clone()`ing a partially-evaluated `Execution`. As the original procedure progresses, its
+# `::clone`ing a partially-evaluated `Execution`. As the original procedure progresses, its
 # instructions are gradually processed and discarded; meanwhile, however, an earlier clone's will
 # *not* be. When so-branched, an `Execution`'s state is all duplicated to the clone, unaffected by
 # changes to the original `Execution`'s position or objective-context.
@@ -304,9 +376,9 @@ Paws.Label = Label = class Label extends Thing
 # **Nota bene:** While clones do not share *additions* to their respective context, `locals`, the
 #                clone made is *shallow in nature*. This means that the two `Execution`s' `locals`
 #                objects share the original assignments (that is, the original pairs) created prior
-#                to the cloning. This further means that either clone can modify an existing
-#                assignment instead of appending an overriding pair, thus making the change visible
-#                to prior clones, if desired.
+#                to the cloning. This further means that either branch can modify an existing
+#                assignment-pair on `locals` instead of `::define`ing a new, overriding pair, thus
+#                making the change visible to prior clones, if desired.
 #
 # ---- ---- ----
 #
@@ -316,7 +388,7 @@ Paws.Label = Label = class Label extends Thing
 # 2. a further stack of the `results` of outer `instruction`s,
 # 3. and its objective evaluation context, a `Thing` accessible as `locals`.
 #
-# The position is primarily maintained by `::advance()`; diving into and climbing back out of sub-
+# The position is primarily maintained by `::advance`; diving into and climbing back out of sub-
 # expressions to produce `Combination`s for the reactor. As it digs into a sub-expression, the
 # position in the outer `Expression` is maintained in the `instructions` stack; while the results of
 # the last `Combination` for each outer expression are correspondingly stored in `results`.
@@ -409,7 +481,7 @@ Paws.Execution = Execution = class Execution extends Thing
    # It usually only makes sense for this to be called after a response to the *previous*
    # combination has been signaled by `register_response` (obviously unless this is the first time
    # it's being advanced.) This also accepts an optional argument, the passing of which is identical
-   # to calling `register_response` with that value before-hand.
+   # to calling `::register_response` with that value before-hand.
    #
    # For combinations involving the start of a new expression, `null` will be returned as one part
    # of the `Combination`; this indicates no meaningful data from the stack for that node. (The
@@ -514,7 +586,7 @@ Paws.Execution = Execution = class Execution extends Thing
 # (Note that although the *enumerable properties* will be copied from the `Native` to a clone
 # thereof, the *object-identity* will obviously have changed.)
 #
-# Of great use, we also provide the `.synchronous()` convenience function; although most `Native`s
+# Of great use, we also provide the `.synchronous` convenience function; although most `Native`s
 # imitate fully-asynchronous, coroutine-style procedures, this function can be used to construct
 # faux-synchronous-style procedures that consume all of their parameters before evaluating and
 # producing a result. (This expidently allows `Native` procedures to be written as single,
@@ -655,6 +727,9 @@ Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
    constructor: constructify(return:@) (from, to, owns)->
       if from instanceof Relation
          from.clone this
+      else if to instanceof Relation
+         to.clone this
+         @from = from
       else
          @from = from
          @to   = to
@@ -740,7 +815,7 @@ Paws.Liability.Family = LiabilityFamily = delegated('custodians', Array) class L
 
 # A `Combination` represents a single operation in the Paws semantic. An instance of this class
 # contains the information necessary to process a pending combo (as returned by
-# `Execution#next`).
+# `Execution::next`).
 Paws.Combination = Combination = class Combination
    constructor: constructify (@subject, @message)->
 
@@ -782,8 +857,8 @@ Paws.Position = Position = class Position
 # member of this class, which is evaluable once preceding operations in a given `Execution`'s queue
 # are complete.
 #
-# `Operation` types are added with `Operation.register`; they are written as a function executed in
-# the context of the `Execution` to which they are applied, passed the `params` stored on the
+# `Operation` types are added with `.register`; they are written as a function executed in the
+# context of the `Execution` to which they are applied, passed the `params` stored on the
 # `Operation` instance in the queue.
 #
 # Operations are not removed from a queue (as completed) until they indicate success by returning a
@@ -791,10 +866,10 @@ Paws.Position = Position = class Position
 #
 # Available operations:
 #
-#  - `advance`: given a resumption-value, this will apply that value to the `Execution` in question,
-#    as the result of the previous `Combo` generated by it. This will advance the evaluation of that
-#    `Execution` by one step, generally producing the *next* `Combo`.
-#  - `adopt`: given a target object, block further operations (so, advancements) in this
+#  - `'advance'`: given a resumption-value, this will apply that value to the `Execution` in
+#    question, as the result of the previous `Combo` generated by it. This will advance the
+#    evaluation of that `Execution` by one step, generally producing the *next* `Combo`.
+#  - `'adopt'`: given a target object, block further operations (so, advancements) in this
 #    `Execution`'s queue until it is available for responsibility; then take that responsibility.
 Paws.Operation = Operation = class Operation
    constructor: constructify(return:@) (@op, @params...)->
@@ -898,7 +973,7 @@ Label::toString = ->
 # By default, this will print a serialized version of the `Execution`, with `focus` on the current
 # `Thing`, and a type-tag. If explicitly invoked with `tag: true`, then the serialized content will
 # be omitted; if instead with `serialize: true`, then the tag will be omitted.
-Execution::tostring = ->
+Execution::toString = ->
    if @_?.tag != yes or @_?.serialize == yes
       output = "{ #{@begin.toString focus: @current().valueOf()} }"
 
