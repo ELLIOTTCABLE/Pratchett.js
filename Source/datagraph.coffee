@@ -306,8 +306,10 @@ Thing.init_receiver = ->
 # A `Label` is a type of `Thing` which encapsulates a static Unicode string, serving two purposes:
 #
 # 1. Unique-comparison: Two `Label`s originally created with equivalent sequences of Unicode
-#    codepoints will `compare()` as equal. That is, across codebases, `Label`s share identity, even
-#    when they don't share objective content / metadata relationships.
+#    codepoints will `::compare` as equal. Across codebases, `Label`s share identity, even when they
+#    don't share objective content / metadata relationships.
+#
+#    That is: `foo ['bar']` will find the same object assigned with a different instance of `'bar'`.
 # 2. Description: Although not designed to be used to manipulate character-data as a general
 #    string-type, `Label`s can be used to associate an arbitrary Unicode sequence with some other
 #    data, as a name or description. (Hence, ‘label.’)
@@ -316,7 +318,7 @@ Thing.init_receiver = ->
 #
 # Due to their intented use as descriptions and comparators, the string-data associated with a
 # `Label` cannot be mutated after creation; and they cannot be combined or otherwise manipulated.
-# However, they *can* be `explode()`d into an ordered-list of individual codepoints, each
+# However, they *can* be `::explode`d into an ordered-list of individual codepoints, each
 # represented as a new `Label`; and then manipulated in that form. These poor-man's mutable-strings
 # (colloquially called ‘character soups’) are provided as a primitive form of string-manipulation.
 Paws.Label = Label = class Label extends Thing
@@ -366,7 +368,7 @@ Paws.Label = Label = class Label extends Thing
 # for the combination that caused it.
 #
 # Further, a crucial aspect of Paws is the ability to *branch* `Execution`-flow. This is acheived by
-# `clone()`ing a partially-evaluated `Execution`. As the original procedure progresses, its
+# `::clone`ing a partially-evaluated `Execution`. As the original procedure progresses, its
 # instructions are gradually processed and discarded; meanwhile, however, an earlier clone's will
 # *not* be. When so-branched, an `Execution`'s state is all duplicated to the clone, unaffected by
 # changes to the original `Execution`'s position or objective-context.
@@ -374,9 +376,9 @@ Paws.Label = Label = class Label extends Thing
 # **Nota bene:** While clones do not share *additions* to their respective context, `locals`, the
 #                clone made is *shallow in nature*. This means that the two `Execution`s' `locals`
 #                objects share the original assignments (that is, the original pairs) created prior
-#                to the cloning. This further means that either clone can modify an existing
-#                assignment instead of appending an overriding pair, thus making the change visible
-#                to prior clones, if desired.
+#                to the cloning. This further means that either branch can modify an existing
+#                assignment-pair on `locals` instead of `::define`ing a new, overriding pair, thus
+#                making the change visible to prior clones, if desired.
 #
 # ---- ---- ----
 #
@@ -386,7 +388,7 @@ Paws.Label = Label = class Label extends Thing
 # 2. a further stack of the `results` of outer `instruction`s,
 # 3. and its objective evaluation context, a `Thing` accessible as `locals`.
 #
-# The position is primarily maintained by `::advance()`; diving into and climbing back out of sub-
+# The position is primarily maintained by `::advance`; diving into and climbing back out of sub-
 # expressions to produce `Combination`s for the reactor. As it digs into a sub-expression, the
 # position in the outer `Expression` is maintained in the `instructions` stack; while the results of
 # the last `Combination` for each outer expression are correspondingly stored in `results`.
@@ -479,7 +481,7 @@ Paws.Execution = Execution = class Execution extends Thing
    # It usually only makes sense for this to be called after a response to the *previous*
    # combination has been signaled by `register_response` (obviously unless this is the first time
    # it's being advanced.) This also accepts an optional argument, the passing of which is identical
-   # to calling `register_response` with that value before-hand.
+   # to calling `::register_response` with that value before-hand.
    #
    # For combinations involving the start of a new expression, `null` will be returned as one part
    # of the `Combination`; this indicates no meaningful data from the stack for that node. (The
@@ -584,7 +586,7 @@ Paws.Execution = Execution = class Execution extends Thing
 # (Note that although the *enumerable properties* will be copied from the `Native` to a clone
 # thereof, the *object-identity* will obviously have changed.)
 #
-# Of great use, we also provide the `.synchronous()` convenience function; although most `Native`s
+# Of great use, we also provide the `.synchronous` convenience function; although most `Native`s
 # imitate fully-asynchronous, coroutine-style procedures, this function can be used to construct
 # faux-synchronous-style procedures that consume all of their parameters before evaluating and
 # producing a result. (This expidently allows `Native` procedures to be written as single,
@@ -813,7 +815,7 @@ Paws.Liability.Family = LiabilityFamily = delegated('custodians', Array) class L
 
 # A `Combination` represents a single operation in the Paws semantic. An instance of this class
 # contains the information necessary to process a pending combo (as returned by
-# `Execution#next`).
+# `Execution::next`).
 Paws.Combination = Combination = class Combination
    constructor: constructify (@subject, @message)->
 
@@ -855,8 +857,8 @@ Paws.Position = Position = class Position
 # member of this class, which is evaluable once preceding operations in a given `Execution`'s queue
 # are complete.
 #
-# `Operation` types are added with `Operation.register`; they are written as a function executed in
-# the context of the `Execution` to which they are applied, passed the `params` stored on the
+# `Operation` types are added with `.register`; they are written as a function executed in the
+# context of the `Execution` to which they are applied, passed the `params` stored on the
 # `Operation` instance in the queue.
 #
 # Operations are not removed from a queue (as completed) until they indicate success by returning a
@@ -864,10 +866,10 @@ Paws.Position = Position = class Position
 #
 # Available operations:
 #
-#  - `advance`: given a resumption-value, this will apply that value to the `Execution` in question,
-#    as the result of the previous `Combo` generated by it. This will advance the evaluation of that
-#    `Execution` by one step, generally producing the *next* `Combo`.
-#  - `adopt`: given a target object, block further operations (so, advancements) in this
+#  - `'advance'`: given a resumption-value, this will apply that value to the `Execution` in
+#    question, as the result of the previous `Combo` generated by it. This will advance the
+#    evaluation of that `Execution` by one step, generally producing the *next* `Combo`.
+#  - `'adopt'`: given a target object, block further operations (so, advancements) in this
 #    `Execution`'s queue until it is available for responsibility; then take that responsibility.
 Paws.Operation = Operation = class Operation
    constructor: constructify(return:@) (@op, @params...)->

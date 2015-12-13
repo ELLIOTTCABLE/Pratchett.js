@@ -97,11 +97,12 @@ module.exports = debugging =
    #    parsed when set (since all envars are string-ish.)
    #  - `value:` A default value for the setting, if not set.
    #  - `handler:` A custom function to interpret the string-ish envar into a JavaScript value for
-   #    the setting in question (overrides the default `type`-predicated parsers.)
+   #    the setting in question. If `type` is *also* specified, then the `handler` receives the
+   #    pre-parsed data.
    #  - `immutable:` Can be set to true, preventing this setting from being modified
    #    programmatically after load-time. (i.e. ‘environment overrides API.’)
    #  - `infect:` Whether or not `debugging.infect` will expose this setting on infectees (i.e. the
-   #    `Paws` export.)
+   #    `Paws` export.) The settings are *always* exposed on the `debugging` object, either way.
    #
    # All are optional. Without any set, `ENV` simply creates a new boolean setting that defaults to
    # `false`:
