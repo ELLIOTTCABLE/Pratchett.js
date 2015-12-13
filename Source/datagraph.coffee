@@ -74,17 +74,50 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    constructor: constructify(return:@) (elements...)->
       @id = uuid.v4()
       @metadata = new Array
+      @owners = new Array
       @push elements... if elements.length
 
       @metadata.unshift undefined if @_?.noughtify != no
 
    rename: selfify (name)-> @name = name
 
-   at:         (idx)->     @metadata[idx]?.to
-   set:        (idx, to)-> @metadata[idx] = new Relation this, to
+   # N.B.: Multiple Relations `from` and `to` the *same pair of Things* can exist in `@owners`,
+   # because they can exist in the @metadata of the parent, and one of them could be deleted,
+   # leaving the second.
+   _add_owner: (rel)-> @owners.push rel unless _.contains @owners, rel                   ;return rel
+   _del_owner: (rel)-> _.pull @owners, rel                                               ;return rel
 
-   own_at:     (idx)->     @metadata[idx] = @metadata[idx].as_owned()
-   disown_at:  (idx)->     @metadata[idx] = @metadata[idx].as_contained()
+   at:  (idx)->  @metadata[idx]?.to
+   set: (idx, it)->
+      prev = @metadata[idx]
+      rel  = @metadata[idx] = if it? then new Relation this, it
+
+      prev.to._del_owner prev if prev?.owns
+      rel .to._add_owner rel  if rel?.owns
+
+      rel
+
+   own_at: (idx)->
+      if (prev = @metadata[idx])? and not prev.owns
+         @metadata[idx] = prev.as_owned()
+         @metadata[idx].to._add_owner @metadata[idx]
+      else prev
+
+   disown_at: (idx)->
+      if (prev = @metadata[idx])? and prev.owns
+         @metadata[idx] = prev.as_contained()
+         @metadata[idx].to._del_owner prev
+         @metadata[idx]
+      else prev
+
+   # FIXME: Okay, this naming is becoming a mess.
+   is_owned_by: (other)->
+      if other instanceof Relation
+         _.contains @owners, other
+      else
+         _.any @owners, 'from', other
+
+   is_not_owned_by: (other)-> not @is_owned_by other
 
    inject: (things...)->
       @push ( _.flatten _.map things, (thing)-> thing.toArray() )...
@@ -98,23 +131,36 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          if it instanceof Thing
             rel = new Relation this, it
 
-         rel.owns = @_?.own if @_?.own?
-         return rel
+         rel?.owns = @_?.own if @_?.own?
+         rel.to._add_owner rel if rel?.owns
+
+         rel
 
       @metadata = @metadata.concat relations
 
    pop: ->
-      @metadata.pop()
+      rel = @metadata.pop()
+      rel.to._del_owner rel if rel?.owns
+      return rel?.to
+
    shift: ->
       noughty = @metadata.shift()
-      result = @metadata.shift()
+      rel     = @metadata.shift()
       @metadata.unshift noughty
-      result
+
+      rel.to._del_owner rel if rel?.owns
+      rel
+
    unshift: (other)->
-      # TODO: include-noughtie optional
+      @push other
+      rel = @metadata.pop()
+
       noughty = @metadata.shift()
-      @metadata.unshift other
+      @metadata.unshift rel
       @metadata.unshift noughty
+
+      rel.to._add_owner rel if rel?.owns
+      rel
 
    compare: (to)-> to == this
 
@@ -655,6 +701,9 @@ Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
    constructor: constructify(return:@) (from, to, owns)->
       if from instanceof Relation
          from.clone this
+      else if to instanceof Relation
+         to.clone this
+         @from = from
       else
          @from = from
          @to   = to
@@ -898,7 +947,7 @@ Label::toString = ->
 # By default, this will print a serialized version of the `Execution`, with `focus` on the current
 # `Thing`, and a type-tag. If explicitly invoked with `tag: true`, then the serialized content will
 # be omitted; if instead with `serialize: true`, then the tag will be omitted.
-Execution::tostring = ->
+Execution::toString = ->
    if @_?.tag != yes or @_?.serialize == yes
       output = "{ #{@begin.toString focus: @current().valueOf()} }"
 

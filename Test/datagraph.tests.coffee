@@ -23,8 +23,21 @@ describe "Paws' Data types:", ->
 
          it 'should copy data to a new Relation if passed an existing one', ->
             rel = new Relation new Thing, new Thing, yes
+
+            clone = new Relation rel
+            expect(clone.from).to.not.be.a Relation # /reg
+
             expect(new Relation rel).to.not.be rel
             expect(new Relation rel).to.eql rel
+
+            new_parent = new Thing
+            another_clone = new Relation new_parent, rel
+            expect(another_clone).to.not.be rel
+            expect(another_clone.owns).to.equal rel.owns
+            expect(another_clone.to)  .to.equal rel.to
+            expect(another_clone.from).to.not.equal rel.from
+
+            expect(another_clone.from).to.be new_parent
 
          describe '#clone', ->
             it 'should return a new Relation', ->
@@ -182,6 +195,96 @@ describe "Paws' Data types:", ->
          expect(thing.metadata[2]).to.be.a Relation
          expect(thing.metadata[2].to).to.be child2
 
+      it 'can provide Relations to itself', ->
+         a_parent = new Thing; a_child  = new Thing; another_child = new Thing
+
+         result = a_child.owned_by a_parent
+         expect(result).to.be.a Relation
+         expect(result).to.be.owned()
+         expect(result.from).to.be a_parent
+         expect(result.to)  .to.be a_child
+
+         result = another_child.contained_by a_parent
+         expect(result).to.be.a Relation
+         expect(result).not.to.be.owned()
+         expect(result.from).to.be a_parent
+         expect(result.to)  .to.be another_child
+
+      it 'dually-links children added as owned', ->
+         a_parent = new Thing; a_child  = new Thing; another_child = new Thing; other = new Thing
+
+         expect(a_child).to.have.property 'owners'
+         expect(a_child.owners).to.be.an 'array'
+         expect(a_child.owners).to.have.length 0
+
+         a_parent.push a_child.owned_by(a_parent), other, another_child.owned_by(a_parent)
+         expect(a_child).to.have.property 'owners'
+         expect(a_child.owners).to.be.an 'array'
+         expect(a_child.owners).to.have.length 1
+
+         expect(a_child.owners[0]).to.be.a Relation
+         expect(a_child.owners).to.contain a_parent.metadata[1]
+         expect(another_child.owners).to.contain a_parent.metadata[3]
+
+         expect(other.owners).to.be.empty()
+
+         # FIXME: Move to their own tests
+         yet_another_thing = new Thing
+         a_parent.unshift yet_another_thing.owned_by(a_parent)
+         expect(yet_another_thing.owners).to.contain a_parent.metadata[1]
+
+         one_last_thing = new Thing
+         a_parent.set 1, one_last_thing.owned_by(a_parent)
+         expect(one_last_thing.owners).to.contain a_parent.metadata[1]
+
+      it 'removes reverse links on children when removing as a parent', ->
+         first = new Thing; second = new Thing; third = new Thing
+         a_parent = new Thing first.owned_by(a_parent), second.owned_by(a_parent), third.owned_by(a_parent)
+
+         expect(first.owners) .to.have.length 1
+         expect(second.owners).to.have.length 1
+         expect(third.owners) .to.have.length 1
+
+         a_parent.set 2, undefined
+         expect(second.owners).to.have.length 0
+
+         a_parent.shift()
+         expect(first.owners) .to.have.length 0
+
+         a_parent.pop()
+         expect(third.owners) .to.have.length 0
+
+      it 'removes reverse links on children when disowning'
+
+      it 'maintains reverse links when directly setting elements by index', ->
+         a_parent = new Thing; a_child  = new Thing; another_child = new Thing; other = new Thing
+         a_parent.push a_child.owned_by(a_parent), other
+
+         original_relation = a_parent.metadata[1]
+         expect(a_child.owners).to.contain original_relation
+
+         a_parent.set 1, another_child.owned_by(a_parent)
+         expect(a_parent.metadata[1]).to.not.be original_relation
+         expect(a_child.owners).to.be.empty()
+         expect(another_child.owners).to.contain a_parent.metadata[1]
+
+      it 'exposes tools to directly own or disown chilren', ->
+         a_parent = new Thing; a_child  = new Thing; another_child = new Thing
+         a_parent = new Thing a_child.owned_by(a_parent), another_child
+
+         expect(a_parent.metadata[1]).to.be.owned()
+         expect(a_parent.metadata[2]).to.not.be.owned()
+
+         a_parent.disown_at 1
+         expect(a_parent.metadata[1]).to.not.be.owned()
+         expect(a_child.owners).to.be.empty()
+
+         a_parent.own_at 2
+         expect(a_parent.metadata[2]).to.be.owned()
+         expect(another_child.owners).to.not.be.empty()
+         expect(another_child.is_owned_by a_parent).to.be yes
+
+
       describe '#clone', ->
          it 'should return a new Thing', ->
             thing = new Thing
@@ -220,10 +323,42 @@ describe "Paws' Data types:", ->
             expect(thing2.metadata).to.not.be old_metadata
 
       describe '#toArray', ->
-         it 'reduces Things to an Array'
-         it 'excludes the noughty by default'
-         it 'maintains indices'
-         it 'contains Things, not the Relation members of the Thing'
+         it 'reduces Things to an Array', ->
+            it = new Thing
+            expect(-> it.toArray()).to.not.throwException()
+            expect(   it.toArray()).to.be.an 'array'
+            expect(   it.toArray()).to.be.empty()
+
+            another = new Thing new Thing, new Thing, new Thing
+            expect(another.toArray()).to.be.an 'array'
+            expect(another.toArray()).to.not.be.empty()
+
+         it 'contains Things, not the Relation objects from the receiver', ->
+            first = new Thing; second = new Thing; third = new Thing
+            it = new Thing first, second, third
+
+            array = it.toArray()
+            expect(array).to.have.length 3
+            expect(array[0]).to.not.be.a Relation
+            expect(array[0]).to.be.a Thing
+
+         it 'excludes the noughty by default', ->
+            first = new Thing; second = new Thing; third = new Thing
+            it = new Thing first, second, third
+
+            array = it.toArray()
+            expect(array).to.have.length 3
+            expect(array[0]).to.be first
+
+         it 'handles empty elements, maintaining indices', ->
+            first = new Thing; third = new Thing
+            it = new Thing first, undefined, third
+
+            array = it.toArray()
+            expect(array).to.have.length 3
+            expect(array[0]).to.be first
+            expect(array[1]).to.be undefined
+            expect(array[2]).to.be third
 
       it 'compares by identity', ->
          thing1 = new Label 'foo'
