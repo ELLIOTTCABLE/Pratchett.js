@@ -14,7 +14,7 @@ describe.skip "Paws' Rulebook support:", ->
    Rule       = require '../Source/rule.coffee'
    Collection = Rule.Collection
 
-   describe 'Rule', ->
+   describe 'Rule', -> # ---- ---- ---- ---- ----                                               Rule
       env = undefined
       beforeEach ->
          (new Collection).activate()
@@ -54,23 +54,7 @@ describe.skip "Paws' Rulebook support:", ->
          rule.dispatch()
          expect(body).was.calledOnce()
 
-      it 'should add itself to a passed collection', ->
-         coll  = new Collection
-         rule  = new Rule env, 'a test', new Execution, coll
-
-         expect(coll.rules).to.contain rule
-
-      it 'should add itself to the current collection if none is passed', ->
-         coll  = new Collection
-         coll.activate()
-         rule  = new Rule env, 'a test', new Execution
-
-         expect(coll.rules).to.contain rule
-
-      it 'can be created without any Collection at all', ->
-         expect(-> new Rule env, 'a test', new Execution).to.not.throwException()
-
-      it 'should store status when when passed or failed', ->
+      it 'should store status when passed or failed', ->
          rule  = new Rule env, 'a test', new Execution
          rule.pass()
          expect(rule.status).to.be.ok()
@@ -94,6 +78,23 @@ describe.skip "Paws' Rulebook support:", ->
 
          rule.on 'complete', listener
          expect(listener).was.calledOnce()
+
+      describe '~ the collection thereof', ->
+         it 'should add itself to a passed collection', ->
+            coll  = new Collection
+            rule  = new Rule env, 'a test', new Execution, coll
+
+            expect(coll.rules).to.contain rule
+
+         it 'should add itself to the current collection if none is passed', ->
+            coll  = new Collection
+            coll.activate()
+            rule  = new Rule env, 'a test', new Execution
+
+            expect(coll.rules).to.contain rule
+
+         it 'can be created without any Collection at all', ->
+            expect(-> new Rule env, 'a test', new Execution).to.not.throwException()
 
       describe '#eventually', ->
          it 'should take a block', ->
@@ -173,12 +174,22 @@ describe.skip "Paws' Rulebook support:", ->
 
          it "should accept string keywords to generate the 'eventually' block"
 
-      describe 'Collections', ->
-         it 'should exist', ->
-            expect(Collection).to.be.ok()
-         it 'should construct', ->
-            expect(-> new Collection).not.to.throwException()
+   describe 'Collection', -> # ---- ---- ---- ---- ----                                   Collection
 
+      it 'should exist', ->
+         expect(Collection).to.be.ok()
+      it 'should construct', ->
+         expect(-> new Collection).not.to.throwException()
+
+      it 'can hold rules', ->
+         coll = new Collection
+         rule = new Rule env, 'a test', new Execution
+
+         expect(coll.rules).to.not.contain rule
+         coll.push rule
+         expect(coll.rules).to.contain rule
+
+      describe '.current', ->
          it.skip 'should generate a new Collection when none exists.', ->
             # I can't think of a way to test this.
             expect(Collection.current()).to.be.a Collection
@@ -193,14 +204,8 @@ describe.skip "Paws' Rulebook support:", ->
             coll.activate()
             expect(Collection.current()).to.be coll
 
-         it 'can hold rules', ->
-            coll = new Collection
-            rule = new Rule env, 'a test', new Execution
 
-            expect(coll.rules).to.not.contain rule
-            coll.push rule
-            expect(coll.rules).to.contain rule
-
+      describe '::dispatch', ->
          it "doesn't invoke rules when not dispatching", ->
             coll = new Collection
             test = sinon.spy()
@@ -228,6 +233,7 @@ describe.skip "Paws' Rulebook support:", ->
             coll.push rule
             expect(rule.dispatch).was.calledOnce()
 
+      describe '::close', ->
          it 'will not accept new rules after closing', ->
             coll = new Collection output: no
             coll.dispatch()
@@ -253,6 +259,7 @@ describe.skip "Paws' Rulebook support:", ->
             rule2.pass()
             expect(listener).was.calledOnce()
 
+      describe '::report', ->
          it 'prints nothing when not reporting', ->
             stream = { write: sinon.spy() }
             coll = new Collection stream

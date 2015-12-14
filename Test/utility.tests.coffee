@@ -5,16 +5,17 @@ Paws   = require "../Source/Paws.coffee"
 
 describe "Paws' utilities:", ->
    _ = utilities = require "../Source/utilities.coffee"
+
    it 'should exist', ->
       expect(utilities).to.be.ok()
 
-   describe 'selfify()', ->
+   describe 'selfify()', -> # ---- ---- ---- ---- ----                                     selfify()
       composed = utilities.selfify -> 'whee'
       it 'should always return the `this` value', ->
          object = new Object
          expect(composed.call object).to.be object
 
-   describe 'modifier()', ->
+   describe 'modifier()', -> # ---- ---- ---- ---- ----                                   modifier()
       composed = utilities.modifier (foo)-> return 'yep' if foo == 'foo'
       it 'should return the return-value of the body ...', ->
          expect(composed 'foo').to.be 'yep'
@@ -23,7 +24,7 @@ describe "Paws' utilities:", ->
          expect(composed object).to.be object
 
 
-   describe 'constructify()', ->
+   describe 'constructify()', -> # ---- ---- ---- ---- ----                           constructify()
       constructify = _.constructify
 
       it 'basically works', ->
@@ -137,13 +138,14 @@ describe "Paws' utilities:", ->
          class Klass
             constructor: constructify ->
          instance = new Klass
+         # FIXME: Why is this commented out?
         #expect(instance.constructor.__name__).to.be 'Klass'
 
          instance = Klass()
          expect(instance.constructor.__name__).to.be 'Klass'
 
 
-   describe 'parameterizable()', ->
+   describe 'parameterizable()', -> # ---- ---- ---- ---- ----                     parameterizable()
       _.parameterizable class Twat
          constructor: -> return this
 
@@ -165,7 +167,7 @@ describe "Paws' utilities:", ->
             complete()
          , 0
 
-   describe 'delegated()', ->
+   describe 'delegated()', -> # ---- ---- ---- ---- ----                                 delegated()
       it 'should create definitions for super methods', ->
          class Delegatee
             operate: (arg)-> return this: this, argument: arg

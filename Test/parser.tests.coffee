@@ -6,7 +6,6 @@ Paws   = require '../Source/Paws.coffee'
 ,  Relation, Combination, Position, Mask
 ,  parse, debugging, utilities: _                                                           } = Paws
 
-
 describe 'Parser', ->
    it 'exists', ->
       expect(parse).to.be.ok()
@@ -16,7 +15,7 @@ describe 'Parser', ->
    Expression  = parse.Expression
    Context     = parse.Context
 
-   describe 'Context', ->
+   describe 'Context', -> # ---- ---- ---- ---- ----                                         Context
       it 'exists', ->
          expect(Context).to.be.ok()
          expect(Context).to.be.a 'function'
@@ -56,7 +55,7 @@ describe 'Parser', ->
          Context.on an_object, some_text, 4, 6
          expect(Context.for(an_object).after()).to.be ' ghi'
 
-   describe 'Expression', ->
+   describe 'Expression', -> # ---- ---- ---- ---- ----                                   Expression
       it 'exists', ->
          expect(Expression).to.be.ok()
          expect(Expression).to.be.a 'function'
@@ -221,7 +220,7 @@ describe 'Parser', ->
    # I need to write much more in-depth parser tests; preferably something that doesn't require five
    # lines of code to check a single word. (Some Stack Overflow genius suggests an intermediate-form
    # XML parse-structure exclusive to your test-base?)
-   describe 'parses ...', ->
+   describe 'parses ...', -> # ---- ---- ---- ---- ----                                      parsing
       it 'nothing', ->
          structure = parse('')
          expect(structure).to.be.ok()
