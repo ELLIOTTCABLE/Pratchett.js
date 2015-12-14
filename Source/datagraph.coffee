@@ -25,6 +25,7 @@ Paws.debugging.infect Paws
 
 # Core data-types
 # ===============
+
 # The Paws object-space implements a single graph (in the computer-science sense) of homogenous(!)
 # objects. Each object, or node in that graph, is called a `Thing`; and is singly-linked² to an
 # ordered list of other nodes.
@@ -95,6 +96,7 @@ Paws.debugging.infect Paws
 #         a_thing.set(1, another_thing)
 #         a_thing.own_at(1)
 Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
+
    constructor: constructify(return:@) (elements...)->
       @id = uuid.v4()
       @metadata = new Array
@@ -103,13 +105,58 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       @metadata.unshift undefined if @_?.noughtify != no
 
-   rename: selfify (name)-> @name = name
+   # Constructs a generic ‘key/value’ style `Thing` from a `representation` (a JavaScript `Object`-
+   # hash) thereof. This convenience method expects arguments constructed as pairs of 1. any string
+   # (as the key, which will be converted into the `Label`), and 2. a Paws `Thing`-subclass (as the
+   # value.) These may be nested.
+   #
+   #  > For instance, given `{foo: thing_A, bar: thing_B}`, `construct()` will product a `Thing`
+   #    resembling the following (disregarding noughties):
+   #
+   #        ((‘foo’, thing_B), (‘bar’, thing_B))
+   #
+   # The ‘pair-ish’ values are always owned by their container; as are, by default, the ‘leaf’
+   # objects passed in. (The latter is a behaviour configurable by `.with(own: no)`.)
+   #
+   # @option own: Construct the structure as as `own`ing newly-created sub-Things
+   # @option names: `rename` the constructed `Thing`s according to the key they're being assigned to
+   @construct: (representation)->
+      pairs = for key, value of representation
 
-   # N.B.: Multiple Relations `from` and `to` the *same pair of Things* can exist in `@owners`,
-   # because they can exist in the @metadata of the parent, and one of them could be deleted,
-   # leaving the second.
-   _add_owner: (rel)-> @owners.push rel unless _.contains @owners, rel                   ;return rel
-   _del_owner: (rel)-> _.pull @owners, rel                                               ;return rel
+         if _.isFunction value
+            value = Native.synchronous value
+
+         else unless value instanceof Thing or value instanceof Relation
+            value = @construct value
+
+         leave_ownership_alone = value instanceof Relation
+         should_own = @_?.own ? (if leave_ownership_alone then undefined else yes)
+
+         rel.to.rename key if @_?.names
+         Thing.pair key, value, should_own
+
+      return Thing.with(own: yes) pairs...
+
+   # ### Common ###
+
+   # Creates a copy of the `Thing` it is called on. Alternatively, can be given an extant `Thing`
+   # copy this `Thing` *to*, over-writing that `Thing`'s metadata. In the process, the
+   # `Relation`s within this relation are themselves cloned, so that changes to the new clone's
+   # ownership don't affect the original.
+   clone: (to)->
+      to ?= new Thing.with(noughtify: no)()
+      to.name = @name unless to.name?
+
+      to.metadata = @metadata.map (rel)->
+         rel = rel?.clone()
+         rel?.from = to
+         rel
+
+      return to
+
+   compare: (to)-> to == this
+
+   # ### ‘Array-ish’ metadata manipulation ###
 
    at:  (idx)->  @metadata[idx]?.to
    set: (idx, it)->
@@ -120,31 +167,6 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       rel .to._add_owner rel  if rel?.owns
 
       rel
-
-   own_at: (idx)->
-      if (prev = @metadata[idx])? and not prev.owns
-         @metadata[idx] = prev.as_owned()
-         @metadata[idx].to._add_owner @metadata[idx]
-      else prev
-
-   disown_at: (idx)->
-      if (prev = @metadata[idx])? and prev.owns
-         @metadata[idx] = prev.as_contained()
-         @metadata[idx].to._del_owner prev
-         @metadata[idx]
-      else prev
-
-   # FIXME: Okay, this naming is becoming a mess.
-   is_owned_by: (other)->
-      if other instanceof Relation
-         _.contains @owners, other
-      else
-         _.any @owners, 'from', other
-
-   is_not_owned_by: (other)-> not @is_owned_by other
-
-   inject: (things...)->
-      @push ( _.flatten _.map things, (thing)-> thing.toArray() )...
 
    push: (elements...)->
       relations = elements.map (it)=>
@@ -186,22 +208,23 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       rel.to._add_owner rel if rel?.owns
       rel
 
-   compare: (to)-> to == this
+   # ### ‘Dictionary-ish’ metadata manipulation ###
 
-   # Creates a copy of the `Thing` it is called on. Alternatively, can be given an extant `Thing`
-   # copy this `Thing` *to*, over-writing that `Thing`'s metadata. In the process, the
-   # `Relation`s within this relation are themselves cloned, so that changes to the new clone's
-   # ownership don't affect the original.
-   clone: (to)->
-      to ?= new Thing.with(noughtify: no)()
-      to.name = @name unless to.name?
+   # Convenience method to create a ‘pair-ish’ `Thing` (one with only two members, the first of
+   # which is a string-ish ‘key.’)
+   @pair: (key, value, own)->
+      it = new Thing
+      it.push Label(key).owned_by it
+      it.push value.contained_by(it, own) if value
+      return it
 
-      to.metadata = @metadata.map (rel)->
-         rel = rel?.clone()
-         rel?.from = to
-         rel
-
-      return to
+   # A further convenience to add a new pair to the end of a ‘dictionary-ish’ `Thing`.
+   #
+   # The pair-object itself is always owned by the receiver `Thing`; but the third `own` argument
+   # specifies whether the *`value`* is to be further owned by the dictionary-structure as well.
+   define: (key, value, own)->
+      pair = Thing.pair key, value, own
+      @push pair.owned_by this
 
    # This implements the core algorithm of the default jux-receiver; this algorithm is very
    # crucial to Paws' object system:
@@ -224,24 +247,40 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          rel?.to?.isPair?() and key.compare rel.to.at 1
       _.pluck(results.reverse(), 'to')
 
+   # ### Ownership ###
+
+   own_at: (idx)->
+      if (prev = @metadata[idx])? and not prev.owns
+         @metadata[idx] = prev.as_owned()
+         @metadata[idx].to._add_owner @metadata[idx]
+      else prev
+
+   disown_at: (idx)->
+      if (prev = @metadata[idx])? and prev.owns
+         @metadata[idx] = prev.as_contained()
+         @metadata[idx].to._del_owner prev
+         @metadata[idx]
+      else prev
+
+   # FIXME: Okay, this naming is becoming a mess.
+   is_owned_by: (other)->
+      if other instanceof Relation
+         _.contains @owners, other
+      else
+         _.any @owners, 'from', other
+
+   is_not_owned_by: (other)-> not @is_owned_by other
+
+   # N.B.: Multiple Relations `from` and `to` the *same pair of Things* can exist in `@owners`,
+   # because they can exist in the @metadata of the parent, and one of them could be deleted,
+   # leaving the second.
+   _add_owner: (rel)-> @owners.push rel unless _.contains @owners, rel                   ;return rel
+   _del_owner: (rel)-> _.pull @owners, rel                                               ;return rel
+
+   # ### Utility / convenience ###
+
    # TODO: Option to include the noughty
    toArray: (cb)-> @metadata.slice(1).map (rel)-> (cb ? _.identity) rel?.to
-
-   # Convenience method to create a ‘pair-ish’ `Thing` (one with only two members, the first of
-   # which is a string-ish ‘key.’)
-   @pair: (key, value, own)->
-      it = new Thing
-      it.push Label(key).owned_by it
-      it.push value.contained_by(it, own) if value
-      return it
-
-   # A further convenience to add a new pair to the end of a ‘dictionary-ish’ `Thing`.
-   #
-   # The pair-object itself is always owned by the receiver `Thing`; but the third `own` argument
-   # specifies whether the *`value`* is to be further owned by the dictionary-structure as well.
-   define: (key, value, own)->
-      pair = Thing.pair key, value, own
-      @push pair.owned_by this
 
    # FIXME: This is ... not precise. /=
    isPair:   -> @metadata[1] and @metadata[2]
@@ -252,55 +291,28 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    contained_by: (other, own)-> new Relation other, this, own # Defaults to `no`
    owned_by:     (other)->      new Relation other, this, yes
 
-# Constructs a generic ‘key/value’ style `Thing` from a `representation` (a JavaScript `Object`-
-# hash) thereof. This convenience method expects arguments constructed as pairs of 1. any string (as
-# the key, which will be converted into the `Label`), and 2. a Paws `Thing`-subclass (as the value.)
-# These may be nested.
-#
-#  > For instance, given `{foo: thing_A, bar: thing_B}`, `construct()` will product a `Thing`
-#    resembling the following (disregarding noughties):
-#
-#        ((‘foo’, thing_B), (‘bar’, thing_B))
-#
-# The ‘pair-ish’ values are always owned by their container; as are, by default, the ‘leaf’ objects
-# passed in. (The latter is a behaviour configurable by `.with(own: no)`.)
-#
-# @option own: Construct the structure as as `own`ing newly-created sub-Things
-# @option names: `rename` the constructed `Thing`s according to the key they're being assigned to
-Thing.construct = (representation)->
-   pairs = for key, value of representation
+   rename: selfify (name)-> @name = name
 
-      if _.isFunction value
-         value = Native.synchronous value
+   # ### Initialization ###
 
-      else unless value instanceof Thing or value instanceof Relation
-         value = @construct value
+   @_init: ->
+      # The default receiver for `Thing`s simply preforms a ‘lookup.’
+      Thing::receiver = new Native (params)->
+         caller  = params.at 0
+         subject = params.at 1
+         message = params.at 2
 
-      leave_ownership_alone = value instanceof Relation
-      should_own = @_?.own ? (if leave_ownership_alone then undefined else yes)
+         results = subject.find message
 
-      rel.to.rename key if @_?.names
-      Thing.pair key, value, should_own
+         if results[0]
+            caller.respond results[0].valueish()
 
-   return Thing.with(own: yes) pairs...
+         # FIXME: Welp, this is horrible error-handling. "Print a warning and freeze forevah!!!"
+         else
+            notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}."
 
-Thing.init_receiver = ->
-   # The default receiver for `Thing`s simply preforms a ‘lookup.’
-   Thing::receiver = new Native (params)->
-      caller  = params.at 0
-      subject = params.at 1
-      message = params.at 2
+      .rename 'thing✕'
 
-      results = subject.find message
-
-      if results[0]
-         caller.respond results[0].valueish()
-
-      # FIXME: Welp, this is horrible error-handling. "Print a warning and freeze forevah!!!"
-      else
-         notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}."
-
-   .rename 'thing✕'
 
 
 # A `Label` is a type of `Thing` which encapsulates a static Unicode string, serving two purposes:
@@ -322,6 +334,7 @@ Thing.init_receiver = ->
 # represented as a new `Label`; and then manipulated in that form. These poor-man's mutable-strings
 # (colloquially called ‘character soups’) are provided as a primitive form of string-manipulation.
 Paws.Label = Label = class Label extends Thing
+
    constructor: constructify(return:@) (@alien)->
       if @alien instanceof Label
          @alien.clone this
@@ -341,6 +354,7 @@ Paws.Label = Label = class Label extends Thing
       it = new Thing
       it.push.apply it, _.map @alien.split(''), (char)-> new Label char
       it
+
 
 
 # *Programs* in Paws are a series of nested sequences-of-Paws-objects. For programs that originate
@@ -396,6 +410,7 @@ Paws.Label = Label = class Label extends Thing
 # **Nota anche: The `instructions` stack lists *completed* nodes; ones for which a `Combination` has
 #               already been generated.)**
 Paws.Execution = Execution = class Execution extends Thing
+
    constructor: constructify (@begin)->
       if typeof @begin == 'function' then return Native.apply this, arguments
 
@@ -424,25 +439,7 @@ Paws.Execution = Execution = class Execution extends Thing
 
       return this
 
-   # Creates a list-thing of the form that receiver `Execution`s expect.
-   @create_params: (caller, subject, message)-> new Thing.with(noughtify: no)(arguments...)
-
-
-   # Pushes a new `Operation` onto this `Execution`'s `ops`-queue.
-   queue: (something)->
-      return @queue new Operation arguments...  unless something.op?
-
-      @ops.push something
-
-   # A convenience method for pushing an 'advance' `Operation`, specifically.
-   respond: (response)->
-      @queue new Operation 'advance', arguments...
-
-
-   complete:-> !this.instructions.length
-
-   # Returns the *current* `Position`; i.e. the top element of the `instructions` stack.
-   current:-> @instructions[0]
+   # ### Common ###
 
    # This method of the `Execution` types will copy all data relevant to advancement of the
    # execution to a `Execution` instance. This includes the pristine-ness (boolean), the `results`
@@ -469,10 +466,29 @@ Paws.Execution = Execution = class Execution extends Thing
 
       return to
 
+   # ### Operation-queue ###
+
+   # Pushes a new `Operation` onto this `Execution`'s `ops`-queue.
+   queue: (something)->
+      return @queue new Operation arguments...  unless something.op?
+
+      @ops.push something
+
+   # A convenience method for pushing an 'advance' `Operation`, specifically.
+   respond: (response)->
+      @queue new Operation 'advance', arguments...
+
    # This informs an `Execution` of the ‘result’ of the last `Combination` returned from `next`.
    # This value is stored in the `results` stack, and is later used as one of the values in furhter
    # `Combination`s.
    register_response: (response)-> @results[0] = response
+
+   # ### Position management and advancement ###
+
+   complete:-> !this.instructions.length
+
+   # Returns the *current* `Position`; i.e. the top element of the `instructions` stack.
+   current:-> @instructions[0]
 
    # Returns the next `Combination` that needs to be preformed for the advancement of this
    # `Execution`. This is a mutating call, and each time it is called, it will produce a new
@@ -559,6 +575,24 @@ Paws.Execution = Execution = class Execution extends Thing
       upcoming_value = upcoming.valueOf()
       return new Combination null, upcoming_value
 
+   # ### Utility / convenience ###
+
+   # Creates a list-thing of the form that receiver `Execution`s expect.
+   @create_params: (caller, subject, message)-> new Thing.with(noughtify: no)(arguments...)
+
+   # ### Initialization ###
+
+   @_init: ->
+      # The `Execution` default-receiver is specified to preform a ‘call-pattern’ invocation:
+      # cloning the subject-`Execution`, resuming that clone, and explicitly *not* resuming the
+      # caller.
+      Execution::receiver = new Native (params)->
+         subject = params.at 1
+         message = params.at 2
+
+         subject.clone().respond message
+      .rename 'execution✕'
+
 
 # Correspondingly to normal `Execution`s, some procedures are provided by the implementation (or
 # those extending Paws with the API, such as yourself) as `Native`s. These consist of chunks of
@@ -592,6 +626,7 @@ Paws.Execution = Execution = class Execution extends Thing
 # producing a result. (This expidently allows `Native` procedures to be written as single,
 # synchronous `Function`s, that accept multiple arguments and `return` a single result.)
 Paws.Native = Native = class Native extends Execution
+
    constructor: constructify(return:@) (@bits...)->
       delete @begin
       delete @instructions
@@ -599,9 +634,7 @@ Paws.Native = Native = class Native extends Execution
 
       @advancements = @bits.length
 
-   complete:-> not @bits.length
-
-   current:-> @bits[0]
+   # ### Common ###
 
    clone: (to)->
       super (to ?= new Native)
@@ -612,6 +645,12 @@ Paws.Native = Native = class Native extends Execution
 
       return to
 
+   # ### Overrides ###
+
+   complete:-> not @bits.length
+
+   current:-> @bits[0]
+
    # `advancing` to the next unit of work for a `Native` is substantially simpler than doing so for
    # a normal `Execution`: we simply remove (and return) another body-section from `bits`.
    advance: (response)->
@@ -620,108 +659,100 @@ Paws.Native = Native = class Native extends Execution
       @pristine = no
       return @bits.shift()
 
+   # ### Utility / convenience ###
 
-# This alternative constructor will automatically generate a series of ‘bits’ that will curry the
-# appropriate number of arguments into a single, final function.
-#
-# Instead of having to write individual function-bits for your `Native` that collect the appropriate
-# set of resumption-values into a series of “arguments” that you need for your task, you can use
-# this convenience constructor for the common situation that you're treating an `Execution` as
-# equivalent to a synchronous JavaScript function.
-#
-# ----
-#
-# This takes a single function, and checks the number of arguments it requires before generating the
-# corresponding bits to acquire those arguments.
-#
-# Then, once the resultant `Native` has been resumed the appropriate number of times (plus one extra
-# initial resumption with a `caller` as the value, as is standard coproductive practice in Paws),
-# the synchronous JavaScript passed in as the argument here will be invoked.
-#
-# That invocation will provide the arguments recorded in the function's implementation, as well as a
-# context-object containing the following information available on `this`:
-#
-# caller
-#  : The first resumption-value provided to the generated `Native`. Usually, itself, an `Execution`,
-#    in the coproductive pattern.
-# execution
-#  : The original `this`. That is, the generated `Native` that was constructed from the function.
-#
-# After your function executes, if it results in a non-null return value, then the `caller` provided
-# as the first response Paws-side will be resumed one final time with that as the corresponding
-# response. (Hence the name of this method: it provides a ‘synchronous’ (ish) result after all the
-# parameters have been asynchronously collected.)
-#
-# @param { function(... [Thing], this:{caller: Execution, this}): ?Thing }
-#    synch_body   The synchronous function we'll generate an Execution to match
-Native.synchronous = (synch_body) ->
-   advancements = synch_body.length + 1
+   # This alternative constructor will automatically generate a series of ‘bits’ that will curry the
+   # appropriate number of arguments into a single, final function.
+   #
+   # Instead of having to write individual function-bits for your `Native` that collect the
+   # appropriate set of resumption-values into a series of “arguments” that you need for your task,
+   # you can use this convenience constructor for the common situation that you're treating an
+   # `Execution` as equivalent to a synchronous JavaScript function.
+   #
+   # ----
+   #
+   # This takes a single function, and checks the number of arguments it requires before generating
+   # the corresponding bits to acquire those arguments.
+   #
+   # Then, once the resultant `Native` has been resumed the appropriate number of times (plus one
+   # extra initial resumption with a `caller` as the value, as is standard coproductive practice in
+   # Paws), the synchronous JavaScript passed in as the argument here will be invoked.
+   #
+   # That invocation will provide the arguments recorded in the function's implementation, as well
+   # as a context-object containing the following information available on `this`:
+   #
+   # caller
+   #  : The first resumption-value provided to the generated `Native`. Usually, itself, an
+   #    `Execution`, in the coproductive pattern.
+   # execution
+   #  : The original `this`. That is, the generated `Native` that was constructed from the function.
+   #
+   # After your function executes, if it results in a non-null return value, then the `caller`
+   # provided as the first response Paws-side will be resumed one final time with that as the
+   # corresponding response. (Hence the name of this method: it provides a ‘synchronous’ (ish)
+   # result after all the parameters have been asynchronously collected.)
+   #
+   # @param { function(... [Thing], this:{caller: Execution, this}): ?Thing }
+   #    synch_body   The synchronous function we'll generate an Execution to match
+   @synchronous = (synch_body) ->
+      advancements = synch_body.length + 1
 
-   # First, we construct the *middle* bits of the coproductive pattern (that is, the ones that
-   # handle all but the *last* actual argument the passed function requires.) These are pretty
-   # generic: they simply partially-apply their RV to the *last* bit (which will be defined
-   # below.) Thus, they participate in currying their argument into the final invocation of
-   # the synchronous function.
-   bits = new Array(advancements - 1).join().split(',').map ->
-      (caller, value)->
-         # FIXME: Pretty this up with prototype extensions. (#last, anybody?)
-         @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], value
+      # First, we construct the *middle* bits of the coproductive pattern (that is, the ones that
+      # handle all but the *last* actual argument the passed function requires.) These are pretty
+      # generic: they simply partially-apply their RV to the *last* bit (which will be defined
+      # below.) Thus, they participate in currying their argument into the final invocation of
+      # the synchronous function.
+      bits = new Array(advancements - 1).join().split(',').map ->
+         (caller, value)->
+            # FIXME: Pretty this up with prototype extensions. (#last, anybody?)
+            @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], value
+            caller.respond this
+
+      # Next, we construct the *first* bit, which is a special case responsible for receiving the
+      # `caller` (as is usually the case in the coproductive pattern.) It takes its resumption-
+      # value, and curries it into *every* following bit. (Notice that both the middle bits, above,
+      # and the concluding bit, below, save a spot for a `caller` argument.)
+      bits[0] = (caller)->
+         @bits = @bits.map (bit)=> _.partial bit, caller
          caller.respond this
 
-   # Next, we construct the *first* bit, which is a special case responsible for receiving the
-   # `caller` (as is usually the case in the coproductive pattern.) It takes its resumption-
-   # value, and curries it into *every* following bit. (Notice that both the middle bits, above,
-   # and the concluding bit, below, save a spot for a `caller` argument.)
-   bits[0] = (caller)->
-      @bits = @bits.map (bit)=> _.partial bit, caller
-      caller.respond this
+      # Now, the complex part. The *final* bit has quite a few arguments curried into it:
+      #
+      #  - Immediately (at generate-time), the locals we'll need within the body: the `Paws` API,
+      #    and the `synch_body` we were passed. This is necessary, because we're building the body
+      #    in a new JavaScript environment, due to the `eval`-y `Function` constructor;
+      #  - Second (later on, throughout invocation-time), the `caller` curried in by the first bit;
+      #  - Third, any *actual arguments* curried in by intermediate bits.
+      #
+      # In addition to these, it's got one final argument (the actual resumption-value with which
+      # this final bit is invoked, after all the other bits have been exhausted).
+      #
+      # These values are curred into a function we construct within the body-string below, that
+      # proceeds to provide the *actual* arguments to the synchronous `func`, as well as
+      # constructing a context-object to act as the `this` described above.
+      #---
+      # FIXME: Remove the `Paws` pass, if it's unnecessary
+      arg_names = ['synch_body', 'caller'].concat Array(advancements).join('_').split('')
 
-   # Now, the complex part. The *final* bit has quite a few arguments curried into it:
-   #
-   #  - Immediately (at generate-time), the locals we'll need within the body: the `Paws` API,
-   #    and the `synch_body` we were passed. This is necessary, because we're building the body
-   #    in a new JavaScript environment, due to the `eval`-y `Function` constructor;
-   #  - Second (later on, throughout invocation-time), the `caller` curried in by the first bit;
-   #  - Third, any *actual arguments* curried in by intermediate bits.
-   #
-   # In addition to these, it's got one final argument (the actual resumption-value with which
-   # this final bit is invoked, after all the other bits have been exhausted).
-   #
-   # These values are curred into a function we construct within the body-string below, that
-   # proceeds to provide the *actual* arguments to the synchronous `func`, as well as
-   # constructing a context-object to act as the `this` described above.
-   #---
-   # FIXME: Remove the `Paws` pass, if it's unnecessary
-   arg_names = ['synch_body', 'caller'].concat Array(advancements).join('_').split('')
+      last_bit = """
+         var that = { caller: caller, execution: this }
+         var result = synch_body.apply(that, [].slice.call(arguments, 2))
+         if (typeof result !== 'undefined' && result !== null) {
+            caller.respond(result) }
+      """
 
-   last_bit = """
-      var that = { caller: caller, execution: this }
-      var result = synch_body.apply(that, [].slice.call(arguments, 2))
-      if (typeof result !== 'undefined' && result !== null) {
-         caller.respond(result) }
-   """
+      bits[advancements - 1] = _.partial Function(arg_names..., last_bit), synch_body
 
-   bits[advancements - 1] = _.partial Function(arg_names..., last_bit), synch_body
+      it = new Native bits...
+      it.synchronous = synch_body
 
+      return it
 
-   it = new Native bits...
-   it.synchronous = synch_body
-
-   return it
-
-Execution.init_receiver = ->
-   # The `Execution` default-receiver is specified to preform a ‘call-pattern’ invocation: cloning
-   # the subject-`Execution`, resuming that clone, and explicitly *not* resuming the caller.
-   Execution::receiver = new Native (params)->
-      subject = params.at 1
-      message = params.at 2
-
-      subject.clone().respond message
-   .rename 'execution✕'
 
 
 # Supporting types
 # ================
+
 Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
 
    constructor: constructify(return:@) (from, to, owns)->
@@ -920,6 +951,7 @@ Operation.register 'advance', (response)->
 Operation.register 'adopt', ()->
 
 
+
 # Debugging output
 # ----------------
 # Convenience to call whatever string-making methods are available on the passed object.
@@ -995,9 +1027,10 @@ Native::toString = ->
    if @_?.tag == no then output else @_tagged output
 
 
+
 # Initialization
 # ==============
-Thing.init_receiver()
-Execution.init_receiver()
+Thing._init()
+Execution._init()
 
 debug "++ Datagraph available"
