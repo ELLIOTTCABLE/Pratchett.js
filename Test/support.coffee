@@ -1,5 +1,22 @@
 expect  = require 'expect.js'
 Paws = require '../Source/Paws.coffee'
+_ = Paws.utilities
+
+# That's right, I'm about to trod *all* over your globals. 🐘
+globals = (->@)()
+
+globals.createInstanceContainer = (set_name)->    # Oooo. Smells like Java.
+   globals[set_name] = createTestingInstance = (type, args...)->
+      unless type.name?
+         throw new TypeError "Testing-instances require a constructor with a `name` property`."
+      globals[set_name][type.name.toLowerCase()] = new type(args...)
+
+   createTestingInstance.reset = _.partial createInstanceContainer, set_name
+
+beforeEach ->
+   createInstanceContainer 'a'
+   createInstanceContainer 'an'
+   createInstanceContainer 'another'
 
 Assertion = expect.Assertion
 i = expect.stringify

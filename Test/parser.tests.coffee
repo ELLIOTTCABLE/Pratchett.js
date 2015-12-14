@@ -6,17 +6,15 @@ Paws   = require '../Source/Paws.coffee'
 ,  Relation, Combination, Position, Mask
 ,  parse, debugging, utilities: _                                                           } = Paws
 
-
 describe 'Parser', ->
    it 'exists', ->
       expect(parse).to.be.ok()
       expect(parse).to.be.a 'function'
 
-   Sequence    = parse.Sequence
-   Expression  = parse.Expression
-   Context     = parse.Context
+   {  Context, Sequence, Expression }                                                        = parse
 
-   describe 'Context', ->
+
+   describe 'Context', -> # ---- ---- ---- ---- ----                                         Context
       it 'exists', ->
          expect(Context).to.be.ok()
          expect(Context).to.be.a 'function'
@@ -38,7 +36,7 @@ describe 'Parser', ->
          expect(   Context.for an_object).to.be.a Context
          expect(   Context.for(an_object).text).to.be some_text
 
-      it 'can store a range within the source-text', ->
+      it 'stores a range within the source-text', ->
          an_object = new Object; some_text = 'abc def ghi'
 
          Context.on an_object, some_text, 4, 6
@@ -56,7 +54,7 @@ describe 'Parser', ->
          Context.on an_object, some_text, 4, 6
          expect(Context.for(an_object).after()).to.be ' ghi'
 
-   describe 'Expression', ->
+   describe 'Expression', -> # ---- ---- ---- ---- ----                                   Expression
       it 'exists', ->
          expect(Expression).to.be.ok()
          expect(Expression).to.be.a 'function'
@@ -102,7 +100,7 @@ describe 'Parser', ->
          expect(sub).to.be.an Expression
          expect(sub.at 0).to.be a_thing
 
-      describe '#serialize', ->
+      describe '::serialize', ->
          before -> Paws.colour no
          after  -> Paws.colour yes
 
@@ -153,7 +151,7 @@ describe 'Parser', ->
             widget = new Thing
             expect(expr.serialize(focus: widget)).to.match /foo \[bar baz\]/
 
-      describe '#toString', ->
+      describe '::toString', ->
          before -> Paws.colour no
          after  -> Paws.colour yes
 
@@ -221,7 +219,7 @@ describe 'Parser', ->
    # I need to write much more in-depth parser tests; preferably something that doesn't require five
    # lines of code to check a single word. (Some Stack Overflow genius suggests an intermediate-form
    # XML parse-structure exclusive to your test-base?)
-   describe 'parses ...', ->
+   describe 'parses ...', -> # ---- ---- ---- ---- ----                                      parsing
       it 'nothing', ->
          structure = parse('')
          expect(structure).to.be.ok()
