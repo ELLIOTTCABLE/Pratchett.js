@@ -15,275 +15,129 @@ describe "Paws' Data types:", ->
 
    {  Context, Sequence, Expression } = parse
 
-   describe 'Thing', ->
+   describe 'Thing', -> # ---- ---- ---- ---- ----                                             Thing
 
-      describe 'Relation', ->
-         it 'should default to non-owning', ->
-            expect((new Relation).owns).to.be false
-
-         it 'should copy data to a new Relation if passed an existing one', ->
-            rel = new Relation new Thing, new Thing, yes
-
-            clone = new Relation rel
-            expect(clone.from).to.not.be.a Relation # /reg
-
-            expect(new Relation rel).to.not.be rel
-            expect(new Relation rel).to.eql rel
-
-            new_parent = new Thing
-            another_clone = new Relation new_parent, rel
-            expect(another_clone).to.not.be rel
-            expect(another_clone.owns).to.equal rel.owns
-            expect(another_clone.to)  .to.equal rel.to
-            expect(another_clone.from).to.not.equal rel.from
-
-            expect(another_clone.from).to.be new_parent
-
-         describe '#clone', ->
-            it 'should return a new Relation', ->
-               a_thing = new Thing; another_thing = new Thing
-               rel = new Relation a_thing, another_thing
-               expect(rel.clone()     ).to.not.be rel
-               expect(rel.clone().from).to.be a_thing
-               expect(rel.clone().to  ).to.be another_thing
-               expect(rel.clone().owns).to.be no
-
-            it "doesn't change the existing ownership of a cloned Relation", ->
-               rel = new Relation new Thing, new Thing, yes
-               expect(rel.clone().owns).to.be yes
-
-
-      describe '##construct', ->
-         it 'should construct a Thing', ->
-            a_thing = new Thing
-            expect(Thing.construct {foo: a_thing}).to.be.a Thing
-
-         it 'should construct Things with a noughty', ->
-            constructee = Thing.construct {foo: new Thing}
-            expect(constructee.at 0).to.be undefined
-
-         it 'should construct Things with pairs', ->
-            a_thing = new Thing
-            constructee = Thing.construct {foo: a_thing}
-            expect(constructee.metadata).to.have.length 2
-
-            pair = constructee.at 1
-            expect(pair     ).to.be.a Thing
-            expect(pair.at 1).to.be.a Label
-            expect(pair.at 2).to.be a_thing
-
-         it 'should construct multiple pairs', ->
-            thing_1 = new Thing; thing_2 = new Thing
-            constructee = Thing.construct {foo: thing_1, bar: thing_2}
-            expect(constructee.metadata).to.have.length 3
-            expect(constructee.find('foo')[0].valueish()).to.be thing_1
-            expect(constructee.find('bar')[0].valueish()).to.be thing_2
-
-         it 'should flag the construct as owning its pairs', ->
-            constructee = Thing.construct {something: new Thing}
-            expect(constructee.metadata[1]).to.be.owned()
-
-         it 'should flag the construct as owning its members, by default', ->
-            constructee = Thing.construct {something: new Thing}
-            expect(constructee.find('something')[0].metadata[2]).to.be.owned()
-
-         it "should accept an option to create structures that don't own their members", ->
-            constructee = Thing.with(own: no).construct {something: new Thing}
-            expect(constructee.metadata[1]).to.be.owned()
-            expect(constructee.find('something')[0].metadata[2]).to.not.be.owned()
-
-         it 'generates nested Things', ->
-            constructee = Thing.construct { foo: { bar: {baz: something = new Thing} } }
-
-            first_pair = constructee.at 1
-            expect(first_pair               ).to.be.a Thing
-            expect(first_pair.keyish().alien).to.be 'foo'
-            expect(first_pair.valueish()    ).to.be.a Thing
-
-            second_pair = first_pair.valueish().at 1
-            expect(second_pair               ).to.be.a Thing
-            expect(second_pair.keyish().alien).to.be 'bar'
-            expect(second_pair.valueish()    ).to.be.a Thing
-
-            third_pair = second_pair.valueish().at 1
-            expect(third_pair               ).to.be.a Thing
-            expect(third_pair.keyish().alien).to.be 'baz'
-            expect(third_pair.valueish()    ).to.be something
-
-         it 'passes Functions to Native.synchronous', ->
-            constructee = Thing.construct {foo: new Function}
-            expect(constructee.metadata).to.have.length 2
-
-            pair = constructee.at 1
-            expect(pair     ).to.be.a Thing
-            expect(pair.at 1).to.be.a Label
-            expect(pair.at 2).to.be.an Execution
-
-      describe '#define', ->
-         describe '##pair', ->
-            it 'creates a new Thing', ->
-               expect(Thing.pair()).to.be.a Thing
-
-            it 'turns the first argument into a Label', ->
-               a_pair = Thing.pair 'foo'
-               expect(a_pair.at 1).to.be.a Label
-               expect(a_pair.at(1).alien).to.be 'foo'
-
-               a_pair = Thing.pair Label('bar')
-               expect(a_pair.at 1).to.be.a Label
-               expect(a_pair.at(1).alien).to.be 'bar'
-
-            it 'ensures the created pair owns the key, but not the value, by default', ->
-               foo = new Thing
-               a_pair = Thing.pair 'foo', foo
-
-               expect(a_pair.at(1).alien).to.be 'foo'
-               expect(a_pair.metadata[1]).to.be.owned()
-               expect(a_pair.at(2)).to.be foo
-               expect(a_pair.metadata[2]).to.not.be.owned()
-
-            it 'can be instructed to create the pair as owning the value', ->
-               foo = new Thing
-               a_pair = Thing.pair 'foo', foo, yes
-
-               expect(a_pair.at(2)).to.be foo
-               expect(a_pair.metadata[2]).to.be.owned()
-
-            it 'will not change the existing ownership of a Relation', ->
-               foo = new Thing
-               rel = new Relation null, foo, yes
-               a_pair = Thing.pair 'foo', rel
-
-               expect(a_pair.at(2)).to.be foo
-               expect(a_pair.metadata[2]).to.be.owned()
-
-            it 'will, however, *override* the existing ownership of a Relation', ->
-               foo = new Thing
-               rel = new Relation null, foo, yes
-               a_pair = Thing.pair 'foo', rel, no
-
-               expect(a_pair.at(2)).to.be foo
-               expect(a_pair.metadata[2]).to.not.be.owned()
-
-         it 'adds a pair to the end of the receiver', ->
-            a_thing = Thing.construct foo: new Thing
-            another_thing = new Thing
-
-            a_thing.define 'bar', another_thing
-            expect(a_thing.find('bar')[0].valueish()).to.be another_thing
-
+      # ### Thing: Core functionality ###
 
       uuid_regex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/
       it 'should have a UUID', ->
          expect((new Thing).id).to.match uuid_regex
 
-      it 'should noughtify the metadata by default', ->
-         thing = new Thing
-         expect(thing.metadata).to.have.length 1
-         expect(thing.metadata[0]).to.be undefined
+      it 'compares by identity', ->
+         thing1 = new Label 'foo'
+         thing2 = new Label 'foo'
 
-         bare_thing = new Thing.with(noughtify: no)()
-         expect(bare_thing.metadata).to.have.length 0
+         expect(Thing::compare.call thing1, thing1).to.be     true
+         expect(Thing::compare.call thing1, thing2).to.not.be true
 
-      it 'should store metadata relations', ->
-         child1 = new Thing; child2 = new Thing
-         thing = new Thing child1, child2
-         expect(thing).to.have.property 'metadata'
-         expect(thing.metadata).to.be.an 'array'
-         expect(thing.metadata[1]).to.be.a Relation
-         expect(thing.metadata[1].to).to.be child1
-         expect(thing.metadata[2]).to.be.a Relation
-         expect(thing.metadata[2].to).to.be child2
+      describe 'metadata-linkages', ->
+         it 'should noughtify the metadata by default', ->
+            thing = new Thing
+            expect(thing.metadata).to.have.length 1
+            expect(thing.metadata[0]).to.be undefined
 
-      it 'can provide Relations to itself', ->
-         a_parent = new Thing; a_child  = new Thing; another_child = new Thing
+            bare_thing = new Thing.with(noughtify: no)()
+            expect(bare_thing.metadata).to.have.length 0
 
-         result = a_child.owned_by a_parent
-         expect(result).to.be.a Relation
-         expect(result).to.be.owned()
-         expect(result.from).to.be a_parent
-         expect(result.to)  .to.be a_child
+         it 'should store metadata relations', ->
+            child1 = new Thing; child2 = new Thing
+            thing = new Thing child1, child2
+            expect(thing).to.have.property 'metadata'
+            expect(thing.metadata).to.be.an 'array'
+            expect(thing.metadata[1]).to.be.a Relation
+            expect(thing.metadata[1].to).to.be child1
+            expect(thing.metadata[2]).to.be.a Relation
+            expect(thing.metadata[2].to).to.be child2
 
-         result = another_child.contained_by a_parent
-         expect(result).to.be.a Relation
-         expect(result).not.to.be.owned()
-         expect(result.from).to.be a_parent
-         expect(result.to)  .to.be another_child
+         it 'can provide Relations to itself', ->
+            a_parent = new Thing; a_child  = new Thing; another_child = new Thing
 
-      it 'dually-links children added as owned', ->
-         a_parent = new Thing; a_child  = new Thing; another_child = new Thing; other = new Thing
+            result = a_child.owned_by a_parent
+            expect(result).to.be.a Relation
+            expect(result).to.be.owned()
+            expect(result.from).to.be a_parent
+            expect(result.to)  .to.be a_child
 
-         expect(a_child).to.have.property 'owners'
-         expect(a_child.owners).to.be.an 'array'
-         expect(a_child.owners).to.have.length 0
+            result = another_child.contained_by a_parent
+            expect(result).to.be.a Relation
+            expect(result).not.to.be.owned()
+            expect(result.from).to.be a_parent
+            expect(result.to)  .to.be another_child
 
-         a_parent.push a_child.owned_by(a_parent), other, another_child.owned_by(a_parent)
-         expect(a_child).to.have.property 'owners'
-         expect(a_child.owners).to.be.an 'array'
-         expect(a_child.owners).to.have.length 1
+      describe 'backlinks on owned children', ->
+         it 'dually-links children added as owned', ->
+            a_parent = new Thing; a_child  = new Thing; another_child = new Thing; other = new Thing
 
-         expect(a_child.owners[0]).to.be.a Relation
-         expect(a_child.owners).to.contain a_parent.metadata[1]
-         expect(another_child.owners).to.contain a_parent.metadata[3]
+            expect(a_child).to.have.property 'owners'
+            expect(a_child.owners).to.be.an 'array'
+            expect(a_child.owners).to.have.length 0
 
-         expect(other.owners).to.be.empty()
+            a_parent.push a_child.owned_by(a_parent), other, another_child.owned_by(a_parent)
+            expect(a_child).to.have.property 'owners'
+            expect(a_child.owners).to.be.an 'array'
+            expect(a_child.owners).to.have.length 1
 
-         # FIXME: Move to their own tests
-         yet_another_thing = new Thing
-         a_parent.unshift yet_another_thing.owned_by(a_parent)
-         expect(yet_another_thing.owners).to.contain a_parent.metadata[1]
+            expect(a_child.owners[0]).to.be.a Relation
+            expect(a_child.owners).to.contain a_parent.metadata[1]
+            expect(another_child.owners).to.contain a_parent.metadata[3]
 
-         one_last_thing = new Thing
-         a_parent.set 1, one_last_thing.owned_by(a_parent)
-         expect(one_last_thing.owners).to.contain a_parent.metadata[1]
+            expect(other.owners).to.be.empty()
 
-      it 'removes reverse links on children when removing as a parent', ->
-         first = new Thing; second = new Thing; third = new Thing
-         a_parent = new Thing first.owned_by(a_parent), second.owned_by(a_parent), third.owned_by(a_parent)
+            # FIXME: Move to their own tests
+            yet_another_thing = new Thing
+            a_parent.unshift yet_another_thing.owned_by(a_parent)
+            expect(yet_another_thing.owners).to.contain a_parent.metadata[1]
 
-         expect(first.owners) .to.have.length 1
-         expect(second.owners).to.have.length 1
-         expect(third.owners) .to.have.length 1
+            one_last_thing = new Thing
+            a_parent.set 1, one_last_thing.owned_by(a_parent)
+            expect(one_last_thing.owners).to.contain a_parent.metadata[1]
 
-         a_parent.set 2, undefined
-         expect(second.owners).to.have.length 0
+         it 'removes reverse links on children when removing as a parent', ->
+            first = new Thing; second = new Thing; third = new Thing
+            a_parent = new Thing first.owned_by(a_parent), second.owned_by(a_parent), third.owned_by(a_parent)
 
-         a_parent.shift()
-         expect(first.owners) .to.have.length 0
+            expect(first.owners) .to.have.length 1
+            expect(second.owners).to.have.length 1
+            expect(third.owners) .to.have.length 1
 
-         a_parent.pop()
-         expect(third.owners) .to.have.length 0
+            a_parent.set 2, undefined
+            expect(second.owners).to.have.length 0
 
-      it 'removes reverse links on children when disowning'
+            a_parent.shift()
+            expect(first.owners) .to.have.length 0
 
-      it 'maintains reverse links when directly setting elements by index', ->
-         a_parent = new Thing; a_child  = new Thing; another_child = new Thing; other = new Thing
-         a_parent.push a_child.owned_by(a_parent), other
+            a_parent.pop()
+            expect(third.owners) .to.have.length 0
 
-         original_relation = a_parent.metadata[1]
-         expect(a_child.owners).to.contain original_relation
+         it 'maintains reverse links when directly setting elements by index', ->
+            a_parent = new Thing; a_child  = new Thing; another_child = new Thing; other = new Thing
+            a_parent.push a_child.owned_by(a_parent), other
 
-         a_parent.set 1, another_child.owned_by(a_parent)
-         expect(a_parent.metadata[1]).to.not.be original_relation
-         expect(a_child.owners).to.be.empty()
-         expect(another_child.owners).to.contain a_parent.metadata[1]
+            original_relation = a_parent.metadata[1]
+            expect(a_child.owners).to.contain original_relation
 
-      it 'exposes tools to directly own or disown chilren', ->
-         a_parent = new Thing; a_child  = new Thing; another_child = new Thing
-         a_parent = new Thing a_child.owned_by(a_parent), another_child
+            a_parent.set 1, another_child.owned_by(a_parent)
+            expect(a_parent.metadata[1]).to.not.be original_relation
+            expect(a_child.owners).to.be.empty()
+            expect(another_child.owners).to.contain a_parent.metadata[1]
 
-         expect(a_parent.metadata[1]).to.be.owned()
-         expect(a_parent.metadata[2]).to.not.be.owned()
+         it 'exposes tools to directly own or disown chilren', ->
+            a_parent = new Thing; a_child  = new Thing; another_child = new Thing
+            a_parent = new Thing a_child.owned_by(a_parent), another_child
 
-         a_parent.disown_at 1
-         expect(a_parent.metadata[1]).to.not.be.owned()
-         expect(a_child.owners).to.be.empty()
+            expect(a_parent.metadata[1]).to.be.owned()
+            expect(a_parent.metadata[2]).to.not.be.owned()
 
-         a_parent.own_at 2
-         expect(a_parent.metadata[2]).to.be.owned()
-         expect(another_child.owners).to.not.be.empty()
-         expect(another_child.is_owned_by a_parent).to.be yes
+            a_parent.disown_at 1
+            expect(a_parent.metadata[1]).to.not.be.owned()
+            expect(a_child.owners).to.be.empty()
 
+            a_parent.own_at 2
+            expect(a_parent.metadata[2]).to.be.owned()
+            expect(another_child.owners).to.not.be.empty()
+            expect(another_child.is_owned_by a_parent).to.be yes
+
+      # ### Thing: Metadata methods ###
 
       describe '#clone', ->
          it 'should return a new Thing', ->
@@ -360,14 +214,58 @@ describe "Paws' Data types:", ->
             expect(array[1]).to.be undefined
             expect(array[2]).to.be third
 
-      it 'compares by identity', ->
-         thing1 = new Label 'foo'
-         thing2 = new Label 'foo'
+      describe '##pair', ->
+         it 'creates a new Thing', ->
+            expect(Thing.pair()).to.be.a Thing
 
-         expect(Thing::compare.call thing1, thing1).to.be     true
-         expect(Thing::compare.call thing1, thing2).to.not.be true
+         it 'turns the first argument into a Label', ->
+            a_pair = Thing.pair 'foo'
+            expect(a_pair.at 1).to.be.a Label
+            expect(a_pair.at(1).alien).to.be 'foo'
 
+            a_pair = Thing.pair Label('bar')
+            expect(a_pair.at 1).to.be.a Label
+            expect(a_pair.at(1).alien).to.be 'bar'
 
+         it 'ensures the created pair owns the key, but not the value, by default', ->
+            foo = new Thing
+            a_pair = Thing.pair 'foo', foo
+
+            expect(a_pair.at(1).alien).to.be 'foo'
+            expect(a_pair.metadata[1]).to.be.owned()
+            expect(a_pair.at(2)).to.be foo
+            expect(a_pair.metadata[2]).to.not.be.owned()
+
+         it 'can be instructed to create the pair as owning the value', ->
+            foo = new Thing
+            a_pair = Thing.pair 'foo', foo, yes
+
+            expect(a_pair.at(2)).to.be foo
+            expect(a_pair.metadata[2]).to.be.owned()
+
+         it 'will not change the existing ownership of a Relation', ->
+            foo = new Thing
+            rel = new Relation null, foo, yes
+            a_pair = Thing.pair 'foo', rel
+
+            expect(a_pair.at(2)).to.be foo
+            expect(a_pair.metadata[2]).to.be.owned()
+
+         it 'will, however, *override* the existing ownership of a Relation', ->
+            foo = new Thing
+            rel = new Relation null, foo, yes
+            a_pair = Thing.pair 'foo', rel, no
+
+            expect(a_pair.at(2)).to.be foo
+            expect(a_pair.metadata[2]).to.not.be.owned()
+
+      describe '#define', ->
+         it 'adds a pair to the end of the receiver', ->
+            a_thing = Thing.construct foo: new Thing
+            another_thing = new Thing
+
+            a_thing.define 'bar', another_thing
+            expect(a_thing.find('bar')[0].valueish()).to.be another_thing
 
       # FIXME: Seperate JavaScript-side convenience API tests from algorithmic tests
       describe '#find', ->
@@ -434,8 +332,114 @@ describe "Paws' Data types:", ->
 
             expect(caller.queue).was.calledWith sinon.match.has 'params', [another_thing]
 
+      # ### Thing: Utility / convenience methods and functions ###
 
-   describe 'Liability', ->
+      describe '##construct', ->
+         it 'should construct a Thing', ->
+            a_thing = new Thing
+            expect(Thing.construct {foo: a_thing}).to.be.a Thing
+
+         it 'should construct Things with a noughty', ->
+            constructee = Thing.construct {foo: new Thing}
+            expect(constructee.at 0).to.be undefined
+
+         it 'should construct Things with pairs', ->
+            a_thing = new Thing
+            constructee = Thing.construct {foo: a_thing}
+            expect(constructee.metadata).to.have.length 2
+
+            pair = constructee.at 1
+            expect(pair     ).to.be.a Thing
+            expect(pair.at 1).to.be.a Label
+            expect(pair.at 2).to.be a_thing
+
+         it 'should construct multiple pairs', ->
+            thing_1 = new Thing; thing_2 = new Thing
+            constructee = Thing.construct {foo: thing_1, bar: thing_2}
+            expect(constructee.metadata).to.have.length 3
+            expect(constructee.find('foo')[0].valueish()).to.be thing_1
+            expect(constructee.find('bar')[0].valueish()).to.be thing_2
+
+         it 'should flag the construct as owning its pairs', ->
+            constructee = Thing.construct {something: new Thing}
+            expect(constructee.metadata[1]).to.be.owned()
+
+         it 'should flag the construct as owning its members, by default', ->
+            constructee = Thing.construct {something: new Thing}
+            expect(constructee.find('something')[0].metadata[2]).to.be.owned()
+
+         it "should accept an option to create structures that don't own their members", ->
+            constructee = Thing.with(own: no).construct {something: new Thing}
+            expect(constructee.metadata[1]).to.be.owned()
+            expect(constructee.find('something')[0].metadata[2]).to.not.be.owned()
+
+         it 'generates nested Things', ->
+            constructee = Thing.construct { foo: { bar: {baz: something = new Thing} } }
+
+            first_pair = constructee.at 1
+            expect(first_pair               ).to.be.a Thing
+            expect(first_pair.keyish().alien).to.be 'foo'
+            expect(first_pair.valueish()    ).to.be.a Thing
+
+            second_pair = first_pair.valueish().at 1
+            expect(second_pair               ).to.be.a Thing
+            expect(second_pair.keyish().alien).to.be 'bar'
+            expect(second_pair.valueish()    ).to.be.a Thing
+
+            third_pair = second_pair.valueish().at 1
+            expect(third_pair               ).to.be.a Thing
+            expect(third_pair.keyish().alien).to.be 'baz'
+            expect(third_pair.valueish()    ).to.be something
+
+         it 'passes Functions to Native.synchronous', ->
+            constructee = Thing.construct {foo: new Function}
+            expect(constructee.metadata).to.have.length 2
+
+            pair = constructee.at 1
+            expect(pair     ).to.be.a Thing
+            expect(pair.at 1).to.be.a Label
+            expect(pair.at 2).to.be.an Execution
+
+
+   # ### Thing: Supporting types ###
+
+   describe 'Relation', -> # ---- ---- ---- ---- ----                                       Relation
+      it 'should default to non-owning', ->
+         expect((new Relation).owns).to.be false
+
+      it 'should copy data to a new Relation if passed an existing one', ->
+         rel = new Relation new Thing, new Thing, yes
+
+         clone = new Relation rel
+         expect(clone.from).to.not.be.a Relation # /reg
+
+         expect(new Relation rel).to.not.be rel
+         expect(new Relation rel).to.eql rel
+
+         new_parent = new Thing
+         another_clone = new Relation new_parent, rel
+         expect(another_clone).to.not.be rel
+         expect(another_clone.owns).to.equal rel.owns
+         expect(another_clone.to)  .to.equal rel.to
+         expect(another_clone.from).to.not.equal rel.from
+
+         expect(another_clone.from).to.be new_parent
+
+      describe '#clone', ->
+         it 'should return a new Relation', ->
+            a_thing = new Thing; another_thing = new Thing
+            rel = new Relation a_thing, another_thing
+            expect(rel.clone()     ).to.not.be rel
+            expect(rel.clone().from).to.be a_thing
+            expect(rel.clone().to  ).to.be another_thing
+            expect(rel.clone().owns).to.be no
+
+         it "doesn't change the existing ownership of a cloned Relation", ->
+            rel = new Relation new Thing, new Thing, yes
+            expect(rel.clone().owns).to.be yes
+
+
+   describe 'Liability', -> # ---- ---- ---- ---- ----                                     Liability
       it 'exists', ->
          expect(Liability).to.be.ok()
          expect(Liability).to.be.a 'function'
@@ -469,117 +473,118 @@ describe "Paws' Data types:", ->
          expect(li.read()).to.be no
          expect(li.write()).to.be yes
 
-      describe 'LiabilityFamily', ->
-         it 'exists', ->
-            expect(Liability.Family).to.not.be undefined
-            expect(Liability.Family).to.be.a 'function'
+   describe 'LiabilityFamily', -> # ---- ---- ---- ---- ----
+      it 'exists', ->
+         expect(Liability.Family).to.not.be undefined
+         expect(Liability.Family).to.be.a 'function'
 
-         it 'constructs', ->
-            li = new Liability Execution(), Thing()
+      it 'constructs', ->
+         li = new Liability Execution(), Thing()
 
-            expect(-> new Liability.Family li).not.to.throwError()
-            expect(new Liability.Family li).to.be.a Liability.Family
-            expect(-> Liability.Family li).not.to.throwError()
-            expect(Liability.Family li).to.be.a Liability.Family
+         expect(-> new Liability.Family li).not.to.throwError()
+         expect(new Liability.Family li).to.be.a Liability.Family
+         expect(-> Liability.Family li).not.to.throwError()
+         expect(Liability.Family li).to.be.a Liability.Family
 
-         it 'assumes its write-license from the first member', ->
-            li = new Liability Execution(), Thing(), no
+      it 'assumes its write-license from the first member', ->
+         li = new Liability Execution(), Thing(), no
 
-            family = new Liability.Family li
-            expect(family.read()).to.be.ok()
+         family = new Liability.Family li
+         expect(family.read()).to.be.ok()
 
-            li = new Liability Execution(), Thing(), yes
+         li = new Liability Execution(), Thing(), yes
 
-            family = new Liability.Family li
-            expect(family.write()).to.be.ok()
+         family = new Liability.Family li
+         expect(family.write()).to.be.ok()
 
-         it.skip 'sets `associates` on the first member', ->
-            an_exec = new Execution
-            li = new Liability an_exec, Thing()
+      it.skip 'sets `associates` on the first member', ->
+         an_exec = new Execution
+         li = new Liability an_exec, Thing()
 
-            family = new Liability.Family li
-            expect(an_exec.associates).to.be family
+         family = new Liability.Family li
+         expect(an_exec.associates).to.be family
 
-         it "accepts new 'read' members if it is a 'read' family", ->
-            li1 = new Liability Execution(), Thing()
-            li2 = new Liability Execution(), Thing()
+      it "accepts new 'read' members if it is a 'read' family", ->
+         li1 = new Liability Execution(), Thing()
+         li2 = new Liability Execution(), Thing()
 
-            family = new Liability.Family li1
-            expect(family.read()).to.be yes
+         family = new Liability.Family li1
+         expect(family.read()).to.be yes
 
-            rv = family.add li2
-            expect(rv).to.be.ok()
-            expect(family.members).to.contain li2
+         rv = family.add li2
+         expect(rv).to.be.ok()
+         expect(family.members).to.contain li2
 
-         it "rejects new 'write' members if it is a 'read' family", ->
-            li1 = new Liability Execution(), Thing()
-            li2 = new Liability Execution(), Thing(), yes
+      it "rejects new 'write' members if it is a 'read' family", ->
+         li1 = new Liability Execution(), Thing()
+         li2 = new Liability Execution(), Thing(), yes
 
-            family = new Liability.Family li1
-            expect(family.read()).to.be yes
+         family = new Liability.Family li1
+         expect(family.read()).to.be yes
 
-            rv = family.add li2
-            expect(rv).to.not.be.ok()
-            expect(family.members).to.not.contain li2
+         rv = family.add li2
+         expect(rv).to.not.be.ok()
+         expect(family.members).to.not.contain li2
 
-         it "rejects all members if it is a 'write' family", ->
-            li1 = new Liability Thing(), Execution(), yes
-            li2 = new Liability Thing(), Execution()
-            li3 = new Liability Thing(), Execution(), yes
+      it "rejects all members if it is a 'write' family", ->
+         li1 = new Liability Thing(), Execution(), yes
+         li2 = new Liability Thing(), Execution()
+         li3 = new Liability Thing(), Execution(), yes
 
-            family = new Liability.Family li1
-            expect(family.write()).to.be yes
+         family = new Liability.Family li1
+         expect(family.write()).to.be yes
 
-            rv = family.add li2
-            expect(rv).to.not.be.ok()
-            expect(family.members).to.not.contain li2
+         rv = family.add li2
+         expect(rv).to.not.be.ok()
+         expect(family.members).to.not.contain li2
 
-            rv = family.add li3
-            expect(rv).to.not.be.ok()
-            expect(family.members).to.not.contain li3
+         rv = family.add li3
+         expect(rv).to.not.be.ok()
+         expect(family.members).to.not.contain li3
 
-         it.skip 'sets `associates` on successfully-added members', ->
-            family = new Liability.Family Liability(Execution(), Thing())
+      it.skip 'sets `associates` on successfully-added members', ->
+         family = new Liability.Family Liability(Execution(), Thing())
 
-            an_exec = new Execution
-            li = new Liability an_exec, Thing()
+         an_exec = new Execution
+         li = new Liability an_exec, Thing()
 
-            family.add li
-            expect(an_exec.associates).to.be family
+         family.add li
+         expect(an_exec.associates).to.be family
 
-         it.skip "doesn't set `associates` on members that can't be added", ->
-            family = new Liability.Family Liability(Execution(), Thing(), no)
+      it.skip "doesn't set `associates` on members that can't be added", ->
+         family = new Liability.Family Liability(Execution(), Thing(), no)
 
-            an_exec = new Execution
-            li = new Liability an_exec, Thing(), yes
+         an_exec = new Execution
+         li = new Liability an_exec, Thing(), yes
 
-            family.add li
-            expect(an_exec.associates).to.be undefined
+         family.add li
+         expect(an_exec.associates).to.be undefined
 
-         it 'can remove members', ->
-            li1 = new Liability Execution(), Thing()
-            li2 = new Liability Execution(), Thing()
+      it 'can remove members', ->
+         li1 = new Liability Execution(), Thing()
+         li2 = new Liability Execution(), Thing()
 
-            family = new Liability.Family li1
-            family.add li2
-            expect(family.members).to.contain li2
+         family = new Liability.Family li1
+         family.add li2
+         expect(family.members).to.contain li2
 
-            rv = family.remove li2
-            expect(rv).to.be.ok()
-            expect(family.members).to.not.contain li2
+         rv = family.remove li2
+         expect(rv).to.be.ok()
+         expect(family.members).to.not.contain li2
 
-         it.skip "resets `associates` on removed custodians", ->
-            an_exec = new Execution()
-            li = new Liability an_exec, Thing()
-            family = new Liability.Family Liability(Execution(), Thing())
-            family.add li
-            expect(an_exec.associates).to.be family
+      it.skip "resets `associates` on removed custodians", ->
+         an_exec = new Execution()
+         li = new Liability an_exec, Thing()
+         family = new Liability.Family Liability(Execution(), Thing())
+         family.add li
+         expect(an_exec.associates).to.be family
 
-            family.remove li
-            expect(an_exec.associates).to.be undefined
+         family.remove li
+         expect(an_exec.associates).to.be undefined
 
 
-   describe 'Label', ->
+
+   describe 'Label', -> # ---- ---- ---- ---- ----                                             Label
       it 'should contain a String', ->
          foo = new Label 'foo'
          expect(foo).to.be.a Thing
@@ -616,130 +621,11 @@ describe "Paws' Data types:", ->
          expect(foo1.compare foo2).to.be true
 
 
-   describe 'Operation', ->
-      it 'consists of of a stringly-typed operation,', ->
-         expect(-> new Operation 'foo').to.not.throwError()
 
-      it '... with some optional arguments', ->
-         expect(-> new Operation 'foo', new Thing, new Thing).to.not.throwError()
+   describe 'Execution', -> # ---- ---- ---- ---- ----                                     Execution
 
-      it 'maintains a global map of known operations', ->
-         expect(Operation.operations).to.be.ok()
-         expect(Operation.operations).to.be.an 'object'
-         expect(Operation.operations).to.have.keys 'advance', 'adopt'
+      # ### Native: Core functionality ###
 
-      it 'can be told to register new operation-types', ->
-         expect(   Operation.register).to.be.ok()
-         expect(   Operation.register).to.be.a 'function'
-
-         [ops, Operation.operations] = [Operation.operations, new Array]
-         an_op = new Function
-
-         expect(-> Operation.register 'op', an_op).to.not.throwError()
-         expect(   Operation.operations).to.have.key 'op'
-         expect(   Operation.operations['op']).to.be an_op
-
-         Operation.operations = ops
-
-      it 'applies the body of the operation against a passed Execution', ->
-         [ops, Operation.operations] = [Operation.operations, new Array]
-         Operation.register 'op', sinon.spy()
-         an_exec = new Execution
-
-         it = new Operation 'op'
-         it.perform an_exec
-
-         expect(Operation.operations['op']).was.calledOn an_exec
-
-         Operation.operations = ops
-
-      describe "'advance'", ->
-         it 'exists', ->
-            expect(Operation.operations['advance']).to.be.ok()
-            expect(Operation.operations['advance']).to.be.a 'function'
-
-         it 'advances the execution', ->
-            an_exec = new Native ->
-            sinon.spy an_exec, 'advance'
-
-            op = new Operation 'advance'
-            op.perform an_exec
-
-            expect(an_exec.advance).was.calledOnce()
-
-         it 'does nothing if the execution is complete', ->
-            an_exec = new Native
-            sinon.spy an_exec, 'advance'
-
-            op = new Operation 'advance'
-            op.perform an_exec
-
-            expect(an_exec.advance).was.notCalled()
-
-         it "calls a Native's next bit,", ->
-            bit = sinon.spy()
-            an_exec = new Native bit
-            a_thing = new Thing
-
-            op = new Operation 'advance', a_thing
-            op.perform an_exec
-
-            expect(bit).was.calledOnce()
-            expect(bit).was.calledWith a_thing
-
-         it "clones an Combination's receiver", sinon.test ->
-            a_subject = new Label 'foo'
-            an_exec = new Execution parse '_ bar'
-            a_receiver = new Native
-            @spy a_subject.receiver, 'clone'
-
-            an_exec.advance()
-
-            op = new Operation 'advance', new Thing
-            op.perform an_exec
-
-            expect(a_subject.receiver.clone).was.calledOnce()
-            expect(a_subject.receiver.ops).to.be.empty()
-
-         it 'queues a further advancement operation for that receiver-clone', sinon.test ->
-            an_exec = new Execution (new Sequence)
-            a_subject = new Thing; a_message = new Thing
-            a_receiver = new Native
-
-            @stub(an_exec, 'advance').returns new Combination a_subject, a_message
-            @stub(a_subject.receiver, 'clone').returns a_receiver
-
-            op = new Operation 'advance', new Thing
-            op.perform an_exec
-
-            expect(a_receiver.ops).to.not.be.empty()
-            expect(a_receiver.ops[0].params).to.not.be.empty()
-
-            params = a_receiver.ops[0].params[0]
-            expect(params.at 0).to.be an_exec
-            expect(params.at 1).to.be a_subject
-            expect(params.at 2).to.be a_message
-
-         it 'uses locals at the edges of expressions', sinon.test ->
-            @spy Label::receiver, 'clone'
-            an_exec = new Execution parse 'foo []'
-
-            op = new Operation 'advance', new Thing
-            op.perform an_exec
-
-            receiver = Label::receiver.clone.firstCall.returnValue
-            expect(receiver.ops.length).to.be.above 0
-            expect(receiver.ops[0].params).to.not.be.empty()
-
-            params = receiver.ops[0].params[0]
-            expect(params.at 1).to.be an_exec.locals
-
-
-      describe "'adopt'", ->
-         it 'exists'
-
-
-   describe 'Execution', ->
       it 'should construct an Native when passed function-bits', ->
          expect(new Execution ->).to.be.an Native
 
@@ -750,94 +636,59 @@ describe "Paws' Data types:", ->
          expect(new Execution).to.be.an Execution
          expect(new Execution).not.to.be.an Native
 
-      it 'should begin life in a pristine state', ->
-         expect((new Execution).pristine).to.be yes
+      describe 'Locals storage', ->
+         it 'should have locals', ->
+            exe = new Execution
+            expect(exe.locals).to.be.a Thing
+            expect(exe.locals.metadata).to.have.length 2
 
-      it 'should begin already completed if created with no instructions', ->
-         expect((new Execution).complete()).to.be yes
+            # Seperate locals-tests into their own suite
+            expect(exe.find 'locals').to.not.be.empty()
+            expect(exe       .at(1).valueish()).to.be exe.locals
+            expect(exe       .at(1).metadata[2].owns).to.be yes
+            expect(exe.locals.at(1).valueish()   ).to.be exe.locals
+            expect(exe.locals.at(1).metadata[2].owns).to.be no
 
-      it 'should have locals', ->
-         exe = new Execution
-         expect(exe.locals).to.be.a Thing
-         expect(exe.locals.metadata).to.have.length 2
+      describe 'Position management and advancement', ->
+         it 'should begin life in a pristine state', ->
+            expect((new Execution).pristine).to.be yes
 
-         # Seperate locals-tests into their own suite
-         expect(exe.find 'locals').to.not.be.empty()
-         expect(exe       .at(1).valueish()).to.be exe.locals
-         expect(exe       .at(1).metadata[2].owns).to.be yes
-         expect(exe.locals.at(1).valueish()   ).to.be exe.locals
-         expect(exe.locals.at(1).metadata[2].owns).to.be no
+         it 'should begin already completed if created with no instructions', ->
+            expect((new Execution).complete()).to.be yes
 
-      it 'should take a position', ->
-         seq = new Sequence new Expression
 
-         expect(-> new Execution seq).to.not.throwException()
+         it 'should take a position', ->
+            seq = new Sequence new Expression
 
-         exec = new Execution seq
-         expect(exec.instructions[0].expression()).to.be seq.at 0
+            expect(-> new Execution seq).to.not.throwException()
 
-      it 'should know whether it is complete', ->
-         ex = new Execution Expression.from ['foo']
-         expect(ex.complete()).to.be false
+            exec = new Execution seq
+            expect(exec.instructions[0].expression()).to.be seq.at 0
 
-         ex.advance()
-         expect(ex.complete()).to.be false
+         it 'should know whether it is complete', ->
+            ex = new Execution Expression.from ['foo']
+            expect(ex.complete()).to.be false
 
-         ex.advance()
-         expect(ex.complete()).to.be true
+            ex.advance()
+            expect(ex.complete()).to.be false
 
-      it 'provides access to its current position', ->
-         seq = parse 'abc def'
-         ex = new Execution seq
+            ex.advance()
+            expect(ex.complete()).to.be true
 
-         expect(-> ex.current()).to.not.throwException()
-         expect(   ex.current()).to.be.a Position
+         it 'provides access to its current position', ->
+            seq = parse 'abc def'
+            ex = new Execution seq
 
-         expect(   ex.current().expression()).to.be seq.at 0
-         expect(   ex.current().valueOf().alien).to.be 'abc'
+            expect(-> ex.current()).to.not.throwException()
+            expect(   ex.current()).to.be.a Position
 
-         ex.advance()
-         ex.advance new Thing
-         expect(   ex.current().expression()).to.be seq.at 0
-         expect(   ex.current().valueOf().alien).to.be 'def'
+            expect(   ex.current().expression()).to.be seq.at 0
+            expect(   ex.current().valueOf().alien).to.be 'abc'
 
-      it 'can be cloned', ->
-         ex = new Execution (new Sequence)
-         expect(-> ex.clone()).to.not.throwException()
-         expect(   ex.clone()).to.be.an Execution
-
-      it 'preserves the instructions and results when cloning', ->
-         seq1 = new Sequence new Expression
-         seq2 = new Sequence new Expression
-         ex = new Execution seq1
-
-         clone1 = ex.clone()
-         expect(clone1.instructions[0].expression()).to.be seq1.at 0
-         expect(clone1.results).to.not.be ex.results
-         expect(clone1.results).to.eql ex.results
-
-         ex.instructions[0] = new Position seq2
-         ex.results.unshift new Label 'intermediate value'
-         clone2 = ex.clone()
-         expect(clone2.instructions[0].expression()).to.be seq2.at 0
-         expect(clone2.results).to.have.length 2
-         expect(clone2.results).to.not.be ex.results
-         expect(clone2.results).to.eql ex.results
-
-      it 'clones locals when cloned', ->
-         ex = new Execution (new Sequence)
-         clone = ex.clone()
-
-         expect(clone.locals).to.not.equal ex.locals
-         expect(clone.find('locals')[0].valueish()).to.equal clone.locals
-         expect(clone.locals.toArray()).to.eql ex.locals.toArray()
-
-      it 'retains a reference to old locals when cloned', ->
-         ex = new Execution (new Sequence)
-         clone = ex.clone()
-
-         expect(clone.locals).to.not.equal ex.locals
-         expect(clone.find('locals')[1].valueish()).to.equal ex.locals
+            ex.advance()
+            ex.advance new Thing
+            expect(   ex.current().expression()).to.be seq.at 0
+            expect(   ex.current().valueOf().alien).to.be 'def'
 
       describe 'operation queue', ->
          it 'is initialized', ->
@@ -874,6 +725,46 @@ describe "Paws' Data types:", ->
             expect(ex.ops[0].op).to.be 'advance'
             expect(ex.ops[0].params).to.contain a_thing
 
+      # ### Native: Methods ###
+
+      describe '#clone', ->
+         it 'can be cloned', ->
+            ex = new Execution (new Sequence)
+            expect(-> ex.clone()).to.not.throwException()
+            expect(   ex.clone()).to.be.an Execution
+
+         it 'preserves the instructions and results when cloning', ->
+            seq1 = new Sequence new Expression
+            seq2 = new Sequence new Expression
+            ex = new Execution seq1
+
+            clone1 = ex.clone()
+            expect(clone1.instructions[0].expression()).to.be seq1.at 0
+            expect(clone1.results).to.not.be ex.results
+            expect(clone1.results).to.eql ex.results
+
+            ex.instructions[0] = new Position seq2
+            ex.results.unshift new Label 'intermediate value'
+            clone2 = ex.clone()
+            expect(clone2.instructions[0].expression()).to.be seq2.at 0
+            expect(clone2.results).to.have.length 2
+            expect(clone2.results).to.not.be ex.results
+            expect(clone2.results).to.eql ex.results
+
+         it 'clones locals when cloned', ->
+            ex = new Execution (new Sequence)
+            clone = ex.clone()
+
+            expect(clone.locals).to.not.equal ex.locals
+            expect(clone.find('locals')[0].valueish()).to.equal clone.locals
+            expect(clone.locals.toArray()).to.eql ex.locals.toArray()
+
+         it 'retains a reference to old locals when cloned', ->
+            ex = new Execution (new Sequence)
+            clone = ex.clone()
+
+            expect(clone.locals).to.not.equal ex.locals
+            expect(clone.find('locals')[1].valueish()).to.equal ex.locals
 
       describe '#advance', ->
          it "doesn't modify a completed Native", ->
@@ -1029,214 +920,6 @@ describe "Paws' Data types:", ->
             expect(combo.message).to.be meta_meta_other
             # ~locals <- <meta-meta-other>
 
-      describe 'as an Native', ->
-         it 'should take a series of procedure-bits', ->
-            a = (->); b = (->); c = (->)
-
-            expect(-> new Execution a, b, c).to.not.throwException()
-            expect(   new Execution a, b, c).to.be.an Native
-
-            expect(  (new Execution a, b, c).bits).to.have.length 3
-            expect(  (new Execution a, b, c).bits).to.eql [a, b, c]
-
-         it 'should know whether it is complete', ->
-            ex = new Execution ->
-            expect(ex.complete()).to.be false
-
-            ex.bits.length = 0
-            expect(ex.complete()).to.be true
-
-         it 'can be cloned', ->
-            ex = new Execution ->
-            expect(-> ex.clone()).to.not.throwException()
-            expect(   ex.clone()).to.be.an Native
-
-         it 'has the same bits after cloning', ->
-            funcs =
-               one: ->
-               two: ->
-               three: ->
-            ex = new Execution funcs.one, funcs.two, funcs.three
-
-            clone = ex.clone()
-            expect(clone.bits).to.not.be ex.bits
-            expect(clone.bits).to.eql [funcs.one, funcs.two, funcs.three]
-
-         # FIXME: Why did I expect this to behave differently when it was a `Native`!?
-         it.skip 'shares locals with clones', ->
-            ex = new Execution ->
-            clone = ex.clone()
-
-            expect(clone.locals).to.equal ex.locals
-
-         describe '##synchronous', ->
-            synchronous = Native.synchronous
-            it 'accepts a function', ->
-               expect(   synchronous).to.be.ok()
-               expect(-> synchronous ->).to.not.throwException()
-
-            it 'results in a new Native', ->
-               expect(synchronous ->).to.be.an Native
-
-            it 'adds bits corresponding to the arity of the function', ->
-               expect( (synchronous (a, b)->)       .bits).to.have.length 3
-               expect( (synchronous (a, b, c, d)->) .bits).to.have.length 5
-
-            describe 'produces bits that ...', ->
-               a = null
-               beforeEach -> a =
-                  caller: new Execution
-                  thing:  new Label 'foo'
-
-               call = (it, response)->
-                  bit = it.advance response
-                  bit.call it, response
-
-               it 'are Functions', ->
-                  exe = synchronous (a, b, c)->
-                  expect(exe.bits[0]).to.be.a Function
-                  expect(exe.bits[1]).to.be.a Function
-                  expect(exe.bits[2]).to.be.a Function
-                  expect(exe.bits[3]).to.be.a Function
-
-               it 'mostly expect a caller and value,', ->
-                  exe = synchronous (a, b, c)->
-                  expect(exe.bits[1]).to.have.length 2
-                  expect(exe.bits[2]).to.have.length 2
-
-               it '(except the first, which expects only the value, which becomes the caller,)', ->
-                  exe = synchronous (a, b, c)->
-                  expect(exe.bits[0]).to.have.length 1
-
-               # TESTME: lodash's `_.partial` doesn't export a correct `length`, nor does it provide
-               #         access to the original, wrapped `Function`; I don't know how to test this.
-               it.skip '(and the last, which expects several extra arguments.)', ->
-                  body = (a, b, c)->
-                  exe  = synchronous body
-                  expect(exe.bits[3]).to.have.length 4 + 1
-
-               it 'can be successfully passed a caller,', ->
-                  exe = synchronous (a, b, c)->
-                  sinon.spy a.caller, 'queue'
-
-                  expect(-> call exe, a.caller).to.not.throwException()
-                  expect(a.caller.queue).was.calledWith sinon.match params: [exe]
-
-               it 'can be successfully passed intermediate parameters', ->
-                  exe = synchronous (a, b, c)->
-                  sinon.spy a.caller, 'queue'
-                  call exe, a.caller
-
-                  expect(-> call exe, a.thing).to.not.throwException()
-                  expect(-> call exe, a.thing).to.not.throwException()
-
-                  expect(a.caller.queue).was.calledWith sinon.match params: [exe]
-                  expect(a.caller.queue).was.calledThrice()
-
-               it 'are provided a `caller` by the first bit', ->
-                  some_function = sinon.spy (a, b, c)->
-                  exe = synchronous some_function
-                  exe.bits = exe.bits.map (bit)-> sinon.spy bit
-                  bits = exe.bits.slice()
-
-                  call exe, a.caller
-                  call exe, new Label 123
-                  call exe, new Label 456
-                  call exe, new Label 789
-
-                  assert bits[1].calledWith a.caller
-                  assert bits[2].calledWith a.caller
-                  assert bits[3].calledWith a.caller
-
-               it 'resume the `caller` after each coconsumption', ->
-                  exe = synchronous (a, b, c)->
-                  queue = sinon.spy a.caller, 'queue'
-
-                  call exe, a.caller
-                  expect(queue.callCount).to.be 1
-                  expect(queue.thisValues[0]).to.be a.caller
-                  expect(queue.args[0][0].params).to.contain exe
-
-                  call exe, new Label 123
-                  expect(queue.callCount).to.be 2
-                  expect(queue.thisValues[1]).to.be a.caller
-                  expect(queue.args[1][0].params).to.contain exe
-
-                  call exe, new Label 456
-                  expect(queue.callCount).to.be 3
-                  expect(queue.thisValues[2]).to.be a.caller
-                  expect(queue.args[2][0].params).to.contain exe
-
-                  call exe, new Label 789
-                  expect(queue.callCount).to.not.be 4
-
-               it 're-stage the `caller` after all coproduction if a result is returned', ->
-                  result = new Label "A result!"
-                  exe = synchronous (a)-> return result
-                  queue = sinon.spy a.caller, 'queue'
-
-                  call exe, a.caller
-                  expect(queue.callCount).to.be 1
-                  expect(queue.thisValues[0]).to.be a.caller
-                  expect(queue.args[0][0].params).to.contain exe
-
-                  call exe, new Label 123
-                  expect(queue.callCount).to.be 2
-                  expect(queue.thisValues[1]).to.be a.caller
-                  expect(queue.args[1][0].params).to.contain result
-
-               it 're-stage the `caller` immediately if no coconsumption is required', ->
-                  queue = sinon.spy a.caller, 'queue'
-                  result = new Label "A result!"
-                  exe = synchronous -> return result
-
-                  call exe, a.caller
-                  expect(queue.callCount).to.be 1
-                  expect(queue.thisValues[0]).to.be a.caller
-                  expect(queue.args[0][0].params).to.contain result
-
-               it 'call the passed function exactly once, when exhausted', ->
-                  some_function = sinon.spy (a, b, c)->
-                  exe = synchronous some_function
-
-                  call exe, a.caller
-                  call exe, new Label 123
-                  call exe, new Label 456
-                  call exe, new Label 789
-
-                  expect(some_function).was.calledOnce()
-
-               it 'collect individually passed arguments into arguments to the passed function', ->
-                  some_function = sinon.spy (a, b, c)->
-                  exe = synchronous some_function
-
-                  things =
-                     first:  new Label 123
-                     second: new Label 456
-                     third:  new Label 789
-
-                  call exe, a.caller
-                  call exe, things.first
-                  call exe, things.second
-                  call exe, things.third
-
-                  expect(some_function).was.calledWithExactly things.first, things.second, things.third
-
-               it 'inject context into the passed function', ->
-                  some_function = sinon.spy (arg)->
-                  exe = synchronous some_function
-
-                  call exe, a.caller
-                  call exe, a.thing
-
-                  expect(some_function.firstCall.thisValue).to.have.property 'caller'
-                  expect(some_function.firstCall.thisValue.caller).to.be.an Execution
-                  expect(some_function.firstCall.thisValue.caller).to.be a.caller
-
-                  expect(some_function.firstCall.thisValue).to.have.property 'execution'
-                  expect(some_function.firstCall.thisValue.execution).to.be.an Execution
-                  expect(some_function.firstCall.thisValue.execution).to.be exe
-
       describe 'default receiver', ->
          caller = undefined; receiver = undefined
          beforeEach ->
@@ -1275,3 +958,344 @@ describe "Paws' Data types:", ->
             bit.apply receiver, [params]
 
             expect(caller.ops).to.have.length 0
+
+   describe 'as an Native', -> # ---- ---- ---- ---- ----                                     Native
+
+      # ### Native: Core functionality & methods ###
+
+      it 'should take a series of procedure-bits', ->
+         a = (->); b = (->); c = (->)
+
+         expect(-> new Execution a, b, c).to.not.throwException()
+         expect(   new Execution a, b, c).to.be.an Native
+
+         expect(  (new Execution a, b, c).bits).to.have.length 3
+         expect(  (new Execution a, b, c).bits).to.eql [a, b, c]
+
+      describe '#complete', ->
+         it 'should know whether it is complete', ->
+            ex = new Execution ->
+            expect(ex.complete()).to.be false
+
+            ex.bits.length = 0
+            expect(ex.complete()).to.be true
+
+      describe '#clone', ->
+         it 'can be cloned', ->
+            ex = new Execution ->
+            expect(-> ex.clone()).to.not.throwException()
+            expect(   ex.clone()).to.be.an Native
+
+         it 'has the same bits after cloning', ->
+            funcs =
+               one: ->
+               two: ->
+               three: ->
+            ex = new Execution funcs.one, funcs.two, funcs.three
+
+            clone = ex.clone()
+            expect(clone.bits).to.not.be ex.bits
+            expect(clone.bits).to.eql [funcs.one, funcs.two, funcs.three]
+
+         # FIXME: Why did I expect this to behave differently when it was a `Native`!?
+         it.skip 'shares locals with clones', ->
+            ex = new Execution ->
+            clone = ex.clone()
+
+            expect(clone.locals).to.equal ex.locals
+
+      # ### Native: Utility / convenience methods and functions ###
+
+      describe '##synchronous', ->
+         synchronous = Native.synchronous
+         it 'accepts a function', ->
+            expect(   synchronous).to.be.ok()
+            expect(-> synchronous ->).to.not.throwException()
+
+         it 'results in a new Native', ->
+            expect(synchronous ->).to.be.an Native
+
+         it 'adds bits corresponding to the arity of the function', ->
+            expect( (synchronous (a, b)->)       .bits).to.have.length 3
+            expect( (synchronous (a, b, c, d)->) .bits).to.have.length 5
+
+         describe 'produces bits that ...', ->
+            a = null
+            beforeEach -> a =
+               caller: new Execution
+               thing:  new Label 'foo'
+
+            call = (it, response)->
+               bit = it.advance response
+               bit.call it, response
+
+            it 'are Functions', ->
+               exe = synchronous (a, b, c)->
+               expect(exe.bits[0]).to.be.a Function
+               expect(exe.bits[1]).to.be.a Function
+               expect(exe.bits[2]).to.be.a Function
+               expect(exe.bits[3]).to.be.a Function
+
+            it 'mostly expect a caller and value,', ->
+               exe = synchronous (a, b, c)->
+               expect(exe.bits[1]).to.have.length 2
+               expect(exe.bits[2]).to.have.length 2
+
+            it '(except the first, which expects only the value, which becomes the caller,)', ->
+               exe = synchronous (a, b, c)->
+               expect(exe.bits[0]).to.have.length 1
+
+            # TESTME: lodash's `_.partial` doesn't export a correct `length`, nor does it provide
+            #         access to the original, wrapped `Function`; I don't know how to test this.
+            it.skip '(and the last, which expects several extra arguments.)', ->
+               body = (a, b, c)->
+               exe  = synchronous body
+               expect(exe.bits[3]).to.have.length 4 + 1
+
+            it 'can be successfully passed a caller,', ->
+               exe = synchronous (a, b, c)->
+               sinon.spy a.caller, 'queue'
+
+               expect(-> call exe, a.caller).to.not.throwException()
+               expect(a.caller.queue).was.calledWith sinon.match params: [exe]
+
+            it 'can be successfully passed intermediate parameters', ->
+               exe = synchronous (a, b, c)->
+               sinon.spy a.caller, 'queue'
+               call exe, a.caller
+
+               expect(-> call exe, a.thing).to.not.throwException()
+               expect(-> call exe, a.thing).to.not.throwException()
+
+               expect(a.caller.queue).was.calledWith sinon.match params: [exe]
+               expect(a.caller.queue).was.calledThrice()
+
+            it 'are provided a `caller` by the first bit', ->
+               some_function = sinon.spy (a, b, c)->
+               exe = synchronous some_function
+               exe.bits = exe.bits.map (bit)-> sinon.spy bit
+               bits = exe.bits.slice()
+
+               call exe, a.caller
+               call exe, new Label 123
+               call exe, new Label 456
+               call exe, new Label 789
+
+               assert bits[1].calledWith a.caller
+               assert bits[2].calledWith a.caller
+               assert bits[3].calledWith a.caller
+
+            it 'resume the `caller` after each coconsumption', ->
+               exe = synchronous (a, b, c)->
+               queue = sinon.spy a.caller, 'queue'
+
+               call exe, a.caller
+               expect(queue.callCount).to.be 1
+               expect(queue.thisValues[0]).to.be a.caller
+               expect(queue.args[0][0].params).to.contain exe
+
+               call exe, new Label 123
+               expect(queue.callCount).to.be 2
+               expect(queue.thisValues[1]).to.be a.caller
+               expect(queue.args[1][0].params).to.contain exe
+
+               call exe, new Label 456
+               expect(queue.callCount).to.be 3
+               expect(queue.thisValues[2]).to.be a.caller
+               expect(queue.args[2][0].params).to.contain exe
+
+               call exe, new Label 789
+               expect(queue.callCount).to.not.be 4
+
+            it 're-stage the `caller` after all coproduction if a result is returned', ->
+               result = new Label "A result!"
+               exe = synchronous (a)-> return result
+               queue = sinon.spy a.caller, 'queue'
+
+               call exe, a.caller
+               expect(queue.callCount).to.be 1
+               expect(queue.thisValues[0]).to.be a.caller
+               expect(queue.args[0][0].params).to.contain exe
+
+               call exe, new Label 123
+               expect(queue.callCount).to.be 2
+               expect(queue.thisValues[1]).to.be a.caller
+               expect(queue.args[1][0].params).to.contain result
+
+            it 're-stage the `caller` immediately if no coconsumption is required', ->
+               queue = sinon.spy a.caller, 'queue'
+               result = new Label "A result!"
+               exe = synchronous -> return result
+
+               call exe, a.caller
+               expect(queue.callCount).to.be 1
+               expect(queue.thisValues[0]).to.be a.caller
+               expect(queue.args[0][0].params).to.contain result
+
+            it 'call the passed function exactly once, when exhausted', ->
+               some_function = sinon.spy (a, b, c)->
+               exe = synchronous some_function
+
+               call exe, a.caller
+               call exe, new Label 123
+               call exe, new Label 456
+               call exe, new Label 789
+
+               expect(some_function).was.calledOnce()
+
+            it 'collect individually passed arguments into arguments to the passed function', ->
+               some_function = sinon.spy (a, b, c)->
+               exe = synchronous some_function
+
+               things =
+                  first:  new Label 123
+                  second: new Label 456
+                  third:  new Label 789
+
+               call exe, a.caller
+               call exe, things.first
+               call exe, things.second
+               call exe, things.third
+
+               expect(some_function).was.calledWithExactly things.first, things.second, things.third
+
+            it 'inject context into the passed function', ->
+               some_function = sinon.spy (arg)->
+               exe = synchronous some_function
+
+               call exe, a.caller
+               call exe, a.thing
+
+               expect(some_function.firstCall.thisValue).to.have.property 'caller'
+               expect(some_function.firstCall.thisValue.caller).to.be.an Execution
+               expect(some_function.firstCall.thisValue.caller).to.be a.caller
+
+               expect(some_function.firstCall.thisValue).to.have.property 'execution'
+               expect(some_function.firstCall.thisValue.execution).to.be.an Execution
+               expect(some_function.firstCall.thisValue.execution).to.be exe
+
+
+   # ### Execution: Supporting types ###
+
+   describe 'Operation', -> # ---- ---- ---- ---- ----                                     Operation
+      it 'consists of of a stringly-typed operation,', ->
+         expect(-> new Operation 'foo').to.not.throwError()
+
+      it '... with some optional arguments', ->
+         expect(-> new Operation 'foo', new Thing, new Thing).to.not.throwError()
+
+      it 'maintains a global map of known operations', ->
+         expect(Operation.operations).to.be.ok()
+         expect(Operation.operations).to.be.an 'object'
+         expect(Operation.operations).to.have.keys 'advance', 'adopt'
+
+      it 'can be told to register new operation-types', ->
+         expect(   Operation.register).to.be.ok()
+         expect(   Operation.register).to.be.a 'function'
+
+         [ops, Operation.operations] = [Operation.operations, new Array]
+         an_op = new Function
+
+         expect(-> Operation.register 'op', an_op).to.not.throwError()
+         expect(   Operation.operations).to.have.key 'op'
+         expect(   Operation.operations['op']).to.be an_op
+
+         Operation.operations = ops
+
+      it 'applies the body of the operation against a passed Execution', ->
+         [ops, Operation.operations] = [Operation.operations, new Array]
+         Operation.register 'op', sinon.spy()
+         an_exec = new Execution
+
+         it = new Operation 'op'
+         it.perform an_exec
+
+         expect(Operation.operations['op']).was.calledOn an_exec
+
+         Operation.operations = ops
+
+   # ### Execution: Available operations ###
+
+   describe "'advance'", -> # ---- ---- ---- ---- ----
+      it 'exists', ->
+         expect(Operation.operations['advance']).to.be.ok()
+         expect(Operation.operations['advance']).to.be.a 'function'
+
+      it 'advances the execution', ->
+         an_exec = new Native ->
+         sinon.spy an_exec, 'advance'
+
+         op = new Operation 'advance'
+         op.perform an_exec
+
+         expect(an_exec.advance).was.calledOnce()
+
+      it 'does nothing if the execution is complete', ->
+         an_exec = new Native
+         sinon.spy an_exec, 'advance'
+
+         op = new Operation 'advance'
+         op.perform an_exec
+
+         expect(an_exec.advance).was.notCalled()
+
+      it "calls a Native's next bit,", ->
+         bit = sinon.spy()
+         an_exec = new Native bit
+         a_thing = new Thing
+
+         op = new Operation 'advance', a_thing
+         op.perform an_exec
+
+         expect(bit).was.calledOnce()
+         expect(bit).was.calledWith a_thing
+
+      it "clones an Combination's receiver", sinon.test ->
+         a_subject = new Label 'foo'
+         an_exec = new Execution parse '_ bar'
+         a_receiver = new Native
+         @spy a_subject.receiver, 'clone'
+
+         an_exec.advance()
+
+         op = new Operation 'advance', new Thing
+         op.perform an_exec
+
+         expect(a_subject.receiver.clone).was.calledOnce()
+         expect(a_subject.receiver.ops).to.be.empty()
+
+      it 'queues a further advancement operation for that receiver-clone', sinon.test ->
+         an_exec = new Execution (new Sequence)
+         a_subject = new Thing; a_message = new Thing
+         a_receiver = new Native
+
+         @stub(an_exec, 'advance').returns new Combination a_subject, a_message
+         @stub(a_subject.receiver, 'clone').returns a_receiver
+
+         op = new Operation 'advance', new Thing
+         op.perform an_exec
+
+         expect(a_receiver.ops).to.not.be.empty()
+         expect(a_receiver.ops[0].params).to.not.be.empty()
+
+         params = a_receiver.ops[0].params[0]
+         expect(params.at 0).to.be an_exec
+         expect(params.at 1).to.be a_subject
+         expect(params.at 2).to.be a_message
+
+      it 'uses locals at the edges of expressions', sinon.test ->
+         @spy Label::receiver, 'clone'
+         an_exec = new Execution parse 'foo []'
+
+         op = new Operation 'advance', new Thing
+         op.perform an_exec
+
+         receiver = Label::receiver.clone.firstCall.returnValue
+         expect(receiver.ops.length).to.be.above 0
+         expect(receiver.ops[0].params).to.not.be.empty()
+
+         params = receiver.ops[0].params[0]
+         expect(params.at 1).to.be an_exec.locals
+
+   describe "'adopt'", -> # ---- ---- ---- ---- ----
+      it 'exists'
