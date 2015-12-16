@@ -7,12 +7,15 @@
 
 ,     "spec-name" : "Paws' Nucleus 10 (ish.)"
 
-,          "main" : "Library/Paws.js"
+,    "repository" : {"type" : "git", "url" : "https://github.com/ELLIOTTCABLE/Paws.js.git"}
 
+,          "main" : "Library/Paws.js"
 ,           "bin" : {"paws.js" : "Executables/paws.js"}
 
 ,       "scripts" :{
-             "build" : "./Scripts/build.sh"
+       "contribute!" : "./Scripts/contribute.sh"
+
+,            "build" : "./Scripts/build.sh"
 ,       "prepublish" : "./Scripts/build.sh"
 
 ,             "test" : "./Scripts/test.sh"

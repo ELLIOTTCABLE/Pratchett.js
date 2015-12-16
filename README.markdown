@@ -70,15 +70,11 @@ Contributing
 I consistently put a lot of effort into ensuring that this codebase is easy to spelunk. Hell, I
 reduced myself to using [CoffeeScript][], to make everything easier to read! `(=`
 
-Any and all [issues / pull-requests][issues] are welcome. There's a rather comprehensive test-suite
-for the reactor itself; it's appreciated if any changes are contributed with passing test-cases, of
-course.
+After `git clone`'ing the codebase, you should immediately `npm run-script contribute!`; this will
+help you set up your local copy for hacking.
 
-After `git clone`'ing the codebase, you should immediately `npm run-script hi`; this will help you
-set up your local copy for hacking.
-
-More specific information ~~can be found in [CONTRIBUTING](./blob/Master/CONTRIBUTING.markdown)~~.
-(Well, eventually. `>,>`)
+Further information **~~can be found in [CONTRIBUTING](./blob/Master/CONTRIBUTING.markdown)~~**. Go
+read it!
 
    [CoffeeScript]: <http://coffeescript.org> "A little language that transpiles into JavaScript"
    [issues]: <https://github.com/ELLIOTTCABLE/Paws.js/issues> "Issue-tracker for Paws.js"
