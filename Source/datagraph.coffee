@@ -283,7 +283,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    toArray: (cb)-> @metadata.slice(1).map (rel)-> (cb ? _.identity) rel?.to
 
    # FIXME: This is ... not precise. /=
-   isPair:   -> @metadata[1] and @metadata[2]
+   isPair:   -> Boolean @metadata[1] and @metadata[2]
    keyish:   -> @at 1
    valueish: -> @at 2
 
