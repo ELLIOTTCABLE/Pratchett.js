@@ -35,7 +35,7 @@
 
 puts() { printf %s\\n "$@" ;}
 pute() { printf %s\\n "~~ $*" >&2 ;}
-argq() { printf "'%s' " "$@" ;}
+argq() { [ $# -gt 0 ] && printf "'%s' " "$@" ;}
 
 source_dir="$npm_package_config_dirs_source"
 unit_dir="$npm_package_config_dirs_test"
@@ -129,10 +129,12 @@ fi
    "Checking letters:      ${LETTERS:--}"                                     \
    "" >&2
 
+[ -n "$DEBUG_SCRIPTS" ] && [ "${VERBOSE:-4}" -gt 8 ] && \
+   pute "Environment variables:" && env >&2
 
 # Helper-function setup
 # ---------------------
-go () { [ -z ${print_commands+0} ] || puts '`` '"$*" >&2 ; "$@" || exit $? ;}
+go () { [ -n "$print_commands" ] && puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 mochaify() {
    [ -z $non_mocha ] && go $node_debugger                                     \
