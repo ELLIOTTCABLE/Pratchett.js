@@ -96,7 +96,7 @@ The specifics of each of these are available in [COPYING][] and [COPYING (Docs)]
    [Apache License]: <http://choosealicense.com/licenses/apache-2.0/> "Information about the Apache License"
    [CC-BY 4.0]: <http://creativecommons.org/licenses/by/4.0> "Information about the Creative Commons licenses"
    [COPYING]: <./Docs/COPYING.markdown>
-   [COPYING (Docs)]: <./Docs/COPYING (Docs).markdown>
+   [COPYING (Docs)]: <./Docs/COPYING%20(Docs).markdown>
 
 <br>
 ----
