@@ -1,6 +1,6 @@
 <div align="center">
    <img src="http://elliottcable.s3.amazonaws.com/p/paws.js-cathode-3.png"><br>
-   <img alt='Maintenance status: Under rapid development pre-release' src="https://img.shields.io/badge/maintained%3F-pre--release-orange.svg?style=flat-square"><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a href="https://github.com/ELLIOTTCABLE/Paws.js/releases"><img alt='Latest GitHub release' src="https://img.shields.io/github/release/ELLIOTTCABLE/Paws.js.svg?style=flat-square&label=release"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://npmjs.com/package/paws.js"><img alt='Latest NPM version' src="https://img.shields.io/npm/v/paws.js.svg?style=flat-square&label=semver"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="http://ell.io/IRC"><img alt='Chat: IRC on Freenode.net' src="https://img.shields.io/badge/chat-IRC-blue.svg?style=flat-square"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://twitter.com/intent/follow?screen_name=ELLIOTTCABLE"><img alt='Follow my work on Twitter' src="https://img.shields.io/twitter/follow/ELLIOTTCABLE.svg?style=flat-square&label=%40ELLIOTTCABLE&color=blue"></a><br>
+   <img alt='Maintenance status: Under rapid development pre-release' src="https://img.shields.io/badge/maintained%3F-pre--release-orange.svg?style=flat-square"><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a href="https://github.com/ELLIOTTCABLE/Paws.js/releases"><img alt='Latest GitHub release' src="https://img.shields.io/github/release/ELLIOTTCABLE/Paws.js.svg?style=flat-square&label=release"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://npmjs.com/package/paws.js"><img alt='Latest NPM version' src="https://img.shields.io/npm/v/paws.js.svg?style=flat-square&label=semver"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a href="#license"><img alt='License: Dually-licensed under the  Apache license and Creative Commons' src="https://img.shields.io/badge/license-Apache-blue.svg?style=flat-square"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="http://ell.io/IRC"><img alt='Chat: IRC on Freenode.net' src="https://img.shields.io/badge/chat-IRC-blue.svg?style=flat-square"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://twitter.com/intent/follow?screen_name=ELLIOTTCABLE"><img alt='Follow my work on Twitter' src="https://img.shields.io/twitter/follow/ELLIOTTCABLE.svg?style=flat-square&label=%40ELLIOTTCABLE&color=blue"></a><br>
    <a target="_blank" href="https://travis-ci.org/ELLIOTTCABLE/Paws.js/branches"><img alt='CI status' src="https://img.shields.io/travis/ELLIOTTCABLE/Paws.js/Current.svg?style=flat-square&label=tests"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://coveralls.io/r/ELLIOTTCABLE/Paws.js?branch=Current"><img alt='Coverage status' src="https://img.shields.io/coveralls/ELLIOTTCABLE/Paws.js/Current.svg?style=flat-square"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://gemnasium.com/ELLIOTTCABLE/Paws.js"><img alt='Dependency status' src="https://img.shields.io/gemnasium/ELLIOTTCABLE/Paws.js.svg?style=flat-square&label=deps"></a>
 </div>
 
@@ -82,6 +82,25 @@ More specific information ~~can be found in [CONTRIBUTING](./blob/Master/CONTRIB
 
    [CoffeeScript]: <http://coffeescript.org> "A little language that transpiles into JavaScript"
    [issues]: <https://github.com/ELLIOTTCABLE/Paws.js/issues> "Issue-tracker for Paws.js"
+
+License
+-------
+The source-code to this project is released under the [Apache License][]. This is a very permissive
+license, alloing you to (for the most part) do as you will with my software; with the caveat that
+*any contributions* you provide to me are explicitly released by you from any patent rights you may
+naturally hold.  (This means you can't patent algorithms you included in your submission, and then
+require us, or users of Paws, to stop using those algorithms.)
+
+The *documentation* and associated non-source-code elements are additionally and secondarily
+released under the Creative Commons [CC-BY 4.0][] license, should you wish to share any such
+documentation (or other portions of the project) without the rest of the project.
+
+The specifics of each of these are available in [COPYING][] and [COPYING (Docs)][], respectively.
+
+   [Apache License]: <http://choosealicense.com/licenses/apache-2.0/> "Information about the Apache License"
+   [CC-BY 4.0]: <http://creativecommons.org/licenses/by/4.0> "Information about the Creative Commons licenses"
+   [COPYING]: <./Docs/COPYING.markdown>
+   [COPYING (Docs)]: <./Docs/COPYING%20(Docs).markdown>
 
 <br>
 ----
