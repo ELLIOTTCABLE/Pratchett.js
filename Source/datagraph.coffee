@@ -99,11 +99,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    constructor: constructify(return:@) (elements...)->
       @id = uuid.v4()
+
       @metadata = new Array
       @owners = new Array
       @push elements... if elements.length
-
       @metadata.unshift undefined if @_?.noughtify != no
+
+      @custodians = { direct: [], inherited: [] }
 
    # Constructs a generic ‘key/value’ style `Thing` from a `representation` (a JavaScript `Object`-
    # hash) thereof. This convenience method expects arguments constructed as pairs of 1. any string
@@ -137,6 +139,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return Thing.with(own: yes) pairs...
 
+
    # ### Common ###
 
    # Creates a copy of the `Thing` it is called on. Alternatively, can be given an extant `Thing`
@@ -155,6 +158,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       return to
 
    compare: (to)-> to == this
+
 
    # ### ‘Array-ish’ metadata manipulation ###
 
@@ -208,6 +212,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       rel.to._add_owner rel if rel?.owns
       rel
 
+
    # ### ‘Dictionary-ish’ metadata manipulation ###
 
    # Convenience method to create a ‘pair-ish’ `Thing` (one with only two members, the first of
@@ -247,6 +252,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          rel?.to?.isPair?() and key.compare rel.to.at 1
       _.pluck(results.reverse(), 'to')
 
+
    # ### Ownership ###
 
    own_at: (idx)->
@@ -277,6 +283,180 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    _add_owner: (rel)-> @owners.push rel unless _.contains @owners, rel                   ;return rel
    _del_owner: (rel)-> _.pull @owners, rel                                               ;return rel
 
+   # FIXME: Make these proper Symbols.
+   @abortIteration:     'abortIteration'
+
+   # This returns a flat array of all the descendants of the receiver that satisfy a condition,
+   # supplied by an optional callback.
+   #
+   # The callback may explicitly return `false` to indicate a descendant should be excluded; or the
+   # sentinel value `Thing.abortIteration` to terminate the graph-walking early.
+   #
+   # The `descendants` return-value may be *passed in* as a pre-cache; any Things already existing
+   # in that cache will not be touched by this function. (Tread carefully: if the data-graph is
+   # modified between the *creation* of `descendants`, and the re-execution of this function, then
+   # that cache may no longer be valid!)
+   #---
+   # FIXME: Recursion: will eventually stack-overflow.
+   _walk_descendants: (descendants, cb)->
+      if _.isFunction(descendants)
+         cb = descendants
+         descendants = new Object
+      unless descendants
+         descendants = new Object
+
+      unless descendants[@id]?
+         if cb
+            rv = cb(this, descendants)
+            descendants._abortIteration = true if rv is Thing.abortIteration
+
+         unless cb? and (rv is false or rv is Thing.abortIteration)
+            descendants[@id] = this
+
+            children = _(@metadata).filter('owns').pluck('to').value()
+            children.forEach (child)=>
+               return null if descendants._abortIteration
+               child._walk_descendants descendants, cb
+
+      return descendants
+
+
+   # ### Responsibility ###
+
+   is_adopted: ->
+      not _.isEmpty(@custodians.direct) or not _.isEmpty(@custodians.inherited)
+
+   _any_custodian: (f)->
+      _.any @custodians.direct, f or
+      _.any @custodians.inherited, f
+
+   _all_custodians: (f)->
+      custodians = _(@custodians.direct).concat(@custodians.inherited).uniq()
+      if f?
+         _.all custodians, f
+      else
+         custodians.value()
+
+   # Indicates success if the passed `Execution` *already* holds the indicated license (or a greater
+   # one) for the receiver. (For instance, if the `Execution` holds write-license to a parent of the
+   # receiver, then `belongs_to(exe, 'read')` would indicate success.)
+   #
+   # If passed a `Liability` instead, this object is simply checked for the presence of that
+   # specific `Liability`.
+   belongs_to: (it, license)->
+      return false unless @is_adopted()
+
+      if license?
+         if license is 'write' or license is yes
+            return @_any_custodian (liability)->
+               return true if liability.custodian is it and
+                              liability.write()   is yes
+         else
+            return @_any_custodian (liability)->
+               return true if liability.custodian is it
+
+      else
+         return _.includes(@custodians.direct, it)    or
+                _.includes(@custodians.inherited, it)
+
+   # Helper that checks *only* the receiver's custodians for conflicts
+   _available_to: (liability)->
+      return true if @belongs_to liability.custodian, liability.write()
+
+      if liability.write()
+         return false if @_any_custodian (li)=> li.custodian != this
+      else
+         return false if @_any_custodian (li)=> li.custodian != this and li.write()
+
+      return true
+
+   # Determines if the receiver *can* be `dedicate`-ed to the passed `Liability`.
+   #
+   # Returns `true` if all owned-descendants of the receiver are available for adoption (i.e. have
+   # no conflicting responsibility); and `false` if the receiver or one of its descendants *cannot*
+   # be adopted (i.e. currently has some form of conflicting responsibility.)
+   #
+   # (If calling both this *and* `::dedicate` in the same reactor-tick, with the same arguments,
+   # then they can be passed a shared `descendants` cache, saving duplicated graph-climbing effort.)
+   #
+   # This is, of course, checked as a part of `dedicate`; so explicitly calling this method is
+   # usually only necessary if something being available for adoption *changes the decision of what
+   # to adopt*. (Or, possibly, adopting across reactor ticks?)
+   available_to: (liability, descendants = new Object)->
+      # First, check this object itself,
+      return false unless @_available_to liability
+
+      # Then, depth-first traverse every *owned child*
+      aborted = false
+      @_walk_descendants descendants, (descendant)->
+         unless descendant._available_to liability
+            aborted = true
+            return Thing.abortIteration
+
+      return (not aborted)
+
+   # When passed an existing `descendants` object, this assumes you obtained that by already having
+   # checked their availability via `::available_to`.
+   #---
+   # FIXME: The `descendants`-caching needs to be made first-class on `Thing` instances themselves;
+   #        instead of this hacky ‘allow the receiver to pass around a cache, but warn them about
+   #        it being unsafe’ system.
+   _dedicate: (liability, descendants)->
+      return true if _.includes @custodians.direct, liability
+
+      unless descendants?
+         return false unless @available_to liability, descendants = new Object
+
+      _.values(descendants).forEach (descendant)=>
+         family = if descendant is liability.ward then 'direct' else 'inherited'
+         descendant.custodians[family].push liability
+
+      return true
+
+   # DOCME
+   dedicate: (liabilities...)->
+      liabilities = liabilities[0] if _.isArray liabilities[0]
+
+      # FIXME: I need an ‘allMap’ function of some sort; this is ugly and procedural. /=
+      all_descendants = new Array
+      return false unless _.all liabilities, (liability)=>
+         rv = @available_to liability, descendants = new Object
+         all_descendants.push descendants
+         rv
+
+      return _.all liabilities, (liability, idx)=>
+         @_dedicate liability, all_descendants[idx]
+
+   # The inverse of `::_dedicate`, this removes an existing `Liability` from the receiver (and its
+   # owned-descendants.)
+   #
+   # Returns `true` if the `Liability` was successfully removed (or if the receiver didn't belong to
+   # it in the first place).
+   #
+   # Nota bene: This can *only* remove responsibility *from the root node of the adopted sub-graph*.
+   #            It will return truthfully if the `Liability` on which it is called is not in the
+   #            directly-responsible `custodians` for the receiver; this also applies if the passed
+   #            `Liability` roots on another node! You probably want `Liability::discard`, which
+   #            calls this method.
+   _emancipate: (liability)->
+      return true unless _.includes @custodians.direct, liability
+
+      @_walk_descendants (descendant)=>
+         family = if descendant is liability.ward then 'direct' else 'inherited'
+         _.pull descendant.custodians[family], liability
+
+      return true
+
+   # DOCME
+   # XXX: At the moment, `_emancipate` cannot return false; so this isn't properly transactional. If
+   #      there's any way for emancipation to fail, though, it's important to fix this method to
+   #      *not actually remove the custodians* until the efficacy of the operation can be verified.
+   emancipate: (liabilities...)->
+      liabilities = liabilities[0] if _.isArray liabilities[0]
+
+      return _.all liabilities, (liability)=> @_emancipate liability
+
+
    # ### Utility / convenience ###
 
    # TODO: Option to include the noughty
@@ -292,6 +472,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    owned_by:     (other)->      new Relation other, this, yes
 
    rename: selfify (name)-> @name = name
+
 
    # ### Initialization ###
 
@@ -429,13 +610,6 @@ Paws.Execution = Execution = class Execution extends Thing
       this   .define 'locals', @locals, yes
 
       @ops = new Array
-
-      # If this belongs to a `LiabilityFamily` (i.e. is participating with other 'read'-access
-      # `Execution`s, it will be linked here by `LiabilityFamily#add()`.
-      #---
-      # WAT: This makes no sense, because an Execution can hold Liabilities for multiple nodes in
-      # a subgraph, each separately, and thus belong-by-extension to multiple LiabilityFamilies ...
-     #@associates = undefined
 
       return this
 
@@ -766,7 +940,7 @@ Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
          @to   = to
          @owns = false
 
-      @owns    = owns if owns?
+      @owns    = !!owns if owns?
 
    # Copy the receiver `Relation` to a new `Relation` instance. (Can also overwrite the contents of
    # an existing `Relation`, if passed, with this receiver's state.)
@@ -815,33 +989,6 @@ Paws.Liability = Liability = delegated('for', Thing) class Liability
       other._write      is @_write     &&
       other.custodian   is @custodian  &&
       other.ward        is @ward
-
-Paws.Liability.Family = LiabilityFamily = delegated('custodians', Array) class LiabilityFamily
-   constructor: constructify(return:@) (first)->
-      @_write = first._write
-
-      @members = new Array
-      @add first, yes
-
-   write: ->     @_write
-   read:  -> not @_write
-
-   add: (it, first = false)->
-      if not first
-         return false if @_write
-         return false if it._write
-         return false if @includes it
-
-      @members.push it
-     #it.custodian.associates = this
-
-   remove: (it)->
-      _(@members)
-         .remove( (member)-> member.compare it ) # FIXME: Wasteful.
-      #  .forEach (member)-> member.custodian.associates = undefined
-         .commit()
-
-   includes: (it)-> _(@members).any (member)-> member.compare it
 
 
 # A `Combination` represents a single operation in the Paws semantic. An instance of this class
@@ -1007,7 +1154,7 @@ Label::toString = ->
 # be omitted; if instead with `serialize: true`, then the tag will be omitted.
 Execution::toString = ->
    if @_?.tag != yes or @_?.serialize == yes
-      output = "{ #{@begin.toString focus: @current().valueOf()} }"
+      output = "{ #{if @begin? then @begin.toString focus: @current().valueOf() else ''} }"
 
    if @_?.tag == no or @_?.serialize == yes then output else @_tagged output
 

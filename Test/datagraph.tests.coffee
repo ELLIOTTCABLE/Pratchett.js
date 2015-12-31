@@ -4,6 +4,7 @@ util    = require '../Source/utilities.coffee'
 assert  = require 'assert'
 sinon   = require 'sinon'
 expect  = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
+match   = sinon.match
 
 describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
@@ -150,6 +151,12 @@ describe "Paws' Data types:", ->
             expect(a_parent.metadata[1]).to.not.be original_relation
             expect(a_child.owners).to.be.empty()
             expect(another_child.owners).to.contain a_parent.metadata[1]
+
+      describe '~ Responsibility', ->
+         it 'is expressed as a set of current ‘custodians’', ->
+            a Thing
+            expect(a.thing).to.have.property 'custodians'
+
 
       # ### Thing: Metadata methods ###
 
@@ -347,7 +354,7 @@ describe "Paws' Data types:", ->
             bit = receiver.advance params
             bit.apply receiver, [params]
 
-            expect(caller.queue).was.calledWith sinon.match.has 'params', [another_thing]
+            expect(caller.queue).was.calledWith match.has 'params', [another_thing]
 
          it 'stages the caller if there is a result', ->
             a_thing = Thing.construct foo: another_thing = new Thing
@@ -368,6 +375,394 @@ describe "Paws' Data types:", ->
             bit.apply receiver, [params]
 
             expect(caller.queue).was.notCalled()
+
+      describe '::_walk_descendants', ->
+         it 'exists', ->
+            a Thing
+            expect(a.thing._walk_descendants).to.be.a 'function'
+
+         it "doesn't throw when given no arguments", ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            expect(-> a_thing._walk_descendants()).to.not.throwException()
+
+         it 'accepts a callback', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            expect(-> a_thing._walk_descendants(->)).to.not.throwException()
+
+         it 'accepts an optional pre-constructed descendants-cache', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            expect(-> a_thing._walk_descendants(new Object, ->)).to.not.throwException()
+
+         it 'returns a mapping object', ->
+            a_thing = new Thing
+
+            rv = a_thing._walk_descendants()
+            expect(rv).to.be.an 'object'
+
+         it 'collects owned descendants into the returned object', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            rv = a_thing._walk_descendants()
+            expect(util.values(rv)).to.contain foo
+            expect(rv[foo.id]).to.be foo
+
+         it 'calls the callback on each node walked', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            a_thing._walk_descendants cb = sinon.spy()
+            expect(cb).was.calledWith a_thing
+            expect(cb).was.calledWith foo
+            expect(cb).was.calledWith bar
+            expect(cb).was.calledWith widget
+
+         it 'calls the callback with a node and the descendants mapping', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            a_thing._walk_descendants cb = sinon.spy()
+            expect(cb).was.calledWith a_thing, match {}
+            expect(cb).was.calledWith foo,
+               match.has(a_thing.id, match.same(a_thing))
+
+            expect(cb).was.calledWith widget,
+               match.has(a_thing.id, match.same(a_thing)).and(
+                  match.has(bar.id,  match.same(bar)) )
+
+         it 'skips objects for which the callback returns false', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
+               return false if descendant is bar
+
+            expect(cb).was.calledWith bar
+            expect(descendants[foo.id]).to.be foo
+            expect(descendants[bar.id]).to.be undefined
+
+         it 'can be instructed to cease iteration', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
+               return Thing.abortIteration if descendant is foo
+
+            expect(descendants[a_thing.id]).to.be a_thing
+            expect(descendants[foo.id]).to.be undefined
+            expect(descendants[bar.id]).to.be undefined
+            expect(descendants[widget.id]).to.be undefined
+
+         it 'skips descendants of objects for which the callback returns false', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
+               return false if descendant is bar
+
+            expect(cb).was.neverCalledWith widget
+            expect(descendants[widget.id]).to.be undefined
+
+         it "doesn't touch contained (not-owned) descendants"
+         it 'touches each descendant only once, in the presence of cyclic graphcs'
+
+      # ### Thing: Responsibility methods ###
+
+      describe '::available_to', ->
+         it 'exists', ->
+            expect((a Thing).available_to).to.be.a 'function'
+
+         it 'accepts a Liability', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability, (an Execution), a_thing
+
+            expect(-> a_thing.available_to a.liability).to.not.throwException()
+
+         it 'succeeds if the root has no children and is not adopted', ->
+            expect((a Thing).available_to a Liability).to.be yes
+
+         it "succeeds if none of the receiver's descendants are adopted", ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            expect(a_thing.available_to a Liability).to.be true
+
+         it 'succeeds if the receiver is already adopted by the execution', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability, (an Execution), a_thing
+
+            a_thing.dedicate new Liability an.execution, a_thing
+            expect(a_thing.available_to a.liability).to.be yes
+
+         it 'fails if the receiver is adopted by another execution', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability, (an Execution), a_thing
+
+            a_thing.dedicate new Liability (another Execution), a_thing, 'write'
+            expect(a_thing.available_to a.liability).to.be no
+
+         it "fails when one of the root's descendants is adopted by another execution", ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            an Execution; a Liability
+
+            widget.dedicate new Liability (another Execution), widget, 'write'
+            expect(a_thing.available_to a.liability).to.be no
+
+      describe '::belongs_to', ->
+         it 'exists', ->
+            expect((a Thing).belongs_to).to.be.a 'function'
+
+         it 'accepts an Execution', ->
+            expect(-> (a Thing).belongs_to an Execution).to.not.throwException()
+
+         it 'accepts a Liability', ->
+            expect(-> (a Thing).belongs_to a Liability).to.not.throwException()
+
+         it 'indicates false if there are no custodians', ->
+            expect((a Thing).belongs_to a Liability).to.be no
+
+         it 'succeeds if the receiver belongs to the passed Liability', ->
+            (a Thing).dedicate a Liability, new Execution, a.thing
+
+         it 'fails if it has other custodians, but not the passed Liability', ->
+            (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
+            another Liability, (another Execution), a.thing, 'read'
+
+            expect(a.thing.belongs_to another.liability).to.be no
+
+         it 'succeeds if the receiver already belongs to the Exec with the same license', ->
+            (a Thing).dedicate a Liability, (an Execution), a.thing, 'read'
+
+            expect(a.thing.belongs_to an.execution, 'read').to.be yes
+
+         it 'succeeds if it already belongs to the the Exec with a greater license', ->
+            (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
+
+            expect(a.thing.belongs_to an.execution, 'read').to.be yes
+
+         it 'fails if it has other custodians, but not the passed Exec', ->
+            (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
+
+            expect(a.thing.belongs_to (another Execution), 'read').to.be no
+
+         it.skip 'FIXME: test for indirect responsibility ...'
+
+      describe '::dedicate', ->
+         it 'exists', ->
+            expect((a Thing).dedicate).to.be.a 'function'
+
+         it 'adds a passed Liability to the custodians', ->
+            a Liability, (an Execution), a Thing
+
+            expect(a.thing.custodians.direct).to.be.empty()
+
+            rv = a.thing.dedicate a.liability
+            expect(rv).to.be yes
+
+            expect(a.thing.custodians.direct).to.be.an 'array'
+            expect(a.thing.custodians.direct).to.contain a.liability
+
+         it 'climbs descendants, adding the Liability to every owned node', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability, (an Execution), a_thing
+
+            rv = a_thing.dedicate a.liability
+            expect(rv).to.be yes
+
+            expect(foo   .custodians.inherited).to.contain a.liability
+            expect(widget.custodians.inherited).to.contain a.liability
+
+         it 'succeeds if there is existing, *non-conflicting* responsibility on the receiver', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a       Liability, (an      Execution), a_thing, 'read'
+            another Liability, (another Execution), a_thing, 'read'
+
+            a_thing.dedicate a.liability
+
+            rv = a_thing.dedicate another.liability
+            expect(rv).to.be yes
+
+            expect(a_thing.custodians.direct   ).to.contain a.liability
+            expect(a_thing.custodians.direct   ).to.contain another.liability
+            expect(widget .custodians.inherited).to.contain a.liability
+            expect(widget .custodians.inherited).to.contain another.liability
+
+         it 'fails if there is conflicting responsibility on the receiver', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a       Liability, (an      Execution), a_thing, 'write'
+            another Liability, (another Execution), a_thing, 'read'
+
+            a_thing.dedicate a.liability
+
+            rv = a_thing.dedicate another.liability
+            expect(rv).to.be no
+
+            expect(a_thing.custodians.direct   ).to.not.contain another.liability
+            expect(widget .custodians.inherited).to.not.contain another.liability
+
+         it 'fails if there is conflicting responsibility a descendant', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a       Liability, (an      Execution), widget, 'write'
+            another Liability, (another Execution), a_thing, 'read'
+
+            widget.dedicate a.liability
+
+            rv = a_thing.dedicate another.liability
+            expect(rv).to.be no
+
+            expect(a_thing.custodians.direct).to.not.contain another.liability
+            expect(a_thing.custodians.direct).to.be.empty()
+
+         it "adds multiple passed Liabilities to the receiver's custodians", ->
+            a       Liability, (an      Execution), a Thing
+            another Liability, (another Execution), a.thing
+
+            rv = a.thing.dedicate a.liability, another.liability
+            expect(rv).to.be yes
+
+            expect(a.thing.custodians.direct).to.contain a.liability
+            expect(a.thing.custodians.direct).to.contain another.liability
+
+         it 'climbs descendants, adding all Liabilities to every owned node', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a       Liability, (an      Execution), a_thing
+            another Liability, (another Execution), a_thing
+
+            rv = a_thing.dedicate a.liability, another.liability
+            expect(rv).to.be yes
+
+            expect(foo   .custodians.inherited).to.contain a.liability
+            expect(foo   .custodians.inherited).to.contain another.liability
+            expect(widget.custodians.inherited).to.contain a.liability
+            expect(widget.custodians.inherited).to.contain another.liability
+
+         it 'adds *no* liabilities if there is conflicting responsibility on the receiver', ->
+            # NOTE: It's important that this addition fails on the *second* liability added; it's
+            #       explicitly supposed to be testing that the first, *valid* liability isn't
+            #       accidetnally left hanging around.
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            some    Liability, (some    Execution), a_thing, 'read'
+            a       Liability, (an      Execution), a_thing, 'read'
+            another Liability, (another Execution), a_thing, 'write'
+
+            a_thing.dedicate some.liability
+
+            rv = a_thing.dedicate a.liability, another.liability
+            expect(rv).to.be no
+
+            expect(a_thing.custodians.direct   ).to.not.contain a.liability
+            expect(a_thing.custodians.direct   ).to.not.contain another.liability
+            expect(widget .custodians.inherited).to.not.contain a.liability
+            expect(widget .custodians.inherited).to.not.contain another.liability
+
+         it 'adds *no* liabilities if there is conflicting responsibility on a descendant', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            some    Liability, (some    Execution), widget,  'read'
+            a       Liability, (an      Execution), a_thing, 'read'
+            another Liability, (another Execution), a_thing, 'write'
+
+            widget.dedicate some.liability
+
+            rv = a_thing.dedicate a.liability, another.liability
+            expect(rv).to.be no
+
+            expect(a_thing.custodians.direct   ).to.not.contain a.liability
+            expect(a_thing.custodians.direct   ).to.not.contain another.liability
+            expect(widget .custodians.inherited).to.not.contain a.liability
+            expect(widget .custodians.inherited).to.not.contain another.liability
+
+      describe '::emancipate', ->
+         it 'exists', ->
+            expect((a Thing).emancipate).to.be.a 'function'
+
+         it "succeeds if the receiver didn't belong to the Liability", ->
+            a Liability, (an Execution), a Thing
+
+            rv = a.thing.emancipate a.liability
+            expect(rv).to.be yes
+
+         it 'succeeds if the receiver belongs to the Liability', ->
+            a Liability, (an Execution), a Thing
+
+            a.thing.dedicate a.liability
+
+            rv = a.thing.emancipate a.liability
+            expect(rv).to.be yes
+
+         it 'removes the passed Liability from the custodians of this node', ->
+            a Liability, (an Execution), a Thing
+
+            a.thing.dedicate a.liability
+            expect(a.thing.custodians.direct).to.contain a.liability
+
+            rv = a.thing.emancipate a.liability
+            expect(rv).to.be yes
+            expect(a.thing.custodians.direct).to.not.contain a.liability
+
+         it 'climbs descendants, removing the Liability from every owned node', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability, (an Execution), a_thing
+
+            a_thing.dedicate a.liability
+
+            rv = a_thing.emancipate a.liability
+            expect(rv).to.be yes
+
+            expect(foo   .custodians.inherited).not.to.contain a.liability
+            expect(widget.custodians.inherited).not.to.contain a.liability
+
+         it 'succeeds if the receiver belongs to at least one of the Liabilities', ->
+            a Liability,       (an      Execution), a Thing
+            another Liability, (another Execution), a.thing
+
+            a.thing.dedicate another.liability
+
+            rv = a.thing.emancipate a.liability, another.liability
+            expect(rv).to.be yes
+
+         it 'removes all passed Liabilities from the custodians of this node', ->
+            a Liability,       (an      Execution), a Thing
+            another Liability, (another Execution), a.thing
+
+            a.thing.dedicate another.liability
+
+            rv = a.thing.emancipate a.liability, another.liability
+            expect(rv).to.be yes
+
+            expect(a.thing.custodians.direct).to.not.contain a.liability
+
+         it 'climbs descendants, removing all Liabilities from every owned node', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability,       (an      Execution), a_thing
+            another Liability, (another Execution), a_thing
+
+            a_thing.dedicate another.liability
+
+            rv = a_thing.emancipate a.liability, another.liability
+            expect(rv).to.be yes
+
+            expect(foo   .custodians.inherited).not.to.contain another.liability
+            expect(widget.custodians.inherited).not.to.contain another.liability
+
 
       # ### Thing: Utility / convenience methods and functions ###
 
@@ -536,117 +931,6 @@ describe "Paws' Data types:", ->
 
       it 'can invoke the relevant adoption-operations on the associated Execution and Thing'
       it 'can invoke the relevant relinquishment-operations on the associated Execution and Thing'
-
-   describe 'LiabilityFamily', -> # ---- ---- ---- ---- ----
-      Family = Liability.Family
-      it 'exists', ->
-         expect(Family).to.not.be undefined
-         expect(Family).to.be.a 'function'
-
-      it 'constructs successfully', ->
-         li = new Liability Execution(), Thing()
-
-         expect(-> new Family li).not.to.throwError()
-         expect(new Family li).to.be.a Liability.Family
-         expect(-> Family li).not.to.throwError()
-         expect(Family li).to.be.a Liability.Family
-
-      it 'assumes its write-license from the member with which it is created', ->
-         li = new Liability Execution(), Thing(), no
-
-         family = new Family li
-         expect(family.write()).to.not.be.ok()
-
-         li = new Liability Execution(), Thing(), yes
-
-         family = new Family li
-         expect(family.write()).to.be.ok()
-
-      it.skip 'sets `associates` on the member with which it is created', ->
-         an_exec = new Execution
-         li = new Liability an_exec, Thing()
-
-         family = new Family li
-         expect(an_exec.associates).to.be family
-
-      it "accepts addition of new 'read' members if it is a 'read' family", ->
-         li1 = new Liability Execution(), Thing()
-         li2 = new Liability Execution(), Thing()
-
-         family = new Family li1
-         expect(family.write()).to.be no
-
-         rv = family.add li2
-         expect(rv).to.be.ok()
-         expect(family.members).to.contain li2
-
-      it "rejects addition of new 'write' members if it is a 'read' family", ->
-         li1 = new Liability Execution(), Thing()
-         li2 = new Liability Execution(), Thing(), yes
-
-         family = new Liability.Family li1
-         expect(family.write()).to.be no
-
-         rv = family.add li2
-         expect(rv).to.not.be.ok()
-         expect(family.members).to.not.contain li2
-
-      it "rejects addition of any members if it is a 'write' family", ->
-         li1 = new Liability Thing(), Execution(), yes
-         li2 = new Liability Thing(), Execution()
-         li3 = new Liability Thing(), Execution(), yes
-
-         family = new Liability.Family li1
-         expect(family.write()).to.be yes
-
-         rv = family.add li2
-         expect(rv).to.not.be.ok()
-         expect(family.members).to.not.contain li2
-
-         rv = family.add li3
-         expect(rv).to.not.be.ok()
-         expect(family.members).to.not.contain li3
-
-      it.skip "sets `associates` on successfully-added members' custodians", ->
-         family = new Family Liability(Execution(), Thing())
-
-         an_exec = new Execution
-         li = new Liability an_exec, Thing()
-
-         family.add li
-         expect(an_exec.associates).to.be family
-
-      it.skip "doesn't set `associates` on the custodians of members that fail to be added", ->
-         family = new Family Liability(Execution(), Thing(), no)
-
-         an_exec = new Execution
-         li = new Liability an_exec, Thing(), yes
-
-         family.add li
-         expect(an_exec.associates).to.be undefined
-
-      it 'can have members removed', ->
-         li1 = new Liability Execution(), Thing()
-         li2 = new Liability Execution(), Thing()
-
-         family = new Family li1
-         family.add li2
-         expect(family.members).to.contain li2
-
-         rv = family.remove li2
-         expect(rv).to.be.ok()
-         expect(family.members).to.not.contain li2
-
-      it.skip "resets `associates` on removed custodians", ->
-         an_exec = new Execution()
-         li = new Liability an_exec, Thing()
-         family = new Family Liability(Execution(), Thing())
-         family.add li
-         expect(an_exec.associates).to.be family
-
-         family.remove li
-         expect(an_exec.associates).to.be undefined
-
 
 
    describe 'Label', -> # ---- ---- ---- ---- ----                                             Label
