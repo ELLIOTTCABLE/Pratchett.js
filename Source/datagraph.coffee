@@ -430,13 +430,6 @@ Paws.Execution = Execution = class Execution extends Thing
 
       @ops = new Array
 
-      # If this belongs to a `LiabilityFamily` (i.e. is participating with other 'read'-access
-      # `Execution`s, it will be linked here by `LiabilityFamily#add()`.
-      #---
-      # WAT: This makes no sense, because an Execution can hold Liabilities for multiple nodes in
-      # a subgraph, each separately, and thus belong-by-extension to multiple LiabilityFamilies ...
-     #@associates = undefined
-
       return this
 
    # ### Common ###
@@ -815,33 +808,6 @@ Paws.Liability = Liability = delegated('for', Thing) class Liability
       other._write      is @_write     &&
       other.custodian   is @custodian  &&
       other.ward        is @ward
-
-Paws.Liability.Family = LiabilityFamily = delegated('custodians', Array) class LiabilityFamily
-   constructor: constructify(return:@) (first)->
-      @_write = first._write
-
-      @members = new Array
-      @add first, yes
-
-   write: ->     @_write
-   read:  -> not @_write
-
-   add: (it, first = false)->
-      if not first
-         return false if @_write
-         return false if it._write
-         return false if @includes it
-
-      @members.push it
-     #it.custodian.associates = this
-
-   remove: (it)->
-      _(@members)
-         .remove( (member)-> member.compare it ) # FIXME: Wasteful.
-      #  .forEach (member)-> member.custodian.associates = undefined
-         .commit()
-
-   includes: (it)-> _(@members).any (member)-> member.compare it
 
 
 # A `Combination` represents a single operation in the Paws semantic. An instance of this class
