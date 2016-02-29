@@ -151,6 +151,12 @@ describe "Paws' Data types:", ->
             expect(a_child.owners).to.be.empty()
             expect(another_child.owners).to.contain a_parent.metadata[1]
 
+      describe '~ Responsibility', ->
+         it 'is expressed as a set of current ‘custodians’', ->
+            a Thing
+            expect(a.thing).to.have.property 'custodians'
+
+
       # ### Thing: Metadata methods ###
 
       describe '::clone', ->
@@ -368,6 +374,76 @@ describe "Paws' Data types:", ->
             bit.apply receiver, [params]
 
             expect(caller.queue).was.notCalled()
+
+      # ### Thing: Responsibility methods ###
+
+      describe '::belongs_to', ->
+         it 'exists', ->
+            a Thing
+            expect(a.thing.belongs_to).to.be.a 'function'
+
+         it 'accepts an Execution', ->
+            a Thing; an Execution
+            expect(-> a.thing.belongs_to an.execution).to.not.throwException()
+
+         it 'accepts a Liability', ->
+            a Thing; a Liability
+            expect(-> a.thing.belongs_to a.liability).to.not.throwException()
+
+         it 'indicates failure if there are no custodians', ->
+            a Thing; an Execution
+            expect(a.thing.belongs_to an.execution).to.be no
+
+         it 'discovers if it already belongs to the same Liability', ->
+            a Thing; a Liability, Execution(->), a.thing
+            a.thing.dedicate a.liability
+
+            expect(a.thing.belongs_to a.liability).to.be yes
+
+         it 'succeeds if it even belongs separately to the same Execution', ->
+            a Thing; an Execution
+            a.thing.dedicate Liability(an.execution, a.thing)
+
+            expect(a.thing.belongs_to an.execution, 'read').to.be yes
+
+         it 'fails if it belongs to a different Execution', ->
+            a Thing; an Execution; another Execution
+            a.thing.dedicate Liability(an.execution, a.thing)
+
+            expect(a.thing.belongs_to Liability(another.execution, a.thing)).to.be no
+
+         it.skip 'is tested for indirect responsibility'
+
+      describe.skip '::is_available', ->
+         it 'exists', ->
+            a Thing
+            expect(a.thing.is_available).to.be.a 'function'
+
+      describe '::dedicate', ->
+         it 'exists', ->
+            a Thing
+            expect(a.thing.dedicate).to.be.a 'function'
+
+         it 'adds a passed Liability to the custodians', ->
+            a Thing; an Execution
+            li = Liability an.execution, a.thing
+            expect(a.thing.custodians.direct).to.be undefined
+
+            rv = a.thing.dedicate li
+            expect(rv).to.be yes
+
+            expect(a.thing.custodians.direct).to.be.an 'array'
+            expect(a.thing.custodians.direct).to.contain li
+
+         it 'climbs descendants, adding the Liability to every owned node', ->
+            a Thing; another Thing; an Execution; a Liability, an.execution, a.thing
+            a.thing.push another.thing.owned_by(a.thing)
+
+            rv = a.thing.dedicate a.liability
+            expect(rv).to.be yes
+
+            expect(another.thing.custodians.inherited).to.be.an 'array'
+            expect(another.thing.custodians.inherited).to.contain a.liability
 
       # ### Thing: Utility / convenience methods and functions ###
 

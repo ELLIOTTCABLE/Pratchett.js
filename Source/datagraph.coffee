@@ -99,11 +99,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    constructor: constructify(return:@) (elements...)->
       @id = uuid.v4()
+
       @metadata = new Array
       @owners = new Array
       @push elements... if elements.length
-
       @metadata.unshift undefined if @_?.noughtify != no
+
+      @custodians = { direct: undefined, inherited: undefined }
 
    # Constructs a generic ‘key/value’ style `Thing` from a `representation` (a JavaScript `Object`-
    # hash) thereof. This convenience method expects arguments constructed as pairs of 1. any string
@@ -276,6 +278,103 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # leaving the second.
    _add_owner: (rel)-> @owners.push rel unless _.contains @owners, rel                   ;return rel
    _del_owner: (rel)-> _.pull @owners, rel                                               ;return rel
+
+   # ### Responsibility ###
+
+   is_adopted: ->
+      @custodians.direct? or @custodians.inherited?
+
+   can_read: ->
+      not @is_adopted()                or
+      @custodians.direct?[0].read()    or # If any one is read-only, they all must be read-only.
+      @custodians.inherited?[0].read()
+
+   can_write: ->
+      not @is_adopted()
+
+   _any_custodian: (f)->
+      _.any @custodians.direct, f or
+      _.any @custodians.inherited, f
+
+   # FIXME: This can be passed a different Liability than the one this actually *belongs to*. Is
+   #        this a problem?
+   belongs_to: (it, license = undefined)->
+      return false unless @is_adopted()
+
+      if license?
+         license = license is 'write' or license is yes
+         return @_any_custodian (liability)->
+            liability.custodian is it and
+            liability.write()   is license
+
+      else
+         return _.includes(@custodians.direct, it)    or
+                _.includes(@custodians.inherited, it)
+
+   # Given a `Liability`, this checks if the receiver is already held by some *conflicting*
+   # custodian (i.e. a `write`-custodian other than the passed one
+   available_to: (it)->
+      return true if @belongs_to it
+
+      if it.write() then return @can_write()
+      else @can_read()
+
+   # This implements both `check_availability` and `dedicate`, because those both climb the data-
+   # graph in the same approximate way; and in many situations, it's faster to `check_availability`
+   # *while* `dedicating`.
+   #
+   # `descendants` is populated with all touched nodes owned by this object, if this object is,
+   # indeed, available to `liability`. (If not, `descendants` will be incomplete, as this terminates
+   # early.)
+   #
+   # This returns a boolean indicating whether all descendants were walked, and thus whether this
+   # `Thing` is available to that `liability`.
+   #---
+   # NOTE: I was tempted to implement this with a callback, as a generic tree-walker; but in every
+   #       situation where I want to *do something* with the descendants, I can't do it until
+   #       I've verified that they're all avilable. So, it *has* to iterate all the way to the end
+   #       before it can return and operate on the discovered nodes.
+   # FIXME: Recursion: will eventually stack-overflow.
+   _climb_responsibility: (liability, descendants = new Object)->
+      # First, check this object itself,
+      return false if @belongs_to liability
+
+      # Then, depth-first traverse every *owned child* of this
+      children = _(@metadata).filter('owns').pluck('to')
+      return children.every (child)->
+         return true if descendants[child.id]?
+         return false unless child._climb_responsibility liability, descendants
+         descendants[child.id] = child
+
+   _dedicate: (liability)->
+      family = if this is liability.ward then 'direct' else 'inherited'
+
+      if @custodians[family]?
+         @custodians[family].push liability
+      else
+         @custodians[family] = [liability]
+
+   dedicate: (liability)->
+      return false unless this is liability.ward
+      return true  if @belongs_to liability
+
+      return false unless @_climb_responsibility liability, descendants = new Object
+
+      # FIXME: This terminates early if one of the descendants is already owned; but do we do the
+      #        right bookkeeping to *know* this is safe? What about when ownership has changed?
+      #
+      #        UPDATE: So, another way to phrase this: we *must* do the ‘right bookkeeping.’ For a
+      #        host of reasons. I can remove this task once I'm sure that my *ownership* code is all
+      #        updated to split/merge active responsibility.
+      @_dedicate(liability)
+      _.values(descendants).forEach (descendant)=>
+         descendant._dedicate(liability)
+
+      return true
+
+   is_available: (liability)->
+      @_climb_responsibility liability
+
 
    # ### Utility / convenience ###
 
@@ -759,7 +858,7 @@ Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
          @to   = to
          @owns = false
 
-      @owns    = owns if owns?
+      @owns    = !!owns if owns?
 
    # Copy the receiver `Relation` to a new `Relation` instance. (Can also overwrite the contents of
    # an existing `Relation`, if passed, with this receiver's state.)
@@ -973,7 +1072,7 @@ Label::toString = ->
 # be omitted; if instead with `serialize: true`, then the tag will be omitted.
 Execution::toString = ->
    if @_?.tag != yes or @_?.serialize == yes
-      output = "{ #{@begin.toString focus: @current().valueOf()} }"
+      output = "{ #{if @begin? then @begin.toString focus: @current().valueOf() else ''} }"
 
    if @_?.tag == no or @_?.serialize == yes then output else @_tagged output
 
