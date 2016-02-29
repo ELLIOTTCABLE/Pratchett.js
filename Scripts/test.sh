@@ -260,7 +260,7 @@ if ! command -v bats >/dev/null; then
    puts '   <https://github.com/sstephenson/bats>'
 
    # If explicitly requested, then the command missing is a fatal error.
-   [ -n "$BATS" ] && exit 10
+   [ -n "${BATS##[NFnf]*}" ] && exit 10
 fi
 
 if [ -z "${RULEBOOK##[YTyt]*}" ]; then
@@ -276,7 +276,7 @@ if [ -z "${RULEBOOK##[YTyt]*}" ]; then
       puts '   <https://github.com/Paws/Rulebook.git>'
 
       # If explicitly requested, then the Rulebook missing is a fatal error.
-      [ -n "$RULEBOOK" ] && exit 11
+      [ -n "${RULEBOOK##[NFnf]*}" ] && exit 11
    fi
 fi
 
