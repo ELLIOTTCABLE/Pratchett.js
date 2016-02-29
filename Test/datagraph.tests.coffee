@@ -427,7 +427,7 @@ describe "Paws' Data types:", ->
          it 'adds a passed Liability to the custodians', ->
             a Thing; an Execution
             li = Liability an.execution, a.thing
-            expect(a.thing.custodians.direct).to.be undefined
+            expect(a.thing.custodians.direct).to.be.empty()
 
             rv = a.thing.dedicate li
             expect(rv).to.be yes

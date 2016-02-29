@@ -105,7 +105,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       @push elements... if elements.length
       @metadata.unshift undefined if @_?.noughtify != no
 
-      @custodians = { direct: undefined, inherited: undefined }
+      @custodians = { direct: [], inherited: [] }
 
    # Constructs a generic ‘key/value’ style `Thing` from a `representation` (a JavaScript `Object`-
    # hash) thereof. This convenience method expects arguments constructed as pairs of 1. any string
@@ -282,12 +282,12 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # ### Responsibility ###
 
    is_adopted: ->
-      @custodians.direct? or @custodians.inherited?
+      not _.isEmpty(@custodians.direct) or not _.isEmpty(@custodians.inherited)
 
    can_read: ->
       not @is_adopted()                or
-      @custodians.direct?[0].read()    or # If any one is read-only, they all must be read-only.
-      @custodians.inherited?[0].read()
+      @custodians.direct[0]?.read()    or # If any one is read-only, they all must be read-only.
+      @custodians.inherited[0].read()
 
    can_write: ->
       not @is_adopted()
@@ -348,11 +348,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    _dedicate: (liability)->
       family = if this is liability.ward then 'direct' else 'inherited'
-
-      if @custodians[family]?
-         @custodians[family].push liability
-      else
-         @custodians[family] = [liability]
+      @custodians[family].push liability
 
    dedicate: (liability)->
       return false unless this is liability.ward
