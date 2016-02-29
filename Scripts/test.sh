@@ -186,6 +186,7 @@ mochaify() {
       "./node_modules/.bin/${node_debugger:+_}${coverage:+_}mocha"            \
       ${node_debugger:+ --no-timeouts }                                       \
       ${coverage:+ --require './Library/register-coffee-coverage.js' }        \
+      --require mocha-clean/brief                                             \
       --compilers coffee:coffee-script/register                               \
       --reporter "$mocha_reporter" --ui "$mocha_ui"                           \
       "$@"                                                                    ;}
