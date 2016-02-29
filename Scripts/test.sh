@@ -71,6 +71,7 @@ if [ -n "${CI##[NFnf]*}" ]; then                                              cr
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling CI mode."
 
    #mocha_reporter="..." # This is manually manipulated in `travis.sh`
+   BATS_FLAGS="$BATS_FLAGS --tap"
 
    # In CI-mode, the runners *default* to being exclusive of eachother, except when generating final
    # coverage after a successful build.
