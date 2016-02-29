@@ -10,6 +10,25 @@
 #
 # (Of especial note, `$PATH` modifications *cannot* be done inside this script; they must be
 #  hardcoded into `.travis.yml.`)
+#
+# The CI setup here is fairly complicated:
+#  - The Travis environment needs a little cleaning, updating, and setting-up before e can
+#    effectively test: `travis.sh --prep` performs this setup.
+#
+#  - Travis invokes this script (via `npm run-script ci`) a large number of times; this is the
+#    “build matrix.” When `npm test` is run locally, a series of test-suites are usually run
+#    (unit-tests, integration tests, Rulebook tests ...); but Travis *parallelizes* these across the
+#    matrix (and across dependency versions.)
+#
+#    This script ensures that each Travis worker only runs the single suite that was indicated (that
+#    is, usually `BATS=yes npm test` doesn't imply that `UNIT=no`; but when `CI` is enabled, that
+#    behaviour is inverted: explicitly enabling any suite *disables all other suites*.)
+#
+#  - Finally, `--after` (thanks to `travis-after-all`) invokes *the entire test-suite* again, unit,
+#    integration, rulebooks, and all; enabling coverage-generation while doing so. It then ships the
+#    generated coverage-data off to Coveralls.io.
+#
+# XXX: Two version numbers (`coveralls` and `travis-after-all`) are hardcoded into this script!
 
 
 puts() { printf %s\\n "$@" ;}
@@ -39,6 +58,15 @@ for ARG; do case $ARG in
       [ -n "$DEBUG_SCRIPTS" ] && pute "Installing travis-after-all ..."
       go npm install 'travis-after-all@^1.4.4'
 
+      if [ -n "${COVERAGE##[NFnf]*}" ]; then
+         UNIT="${UNIT:-yes}"
+         BATS="${BATS:-yes}"
+         RULEBOOK="${RULEBOOK:-yes}"
+
+         [ -n "$DEBUG_SCRIPTS" ] && pute "Installing coveralls ..."
+         go npm install 'coveralls@^2.11.6'
+      fi
+
       if [ -n "${BATS##[NFnf]*}" ] && [ ! -e "$HOME/bats/bin/bats" ]; then
          [ -n "$DEBUG_SCRIPTS" ] && pute 'Installing `bats` ...'
          go git clone --depth 1 "https://github.com/sstephenson/bats.git" "./bats"
@@ -50,36 +78,27 @@ for ARG; do case $ARG in
          go git clone --depth 1 "https://github.com/Paws/Rulebook.git" "$rulebook_dir"
       fi
 
-      if [ -n "${COVERAGE##[NFnf]*}" ]; then
-         [ -n "$DEBUG_SCRIPTS" ] && pute "Installing coveralls ..."
-         go npm install 'coveralls@^2.11.6'
-      fi
-
       exit 0;;
 
    --test)
       [ -n "$DEBUG_SCRIPTS" ] && pute "Invoking tests"
 
-      export INTEGRATION=yes npm_package_config_mocha_reporter='list'
+      export npm_package_config_mocha_reporter='list'
 
-      if   [ -n "${BATS##[NFnf]*}" ];     then export RULEBOOK=no
-      elif [ -n "${RULEBOOK##[NFnf]*}" ]; then export BATS=no LETTERS=yes
-                                          else export BATS=no RULEBOOK=no     ;fi
-
-      go ./Scripts/test.sh;;
+      CI=yes go ./Scripts/test.sh;;
 
    --after)
       [ -n "$DEBUG_SCRIPTS" ] && pute "Finishing up"
 
-      export LETTERS=yes INTEGRATION=yes npm_package_config_mocha_reporter='dot'
-
       # On the last Travis worker, if the overall build has succeeded, we re-run *all* the tests to
       # generate coverage information and submit it to Coveralls.io.
       if "$(npm bin)/travis-after-all"; then
-         [ -n "$DEBUG_SCRIPTS" ] && pute "Build succeeded, generating coverage!"
-         export COVERAGE=yes BATS="${BATS:-yes}"
-         export RULEBOOK="${RULEBOOK:-yes}" LETTERS="${LETTERS:-yes}"
-         go ./Scripts/travis.sh --prep
+         [ -n "$DEBUG_SCRIPTS" ] && pute "Matrix-build successful, generating coverage!"
+
+         export CI=yes COVERAGE=yes
+         export npm_package_config_mocha_reporter='dot'
+
+         go ./Scripts/travis.sh --prep    # Re-prep the environment with `bats`, etc.
          go ./Scripts/test.sh
 
          [ -n "$DEBUG_SCRIPTS" ] && pute "Coverage taken, sending '$coverage_file' to Coveralls"
