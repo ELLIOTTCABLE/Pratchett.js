@@ -26,6 +26,7 @@
 
 ,     "config" :{
            "dirs" :{"source"     : "Source"
+                  , "bin"        : "Executables"
                   , "test"       : "Test"
                   , "rulebook"   : "Test/Rulebook"
                   , "integration": "Test/Integration"
