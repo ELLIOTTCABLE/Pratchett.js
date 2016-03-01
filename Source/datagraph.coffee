@@ -291,6 +291,11 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #
    # The callback may explicitly return `false` to indicate a descendant should be excluded; or the
    # sentinel value `Thing.abortIteration` to terminate the graph-walking early.
+   #
+   # The `descendants` return-value may be *passed in* as a pre-cache; any Things already existing
+   # in that cache will not be touched by this function. (Tread carefully: if the data-graph is
+   # modified between the *creation* of `descendants`, and the re-execution of this function, then
+   # that cache may no longer be valid!)
    #---
    # FIXME: Recursion: will eventually stack-overflow.
    _walk_descendants: (descendants, cb)->
@@ -395,8 +400,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # passed Liability), and `false` if the receiver failed the `::available_to` checks.
    #
    # Nota bene: Often, you won't be calling this directly, but will instead be invoking
-   # responsibility wholesale through a particular `Liability` instance (see the documentation for
-   # `Liability`.)
+   #            responsibility wholesale through a particular `Liability` instance (see the
+   #            documentation for `Liability`. You probably want `Liability::commit`.)
    dedicate: (liability, descendants = new Object)->
       throw new ArgumentError unless this is liability.ward
       return true  if @belongs_to liability
