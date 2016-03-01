@@ -4,6 +4,7 @@ util    = require '../Source/utilities.coffee'
 assert  = require 'assert'
 sinon   = require 'sinon'
 expect  = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
+match   = sinon.match
 
 describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
@@ -353,7 +354,7 @@ describe "Paws' Data types:", ->
             bit = receiver.advance params
             bit.apply receiver, [params]
 
-            expect(caller.queue).was.calledWith sinon.match.has 'params', [another_thing]
+            expect(caller.queue).was.calledWith match.has 'params', [another_thing]
 
          it 'stages the caller if there is a result', ->
             a_thing = Thing.construct foo: another_thing = new Thing
@@ -375,75 +376,240 @@ describe "Paws' Data types:", ->
 
             expect(caller.queue).was.notCalled()
 
+      describe '::_walk_descendants', ->
+         it 'exists', ->
+            a Thing
+            expect(a.thing._walk_descendants).to.be.a 'function'
+
+         it "doesn't throw when given no arguments", ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            expect(-> a_thing._walk_descendants()).to.not.throwException()
+
+         it 'accepts a callback', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            expect(-> a_thing._walk_descendants(->)).to.not.throwException()
+
+         it 'accepts an optional pre-constructed descendants-cache', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            expect(-> a_thing._walk_descendants(new Object, ->)).to.not.throwException()
+
+         it 'returns a mapping object', ->
+            a_thing = new Thing
+
+            rv = a_thing._walk_descendants()
+            expect(rv).to.be.an 'object'
+
+         it 'collects owned descendants into the returned object', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            rv = a_thing._walk_descendants()
+            expect(util.values(rv)).to.contain foo
+            expect(rv[foo.id]).to.be foo
+
+         it 'calls the callback on each node walked', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            a_thing._walk_descendants cb = sinon.spy()
+            expect(cb).was.calledWith a_thing
+            expect(cb).was.calledWith foo
+            expect(cb).was.calledWith bar
+            expect(cb).was.calledWith widget
+
+         it 'calls the callback with a node and the descendants mapping', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            a_thing._walk_descendants cb = sinon.spy()
+            expect(cb).was.calledWith a_thing, match {}
+            expect(cb).was.calledWith foo,
+               match.has(a_thing.id, match.same(a_thing))
+
+            expect(cb).was.calledWith widget,
+               match.has(a_thing.id, match.same(a_thing)).and(
+                  match.has(bar.id,  match.same(bar)) )
+
+         it 'skips objects for which the callback returns false', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
+               return false if descendant is bar
+
+            expect(cb).was.calledWith bar
+            expect(descendants[foo.id]).to.be foo
+            expect(descendants[bar.id]).to.be undefined
+
+         it 'can be instructed to cease iteration', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
+               return Thing.abortIteration if descendant is foo
+
+            expect(descendants[a_thing.id]).to.be a_thing
+            expect(descendants[foo.id]).to.be undefined
+            expect(descendants[bar.id]).to.be undefined
+            expect(descendants[widget.id]).to.be undefined
+
+         it 'skips descendants of objects for which the callback returns false', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
+               return false if descendant is bar
+
+            expect(cb).was.neverCalledWith widget
+            expect(descendants[widget.id]).to.be undefined
+
+         it "doesn't touch contained (not-owned) descendants"
+         it 'touches each descendant only once, in the presence of cyclic graphcs'
+
       # ### Thing: Responsibility methods ###
+
+      describe '::available_to', ->
+         it 'exists', ->
+            expect((a Thing).available_to).to.be.a 'function'
+
+         it 'accepts a Liability', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability, (an Execution), a_thing
+
+            expect(-> a_thing.available_to a.liability).to.not.throwException()
+
+         it 'succeeds if the root has no children and is not adopted', ->
+            expect((a Thing).available_to a Liability).to.be yes
+
+         it "succeeds if none of the receiver's descendants are adopted", ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                  bar = Thing.construct widget: widget = new Thing
+
+            expect(a_thing.available_to a Liability).to.be true
+
+         it 'succeeds if the receiver is already adopted by the execution', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability, (an Execution), a_thing
+
+            a_thing.dedicate new Liability an.execution, a_thing
+            expect(a_thing.available_to a.liability).to.be yes
+
+         it 'fails if the receiver is adopted by another execution', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability, (an Execution), a_thing
+
+            a_thing.dedicate new Liability (another Execution), a_thing, 'write'
+            expect(a_thing.available_to a.liability).to.be no
+
+         it "fails when one of the root's descendants is adopted by another execution", ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            an Execution; a Liability
+
+            widget.dedicate new Liability (another Execution), widget, 'write'
+            expect(a_thing.available_to a.liability).to.be no
 
       describe '::belongs_to', ->
          it 'exists', ->
-            a Thing
-            expect(a.thing.belongs_to).to.be.a 'function'
+            expect((a Thing).belongs_to).to.be.a 'function'
 
          it 'accepts an Execution', ->
-            a Thing; an Execution
-            expect(-> a.thing.belongs_to an.execution).to.not.throwException()
+            expect(-> (a Thing).belongs_to an Execution).to.not.throwException()
 
          it 'accepts a Liability', ->
-            a Thing; a Liability
-            expect(-> a.thing.belongs_to a.liability).to.not.throwException()
+            expect(-> (a Thing).belongs_to a Liability).to.not.throwException()
 
-         it 'indicates failure if there are no custodians', ->
-            a Thing; an Execution
-            expect(a.thing.belongs_to an.execution).to.be no
+         it 'indicates false if there are no custodians', ->
+            expect((a Thing).belongs_to a Liability).to.be no
 
-         it 'discovers if it already belongs to the same Liability', ->
-            a Thing; a Liability, Execution(->), a.thing
-            a.thing.dedicate a.liability
+         it 'succeeds if the receiver belongs to the passed Liability', ->
+            (a Thing).dedicate a Liability, new Execution, a.thing
 
-            expect(a.thing.belongs_to a.liability).to.be yes
+         it 'fails if it has other custodians, but not the passed Liability', ->
+            (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
+            another Liability, (another Execution), a.thing, 'read'
 
-         it 'succeeds if it even belongs separately to the same Execution', ->
-            a Thing; an Execution
-            a.thing.dedicate Liability(an.execution, a.thing)
+            expect(a.thing.belongs_to another.liability).to.be no
+
+         it 'succeeds if the receiver already belongs to the Exec with the same license', ->
+            (a Thing).dedicate a Liability, (an Execution), a.thing, 'read'
 
             expect(a.thing.belongs_to an.execution, 'read').to.be yes
 
-         it 'fails if it belongs to a different Execution', ->
-            a Thing; an Execution; another Execution
-            a.thing.dedicate Liability(an.execution, a.thing)
+         it 'succeeds if it already belongs to the the Exec with a greater license', ->
+            (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
 
-            expect(a.thing.belongs_to Liability(another.execution, a.thing)).to.be no
+            expect(a.thing.belongs_to an.execution, 'read').to.be yes
 
-         it.skip 'is tested for indirect responsibility'
+         it 'fails if it has other custodians, but not the passed Exec', ->
+            (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
 
-      describe.skip '::is_available', ->
-         it 'exists', ->
-            a Thing
-            expect(a.thing.is_available).to.be.a 'function'
+            expect(a.thing.belongs_to (another Execution), 'read').to.be no
+
+         it.skip 'FIXME: test for indirect responsibility ...'
 
       describe '::dedicate', ->
          it 'exists', ->
-            a Thing
-            expect(a.thing.dedicate).to.be.a 'function'
+            expect((a Thing).dedicate).to.be.a 'function'
 
          it 'adds a passed Liability to the custodians', ->
-            a Thing; an Execution
-            li = Liability an.execution, a.thing
+            a Liability, (an Execution), a Thing
+
             expect(a.thing.custodians.direct).to.be.empty()
-
-            rv = a.thing.dedicate li
-            expect(rv).to.be yes
-
-            expect(a.thing.custodians.direct).to.be.an 'array'
-            expect(a.thing.custodians.direct).to.contain li
-
-         it 'climbs descendants, adding the Liability to every owned node', ->
-            a Thing; another Thing; an Execution; a Liability, an.execution, a.thing
-            a.thing.push another.thing.owned_by(a.thing)
 
             rv = a.thing.dedicate a.liability
             expect(rv).to.be yes
 
-            expect(another.thing.custodians.inherited).to.be.an 'array'
-            expect(another.thing.custodians.inherited).to.contain a.liability
+            expect(a.thing.custodians.direct).to.be.an 'array'
+            expect(a.thing.custodians.direct).to.contain a.liability
+
+         it 'climbs descendants, adding the Liability to every owned node', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability, (an Execution), a_thing
+
+            rv = a_thing.dedicate a.liability
+            expect(rv).to.be yes
+
+            expect(foo   .custodians.inherited).to.contain a.liability
+            expect(widget.custodians.inherited).to.contain a.liability
+
+         it 'fails if there is conflicting responsibility on the receiver', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a       Liability, (an      Execution), a_thing, 'write'
+            another Liability, (another Execution), a_thing, 'read'
+
+            a_thing.dedicate a.liability
+
+            rv = a_thing.dedicate another.liability
+            expect(rv).to.be no
+
+            expect(a_thing.custodians.inherited).to.not.contain another.liability
+            expect(widget .custodians.inherited).to.not.contain another.liability
+
+         it 'fails if there is conflicting responsibility a descendant', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a       Liability, (an      Execution), widget, 'write'
+            another Liability, (another Execution), a_thing, 'read'
+
+            widget.dedicate a.liability
+
+            rv = a_thing.dedicate another.liability
+            expect(rv).to.be no
+
+            expect(a_thing.custodians.inherited).to.not.contain another.liability
+            expect(a_thing.custodians.inherited).to.be.empty()
 
       # ### Thing: Utility / convenience methods and functions ###
 

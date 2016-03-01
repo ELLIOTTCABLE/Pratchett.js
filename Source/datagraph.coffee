@@ -139,6 +139,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return Thing.with(own: yes) pairs...
 
+
    # ### Common ###
 
    # Creates a copy of the `Thing` it is called on. Alternatively, can be given an extant `Thing`
@@ -157,6 +158,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       return to
 
    compare: (to)-> to == this
+
 
    # ### ‘Array-ish’ metadata manipulation ###
 
@@ -210,6 +212,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       rel.to._add_owner rel if rel?.owns
       rel
 
+
    # ### ‘Dictionary-ish’ metadata manipulation ###
 
    # Convenience method to create a ‘pair-ish’ `Thing` (one with only two members, the first of
@@ -249,6 +252,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          rel?.to?.isPair?() and key.compare rel.to.at 1
       _.pluck(results.reverse(), 'to')
 
+
    # ### Ownership ###
 
    own_at: (idx)->
@@ -279,82 +283,125 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    _add_owner: (rel)-> @owners.push rel unless _.contains @owners, rel                   ;return rel
    _del_owner: (rel)-> _.pull @owners, rel                                               ;return rel
 
+   # FIXME: Make these proper Symbols.
+   @abortIteration:     'abortIteration'
+
+   # This returns a flat array of all the descendants of the receiver that satisfy a condition,
+   # supplied by an optional callback.
+   #
+   # The callback may explicitly return `false` to indicate a descendant should be excluded; or the
+   # sentinel value `Thing.abortIteration` to terminate the graph-walking early.
+   #---
+   # FIXME: Recursion: will eventually stack-overflow.
+   _walk_descendants: (descendants, cb)->
+      if _.isFunction(descendants)
+         cb = descendants
+         descendants = new Object
+      unless descendants
+         descendants = new Object
+
+      unless descendants[@id]?
+         if cb
+            rv = cb(this, descendants)
+            descendants._abortIteration = true if rv is Thing.abortIteration
+
+         unless cb? and (rv is false or rv is Thing.abortIteration)
+            descendants[@id] = this
+
+            children = _(@metadata).filter('owns').pluck('to').value()
+            children.forEach (child)=>
+               return null if descendants._abortIteration
+               child._walk_descendants descendants, cb
+
+      return descendants
+
+
    # ### Responsibility ###
 
    is_adopted: ->
       not _.isEmpty(@custodians.direct) or not _.isEmpty(@custodians.inherited)
 
-   can_read: ->
-      not @is_adopted()                or
-      @custodians.direct[0]?.read()    or # If any one is read-only, they all must be read-only.
-      @custodians.inherited[0].read()
-
-   can_write: ->
-      not @is_adopted()
-
    _any_custodian: (f)->
       _.any @custodians.direct, f or
       _.any @custodians.inherited, f
 
-   # FIXME: This can be passed a different Liability than the one this actually *belongs to*. Is
-   #        this a problem?
-   belongs_to: (it, license = undefined)->
+   # Indicates success if the passed `Execution` *already* holds the indicated license (or a greater
+   # one) for the receiver. (For instance, if the `Execution` holds write-license to a parent of the
+   # receiver, then `belongs_to(exe, 'read')` would indicate success.)
+   #
+   # If passed a `Liability` instead, this object is simply checked for the presence of that
+   # specific `Liability`.
+   belongs_to: (it, license)->
       return false unless @is_adopted()
 
       if license?
-         license = license is 'write' or license is yes
-         return @_any_custodian (liability)->
-            liability.custodian is it and
-            liability.write()   is license
+         if license is 'write' or license is yes
+            return @_any_custodian (liability)->
+               return true if liability.custodian is it and
+                              liability.write()   is yes
+         else
+            return @_any_custodian (liability)->
+               return true if liability.custodian is it
 
       else
          return _.includes(@custodians.direct, it)    or
                 _.includes(@custodians.inherited, it)
 
-   # Given a `Liability`, this checks if the receiver is already held by some *conflicting*
-   # custodian (i.e. a `write`-custodian other than the passed one
-   available_to: (it)->
-      return true if @belongs_to it
+   # Helper that checks *only* the receiver's custodians for conflicts
+   _available_to: (liability)->
+      return true if @belongs_to liability.custodian, liability.write()
 
-      if it.write() then return @can_write()
-      else @can_read()
+      if liability.write()
+         return false if @_any_custodian (li)=> li.custodian != this
+      else
+         return false if @_any_custodian (li)=> li.custodian != this and li.write()
 
-   # This implements both `check_availability` and `dedicate`, because those both climb the data-
-   # graph in the same approximate way; and in many situations, it's faster to `check_availability`
-   # *while* `dedicating`.
+      return true
+
+   # Determines if the receiver *can* be `dedicate`-ed to the passed `Liability`.
    #
-   # `descendants` is populated with all touched nodes owned by this object, if this object is,
-   # indeed, available to `liability`. (If not, `descendants` will be incomplete, as this terminates
-   # early.)
+   # Returns `true` if all owned-descendants of the receiver are available for adoption (i.e. have
+   # no conflicting responsibility); and `false` if the receiver or one of its descendants *cannot*
+   # be adopted (i.e. currently has some form of conflicting responsibility.)
    #
-   # This returns a boolean indicating whether all descendants were walked, and thus whether this
-   # `Thing` is available to that `liability`.
-   #---
-   # NOTE: I was tempted to implement this with a callback, as a generic tree-walker; but in every
-   #       situation where I want to *do something* with the descendants, I can't do it until
-   #       I've verified that they're all avilable. So, it *has* to iterate all the way to the end
-   #       before it can return and operate on the discovered nodes.
-   # FIXME: Recursion: will eventually stack-overflow.
-   _climb_responsibility: (liability, descendants = new Object)->
+   # (If calling both this *and* `::dedicate` in the same reactor-tick, with the same arguments,
+   # then they can be passed a shared `descendants` cache, saving duplicated graph-climbing effort.)
+   #
+   # This is, of course, checked as a part of `dedicate`; so explicitly calling this method is
+   # usually only necessary if something being available for adoption *changes the decision of what
+   # to adopt*. (Or, possibly, adopting across reactor ticks?)
+   available_to: (liability, descendants = new Object)->
       # First, check this object itself,
-      return false if @belongs_to liability
+      return false unless @_available_to liability
 
-      # Then, depth-first traverse every *owned child* of this
-      children = _(@metadata).filter('owns').pluck('to')
-      return children.every (child)->
-         return true if descendants[child.id]?
-         return false unless child._climb_responsibility liability, descendants
-         descendants[child.id] = child
+      # Then, depth-first traverse every *owned child*
+      aborted = false
+      @_walk_descendants descendants, (descendant)->
+         unless descendant._available_to liability
+            aborted = true
+            return Thing.abortIteration
+
+      return (not aborted)
 
    _dedicate: (liability)->
       family = if this is liability.ward then 'direct' else 'inherited'
       @custodians[family].push liability
 
-   dedicate: (liability)->
-      return false unless this is liability.ward
+   # This invokes `::available_to` to check whether the receiver *can* be adopted via the passed
+   # `Liability`; and if so, commits that adoption to the data-graph (adding the passed `Liability`
+   # to the `custodians` arrays of the receiver, and each descendant thereof.)
+   #
+   # Returns `true` if the dedication was successful (or if the receiver already `::belongs_to` the
+   # passed Liability), and `false` if the receiver failed the `::available_to` checks.
+   #
+   # Nota bene: Often, you won't be calling this directly, but will instead be invoking
+   # responsibility wholesale through a particular `Liability` instance (see the documentation for
+   # `Liability`.)
+   dedicate: (liability, descendants = new Object)->
+      throw new ArgumentError unless this is liability.ward
       return true  if @belongs_to liability
 
-      return false unless @_climb_responsibility liability, descendants = new Object
+      return false unless @available_to liability, descendants
 
       # FIXME: This terminates early if one of the descendants is already owned; but do we do the
       #        right bookkeeping to *know* this is safe? What about when ownership has changed?
@@ -368,8 +415,6 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return true
 
-   is_available: (liability)->
-      @_climb_responsibility liability
 
 
    # ### Utility / convenience ###
