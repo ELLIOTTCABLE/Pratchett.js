@@ -414,12 +414,32 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       #        UPDATE: So, another way to phrase this: we *must* do the ‘right bookkeeping.’ For a
       #        host of reasons. I can remove this task once I'm sure that my *ownership* code is all
       #        updated to split/merge active responsibility.
-      @_dedicate(liability)
+      @_dedicate liability
       _.values(descendants).forEach (descendant)=>
-         descendant._dedicate(liability)
+         descendant._dedicate liability
 
       return true
 
+   _emancipate: (liability)->
+      family = if this is liability.ward then 'direct' else 'inherited'
+      _.pull @custodians[family], liability
+
+   # The inverse of `::dedicate`, this removes an existing `Liability` from the receiver (and its
+   # owned-descendants.)
+   #
+   # Returns `true` if the `Liability` was successfully removed (or if the receiver didn't belong to
+   # it in the first place).
+   #
+   # Nota bene: This can *only* remove responsibility *from the root node of the adopted sub-graph*.
+   #            It will throw an error if called on a `Liability` that doesn't root at the receiver;
+   #            you probably want `Liability::discard`, which calls this method.
+   emancipate: (liability)->
+      throw new ArgumentError unless this is liability.ward
+      return true unless _.includes @custodians.direct, liability
+
+      @_emancipate liability
+      @_walk_descendants (descendant)=> descendant._emancipate liability
+      return true
 
 
    # ### Utility / convenience ###
@@ -437,6 +457,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    owned_by:     (other)->      new Relation other, this, yes
 
    rename: selfify (name)-> @name = name
+
 
    # ### Initialization ###
 

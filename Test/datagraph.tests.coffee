@@ -611,6 +611,36 @@ describe "Paws' Data types:", ->
             expect(a_thing.custodians.inherited).to.not.contain another.liability
             expect(a_thing.custodians.inherited).to.be.empty()
 
+      describe '::emancipate', ->
+         it 'exists', ->
+            expect((a Thing).emancipate).to.be.a 'function'
+
+         it "succeeds if the receiver didn't belong to the Liability", ->
+            a Thing; an Execution; a Liability, an.execution, a.thing
+
+            rv = a.thing.emancipate a.liability
+            expect(rv).to.be yes
+
+         it 'succeeds if the receiver belongs to the Liability', ->
+            a Thing; an Execution; a Liability, an.execution, a.thing
+
+            a.thing.dedicate a.liability
+
+            rv = a.thing.emancipate a.liability
+            expect(rv).to.be yes
+
+         it 'removes the passed Liability from the custodians of this node', ->
+            a Thing; an Execution; a Liability, an.execution, a.thing
+
+            a.thing.dedicate a.liability
+            expect(a.thing.custodians.direct).to.contain a.liability
+
+            rv = a.thing.emancipate a.liability
+            expect(rv).to.be yes
+            expect(a.thing.custodians.direct).to.not.contain a.liability
+
+         it 'climbs descendants, removing the Liability from every owned node'
+
       # ### Thing: Utility / convenience methods and functions ###
 
       describe '.construct', ->
