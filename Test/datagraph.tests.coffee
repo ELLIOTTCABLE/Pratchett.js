@@ -583,6 +583,22 @@ describe "Paws' Data types:", ->
             expect(foo   .custodians.inherited).to.contain a.liability
             expect(widget.custodians.inherited).to.contain a.liability
 
+         it 'succeeds if there is existing, *non-conflicting* responsibility on the receiver', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a       Liability, (an      Execution), a_thing, 'read'
+            another Liability, (another Execution), a_thing, 'read'
+
+            a_thing.dedicate a.liability
+
+            rv = a_thing.dedicate another.liability
+            expect(rv).to.be yes
+
+            expect(a_thing.custodians.direct   ).to.contain a.liability
+            expect(a_thing.custodians.direct   ).to.contain another.liability
+            expect(widget .custodians.inherited).to.contain a.liability
+            expect(widget .custodians.inherited).to.contain another.liability
+
          it 'fails if there is conflicting responsibility on the receiver', ->
             a_thing = Thing.construct foo: foo = new Thing, bar:
                 bar = Thing.construct widget: widget = new Thing
@@ -594,7 +610,7 @@ describe "Paws' Data types:", ->
             rv = a_thing.dedicate another.liability
             expect(rv).to.be no
 
-            expect(a_thing.custodians.inherited).to.not.contain another.liability
+            expect(a_thing.custodians.direct   ).to.not.contain another.liability
             expect(widget .custodians.inherited).to.not.contain another.liability
 
          it 'fails if there is conflicting responsibility a descendant', ->
@@ -608,8 +624,69 @@ describe "Paws' Data types:", ->
             rv = a_thing.dedicate another.liability
             expect(rv).to.be no
 
-            expect(a_thing.custodians.inherited).to.not.contain another.liability
-            expect(a_thing.custodians.inherited).to.be.empty()
+            expect(a_thing.custodians.direct).to.not.contain another.liability
+            expect(a_thing.custodians.direct).to.be.empty()
+
+         it "adds multiple passed Liabilities to the receiver's custodians", ->
+            a       Liability, (an      Execution), a Thing
+            another Liability, (another Execution), a.thing
+
+            rv = a.thing.dedicate a.liability, another.liability
+            expect(rv).to.be yes
+
+            expect(a.thing.custodians.direct).to.contain a.liability
+            expect(a.thing.custodians.direct).to.contain another.liability
+
+         it 'climbs descendants, adding all Liabilities to every owned node', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a       Liability, (an      Execution), a_thing
+            another Liability, (another Execution), a_thing
+
+            rv = a_thing.dedicate a.liability, another.liability
+            expect(rv).to.be yes
+
+            expect(foo   .custodians.inherited).to.contain a.liability
+            expect(foo   .custodians.inherited).to.contain another.liability
+            expect(widget.custodians.inherited).to.contain a.liability
+            expect(widget.custodians.inherited).to.contain another.liability
+
+         it 'adds *no* liabilities if there is conflicting responsibility on the receiver', ->
+            # NOTE: It's important that this addition fails on the *second* liability added; it's
+            #       explicitly supposed to be testing that the first, *valid* liability isn't
+            #       accidetnally left hanging around.
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            some    Liability, (some    Execution), a_thing, 'read'
+            a       Liability, (an      Execution), a_thing, 'read'
+            another Liability, (another Execution), a_thing, 'write'
+
+            a_thing.dedicate some.liability
+
+            rv = a_thing.dedicate a.liability, another.liability
+            expect(rv).to.be no
+
+            expect(a_thing.custodians.direct   ).to.not.contain a.liability
+            expect(a_thing.custodians.direct   ).to.not.contain another.liability
+            expect(widget .custodians.inherited).to.not.contain a.liability
+            expect(widget .custodians.inherited).to.not.contain another.liability
+
+         it 'adds *no* liabilities if there is conflicting responsibility on a descendant', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            some    Liability, (some    Execution), widget,  'read'
+            a       Liability, (an      Execution), a_thing, 'read'
+            another Liability, (another Execution), a_thing, 'write'
+
+            widget.dedicate some.liability
+
+            rv = a_thing.dedicate a.liability, another.liability
+            expect(rv).to.be no
+
+            expect(a_thing.custodians.direct   ).to.not.contain a.liability
+            expect(a_thing.custodians.direct   ).to.not.contain another.liability
+            expect(widget .custodians.inherited).to.not.contain a.liability
+            expect(widget .custodians.inherited).to.not.contain another.liability
 
       describe '::emancipate', ->
          it 'exists', ->

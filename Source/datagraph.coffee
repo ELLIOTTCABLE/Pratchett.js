@@ -330,6 +330,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       _.any @custodians.direct, f or
       _.any @custodians.inherited, f
 
+   _all_custodians: (f)->
+      custodians = _(@custodians.direct).concat(@custodians.inherited).uniq()
+      if f?
+         _.all custodians, f
+      else
+         custodians.value()
+
    # Indicates success if the passed `Execution` *already* holds the indicated license (or a greater
    # one) for the receiver. (For instance, if the `Execution` holds write-license to a parent of the
    # receiver, then `belongs_to(exe, 'read')` would indicate success.)
@@ -388,37 +395,41 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return (not aborted)
 
-   _dedicate: (liability)->
-      family = if this is liability.ward then 'direct' else 'inherited'
-      @custodians[family].push liability
-
-   # This invokes `::available_to` to check whether the receiver *can* be adopted via the passed
-   # `Liability`; and if so, commits that adoption to the data-graph (adding the passed `Liability`
-   # to the `custodians` arrays of the receiver, and each descendant thereof.)
-   #
-   # Returns `true` if the dedication was successful (or if the receiver already `::belongs_to` the
-   # passed Liability), and `false` if the receiver failed the `::available_to` checks.
-   #
-   # Nota bene: Often, you won't be calling this directly, but will instead be invoking
-   #            responsibility wholesale through a particular `Liability` instance (see the
-   #            documentation for `Liability`. You probably want `Liability::commit`.)
-   dedicate: (liability, descendants = new Object)->
-      throw new ArgumentError unless this is liability.ward
+   # When passed an existing `descendants` object, this assumes you obtained that by already having
+   # checked their availability via `::available_to`.
+   #---
+   # FIXME: The `descendants`-caching needs to be made first-class on `Thing` instances themselves;
+   #        instead of this hacky ‘allow the receiver to pass around a cache, but warn them about
+   #        it being unsafe’ system.
+   _dedicate: (liability, descendants)->
       return true  if @belongs_to liability
 
-      return false unless @available_to liability, descendants
+      unless descendants?
+         return false unless @available_to liability, descendants = new Object
 
-      # FIXME: This terminates early if one of the descendants is already owned; but do we do the
-      #        right bookkeeping to *know* this is safe? What about when ownership has changed?
-      #
-      #        UPDATE: So, another way to phrase this: we *must* do the ‘right bookkeeping.’ For a
-      #        host of reasons. I can remove this task once I'm sure that my *ownership* code is all
-      #        updated to split/merge active responsibility.
-      @_dedicate liability
       _.values(descendants).forEach (descendant)=>
-         descendant._dedicate liability
+         family = if descendant is liability.ward then 'direct' else 'inherited'
+         descendant.custodians[family].push liability
 
       return true
+
+   # DOCME
+   dedicate: (liabilities...)->
+      liabilities = liabilities[0] if _.isArray liabilities[0]
+
+      # FIXME: I need an ‘allMap’ function of some sort; this is ugly and procedural. /=
+      all_descendants = new Array
+      return false unless _.all liabilities, (liability)=>
+         rv = @available_to liability, descendants = new Object
+         all_descendants.push descendants
+         rv
+
+      return _.all liabilities, (liability, idx)=>
+         @_dedicate liability, all_descendants[idx]
+
+
+     #_.all liabilities, (liability)=>
+     #   @_dedicate liability
 
    _emancipate: (liability)->
       family = if this is liability.ward then 'direct' else 'inherited'

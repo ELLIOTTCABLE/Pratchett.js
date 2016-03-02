@@ -17,6 +17,7 @@ beforeEach ->
    createInstanceContainer 'a'
    createInstanceContainer 'an'
    createInstanceContainer 'another'
+   createInstanceContainer 'some'
 
 Assertion = expect.Assertion
 i = expect.stringify
