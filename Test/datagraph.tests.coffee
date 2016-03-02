@@ -16,6 +16,10 @@ describe "Paws' Data types:", ->
 
 
    describe 'Thing', -> # ---- ---- ---- ---- ----                                             Thing
+      # FIXME: A lot of these tests are more ... integration-ey than unit-ey; and to boot, a lot of
+      #        *actual* unit tests are absent. I need to extract some of these complicated,
+      #        purpose-related tests into an *integration* suite, and then re-build this suite from
+      #        scratch to achieve ≥80% *unit* coverage.
 
       # ### Thing: Core functionality ###
 
@@ -196,6 +200,15 @@ describe "Paws' Data types:", ->
             result = thing1.clone(thing2)
             expect(result).to.be thing2
             expect(thing2.metadata).to.not.be old_metadata
+
+         it 'does not copy active responsibility', ->
+            thing = new Thing new Thing, new Thing, new Thing
+
+            thing.dedicate a Liability, (an Execution), thing
+
+            expect(thing.custodians.direct).to.not.be.empty()
+            clone = thing.clone()
+            expect(clone.custodians.direct).to.be.empty()
 
       describe '::toArray', ->
          it 'reduces the receiver Thing to an Array', ->
@@ -1077,6 +1090,42 @@ describe "Paws' Data types:", ->
             expect(ex.ops[0]).to.have.property 'op'
             expect(ex.ops[0].op).to.be 'advance'
             expect(ex.ops[0].params).to.contain a_thing
+
+      describe '~ Responsibility tracking', ->
+         it 'stores a set of wards', ->
+            an Execution
+            expect(an.execution.wards).to.be.ok()
+            expect(an.execution.wards).to.be.an 'array'
+
+         it 'can accept a Liability', ->
+            a Liability, (an Execution), a Thing
+            expect(an.execution.wards).to.be.empty()
+
+            expect(-> an.execution.accept a.liability ).to.not.throwException()
+
+         it 'adds an accepted Liability to its wards', ->
+            a Liability, (an Execution), a Thing
+            expect(an.execution.wards).to.be.empty()
+
+            an.execution.accept a.liability
+            expect(an.execution.wards).to.not.be.empty()
+            expect(an.execution.wards).to.contain a.liability
+
+         it 'can abjure Liability', ->
+            a Liability, (an Execution), a Thing
+            an.execution.accept a.liability
+
+            expect(-> an.execution.abjure a.liability ).to.not.throwException()
+
+         it 'adds an accepted Liability to its wards', ->
+            a Liability, (an Execution), a Thing
+            expect(an.execution.wards).to.be.empty()
+            an.execution.accept a.liability
+            expect(an.execution.wards).to.not.be.empty()
+
+            an.execution.abjure a.liability
+            expect(an.execution.wards).to.be.empty()
+
 
       # ### Execution: Methods ###
 

@@ -102,10 +102,10 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       @metadata = new Array
       @owners = new Array
+      @custodians = { direct: [], inherited: [] }
+
       @push elements... if elements.length
       @metadata.unshift undefined if @_?.noughtify != no
-
-      @custodians = { direct: [], inherited: [] }
 
    # Constructs a generic ‘key/value’ style `Thing` from a `representation` (a JavaScript `Object`-
    # hash) thereof. This convenience method expects arguments constructed as pairs of 1. any string
@@ -163,15 +163,46 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # ### ‘Array-ish’ metadata manipulation ###
 
    at:  (idx)->  @metadata[idx]?.to
+
+   # Directly set the child at a particular index to the passed value.
+   #
+   # Nota bene: These direct-access methods assume the caller is handling responsibility manually;
+   #            thus they throw an exception if the new value doesn't already `::belongs_to` all of
+   #            the same `Liability` instances as the receiver (the new parent.)
+   #---
+   # FIXME: Repeat after me ... *Paws needs real error-handling*. /=
+   # TODO: Async `set()`.
    set: (idx, it)->
+      if it? then rel = new Relation this, it
       prev = @metadata[idx]
-      rel  = @metadata[idx] = if it? then new Relation this, it
+
+      if rel?.owns
+         unless _.isEmpty custodians = @_all_custodians()
+            dedication_successful = rel.to.dedicate custodians
+
+            unless dedication_successful
+               throw new Error("Attempt to set a child with conflicting responsibility.")
+
+      @metadata[idx] = rel
 
       prev.to._del_owner prev if prev?.owns
       rel .to._add_owner rel  if rel?.owns
 
-      rel
+      return rel
 
+   # Append elements to this Thing.
+   #
+   # Nota bene: These direct-access methods assume the caller is handling responsibility manually;
+   #            thus they throw an exception if the new value doesn't already `::belongs_to` all of
+   #            the same `Liability` instances as the receiver (the new parent.)
+   #---
+   # FIXME: Repeat after me ... *Paws needs real error-handling*. /=
+   # FIXME: Okay, so this isn't caching `descendants` ... I. really. need. to. bubble. that.
+   #        cache. upwards. ffffffffff. However, that isn't *currently* an issue, because there's no
+   #        attempt to *recover* from that failure: it's working out that we're touching the
+   #        data-graph as we go along, because when it fails, we're throwing a fatal error. There is
+   #        no implication of recovery.
+   # TODO: Async `push()`.
    push: (elements...)->
       relations = elements.map (it)=>
          if it instanceof Relation
@@ -182,12 +213,23 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
             rel = new Relation this, it
 
          rel?.owns = @_?.own if @_?.own?
-         rel.to._add_owner rel if rel?.owns
 
          rel
 
+      unless _.isEmpty custodians = @_all_custodians()
+         _.forEach relations, (rel)=>
+            if rel?.owns
+               dedication_successful = rel.to.dedicate custodians
+
+               unless dedication_successful
+                  throw new Error("Attempt to push a child with conflicting responsibility.")
+
+      _.forEach relations, (rel)=>
+         rel.to._add_owner rel if rel?.owns
+
       @metadata = @metadata.concat relations
 
+   # XXX: This assumes that `emancipate` cannot fail; which is currently the case.
    pop: ->
       rel = @metadata.pop()
       rel.to._del_owner rel if rel?.owns
@@ -202,6 +244,9 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       rel
 
    unshift: (other)->
+      # FIXME: Obviate this hack, by extracting the meat of push() to its own private API that both
+      #        push() and this and set() can all call into.
+      # FIXME: Actually, fuck this entire hack. Re-write this.
       @push other
       rel = @metadata.pop()
 
@@ -209,7 +254,6 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       @metadata.unshift rel
       @metadata.unshift noughty
 
-      rel.to._add_owner rel if rel?.owns
       rel
 
 
@@ -255,6 +299,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    # ### Ownership ###
 
+   # FIXME: Responsibility ;_;
    own_at: (idx)->
       if (prev = @metadata[idx])? and not prev.owns
          @metadata[idx] = prev.as_owned()
@@ -280,8 +325,28 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # N.B.: Multiple Relations `from` and `to` the *same pair of Things* can exist in `@owners`,
    # because they can exist in the @metadata of the parent, and one of them could be deleted,
    # leaving the second.
-   _add_owner: (rel)-> @owners.push rel unless _.contains @owners, rel                   ;return rel
-   _del_owner: (rel)-> _.pull @owners, rel                                               ;return rel
+
+   # FIXME: I extracted the responsibility-handling to `_del_owner`; can I extract the same for
+   #        `_add_owner`?
+   _add_owner: (rel)->
+      @owners.push rel unless _.contains @owners, rel
+      return rel
+
+   # This does *two* useful things:
+   #
+   #  - Remove a parent object from the `owners` array,
+   #  - and check the *other* owners for all responsibility inherited through the removed owner,
+   #  - before *removing* (emancipating) any no-longer-reachable Liabilities.
+   _del_owner: (rel)->
+      _.pull @owners, rel
+
+      @emancipate rel.from.custodians.direct
+
+      rel.from.custodians.inherited.forEach (liability)=>
+         unless _.any(@owners, (owner)=> _.includes owner._all_custodians(), liability )
+            @emancipate liability
+
+      return rel
 
    # FIXME: Make these proper Symbols.
    @abortIteration:     'abortIteration'
@@ -401,6 +466,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # FIXME: The `descendants`-caching needs to be made first-class on `Thing` instances themselves;
    #        instead of this hacky ‘allow the receiver to pass around a cache, but warn them about
    #        it being unsafe’ system.
+   # FIXME: The constant `uniq`'ing is going to also be slow: need to collect that into a single
+   #        event after any modifications? Ugh, I need `Set`. /=
    _dedicate: (liability, descendants)->
       return true if _.includes @custodians.direct, liability
 
@@ -410,6 +477,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       _.values(descendants).forEach (descendant)=>
          family = if descendant is liability.ward then 'direct' else 'inherited'
          descendant.custodians[family].push liability
+         descendant.custodians[family] = _.uniq descendant.custodians[family]
 
       return true
 
@@ -611,7 +679,10 @@ Paws.Execution = Execution = class Execution extends Thing
 
       @ops = new Array
 
+      @wards = new Array
+
       return this
+
 
    # ### Common ###
 
@@ -640,6 +711,7 @@ Paws.Execution = Execution = class Execution extends Thing
 
       return to
 
+
    # ### Operation-queue ###
 
    # Pushes a new `Operation` onto this `Execution`'s `ops`-queue.
@@ -656,6 +728,7 @@ Paws.Execution = Execution = class Execution extends Thing
    # This value is stored in the `results` stack, and is later used as one of the values in furhter
    # `Combination`s.
    register_response: (response)-> @results[0] = response
+
 
    # ### Position management and advancement ###
 
@@ -749,10 +822,32 @@ Paws.Execution = Execution = class Execution extends Thing
       upcoming_value = upcoming.valueOf()
       return new Combination null, upcoming_value
 
+
+   # ### Responsibility ###
+
+   # Given a `Liability`, this will record that responsibility into the receiver's `wards`.
+   #
+   # Note: This does not preform any verifications or availability checks; that must be handled by
+   #       the caller; for that reason, this is usually called after `Thing::dedicate`. (You
+   #       probably want to use `Liability::commit` instead of doing these things manually.)
+   accept: (liability)->
+      @wards.push liability unless _.contains @wards, liability
+      return liability
+
+   # Given a `Liability`, this will remove that responsibility from the receiver's `wards`.
+   #
+   # Note: This is usually called after `Thing::emancipate`. (You probably want to use
+   #       `Liability::discard` instead of doing these things manually.)
+   abjure: (liability)->
+      _.pull @wards, liability
+      return liability
+
+
    # ### Utility / convenience ###
 
    # Creates a list-thing of the form that receiver `Execution`s expect.
    @create_params: (caller, subject, message)-> new Thing.with(noughtify: no)(arguments...)
+
 
    # ### Initialization ###
 
@@ -989,6 +1084,29 @@ Paws.Liability = Liability = delegated('for', Thing) class Liability
       other._write      is @_write     &&
       other.custodian   is @custodian  &&
       other.ward        is @ward
+
+   # This is the union of `Thing::dedicate` and `Execution::accept`, indicating the acceptance of
+   # responsibility (represented by the receiver `Liability`) of the `custodian` `Execution` for the
+   # `ward` `Thing`.
+   #
+   # This returns `false` if the `Thing::dedicate`ion fails, indicating that the responsibility
+   # represented by the receiver conflicts with actively-held responsibility on the part of another
+   # `Execution` than the receiver's `custodian`.
+   commit: ->
+      return false unless @ward.dedicate this
+      @custodian.accept this
+      return true
+
+   # This is the union of `Thing::emancipate` and `Execution::abjure`, indicating the abjuration of
+   # responsibility (represented by the receiver `Liability`) of the `custodian` `Execution` for the
+   # `ward` `Thing`.
+   #
+   # This results in `Thing::_signal` (see `Thing::emancipate`), indicating to the reactor that new
+   # changes in responsibility may allow supplicant `Execution`s to be staged.
+   discard: ->
+      @custodian.abjure this
+      @ward.emancipate this
+      return true
 
 
 # A `Combination` represents a single operation in the Paws semantic. An instance of this class
