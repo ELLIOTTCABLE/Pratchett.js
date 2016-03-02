@@ -102,10 +102,10 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       @metadata = new Array
       @owners = new Array
+      @custodians = { direct: [], inherited: [] }
+
       @push elements... if elements.length
       @metadata.unshift undefined if @_?.noughtify != no
-
-      @custodians = { direct: [], inherited: [] }
 
    # Constructs a generic ‘key/value’ style `Thing` from a `representation` (a JavaScript `Object`-
    # hash) thereof. This convenience method expects arguments constructed as pairs of 1. any string
@@ -163,15 +163,46 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # ### ‘Array-ish’ metadata manipulation ###
 
    at:  (idx)->  @metadata[idx]?.to
+
+   # Directly set the child at a particular index to the passed value.
+   #
+   # Nota bene: These direct-access methods assume the caller is handling responsibility manually;
+   #            thus they throw an exception if the new value doesn't already `::belongs_to` all of
+   #            the same `Liability` instances as the receiver (the new parent.)
+   #---
+   # FIXME: Repeat after me ... *Paws needs real error-handling*. /=
+   # TODO: Async `set()`.
    set: (idx, it)->
+      if it? then rel = new Relation this, it
       prev = @metadata[idx]
-      rel  = @metadata[idx] = if it? then new Relation this, it
+
+      if rel?.owns
+         unless _.isEmpty custodians = @_all_custodians()
+            dedication_successful = rel.to.dedicate custodians
+
+            unless dedication_successful
+               throw new Error("Attempt to set a child with conflicting responsibility.")
+
+      @metadata[idx] = rel
 
       prev.to._del_owner prev if prev?.owns
       rel .to._add_owner rel  if rel?.owns
 
-      rel
+      return rel
 
+   # Append elements to this Thing.
+   #
+   # Nota bene: These direct-access methods assume the caller is handling responsibility manually;
+   #            thus they throw an exception if the new value doesn't already `::belongs_to` all of
+   #            the same `Liability` instances as the receiver (the new parent.)
+   #---
+   # FIXME: Repeat after me ... *Paws needs real error-handling*. /=
+   # FIXME: Okay, so this isn't caching `descendants` ... I. really. need. to. bubble. that.
+   #        cache. upwards. ffffffffff. However, that isn't *currently* an issue, because there's no
+   #        attempt to *recover* from that failure: it's working out that we're touching the
+   #        data-graph as we go along, because when it fails, we're throwing a fatal error. There is
+   #        no implication of recovery.
+   # TODO: Async `push()`.
    push: (elements...)->
       relations = elements.map (it)=>
          if it instanceof Relation
@@ -182,12 +213,23 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
             rel = new Relation this, it
 
          rel?.owns = @_?.own if @_?.own?
-         rel.to._add_owner rel if rel?.owns
 
          rel
 
+      unless _.isEmpty custodians = @_all_custodians()
+         _.forEach relations, (rel)=>
+            if rel?.owns
+               dedication_successful = rel.to.dedicate custodians
+
+               unless dedication_successful
+                  throw new Error("Attempt to push a child with conflicting responsibility.")
+
+      _.forEach relations, (rel)=>
+         rel.to._add_owner rel if rel?.owns
+
       @metadata = @metadata.concat relations
 
+   # XXX: This assumes that `emancipate` cannot fail; which is currently the case.
    pop: ->
       rel = @metadata.pop()
       rel.to._del_owner rel if rel?.owns
@@ -202,6 +244,9 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       rel
 
    unshift: (other)->
+      # FIXME: Obviate this hack, by extracting the meat of push() to its own private API that both
+      #        push() and this and set() can all call into.
+      # FIXME: Actually, fuck this entire hack. Re-write this.
       @push other
       rel = @metadata.pop()
 
@@ -209,7 +254,6 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       @metadata.unshift rel
       @metadata.unshift noughty
 
-      rel.to._add_owner rel if rel?.owns
       rel
 
 
@@ -255,6 +299,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    # ### Ownership ###
 
+   # FIXME: Responsibility ;_;
    own_at: (idx)->
       if (prev = @metadata[idx])? and not prev.owns
          @metadata[idx] = prev.as_owned()
@@ -280,8 +325,28 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # N.B.: Multiple Relations `from` and `to` the *same pair of Things* can exist in `@owners`,
    # because they can exist in the @metadata of the parent, and one of them could be deleted,
    # leaving the second.
-   _add_owner: (rel)-> @owners.push rel unless _.contains @owners, rel                   ;return rel
-   _del_owner: (rel)-> _.pull @owners, rel                                               ;return rel
+
+   # FIXME: I extracted the responsibility-handling to `_del_owner`; can I extract the same for
+   #        `_add_owner`?
+   _add_owner: (rel)->
+      @owners.push rel unless _.contains @owners, rel
+      return rel
+
+   # This does *two* useful things:
+   #
+   #  - Remove a parent object from the `owners` array,
+   #  - and check the *other* owners for all responsibility inherited through the removed owner,
+   #  - before *removing* (emancipating) any no-longer-reachable Liabilities.
+   _del_owner: (rel)->
+      _.pull @owners, rel
+
+      @emancipate rel.from.custodians.direct
+
+      rel.from.custodians.inherited.forEach (liability)=>
+         unless _.any(@owners, (owner)=> _.includes owner._all_custodians(), liability )
+            @emancipate liability
+
+      return rel
 
    # FIXME: Make these proper Symbols.
    @abortIteration:     'abortIteration'
@@ -401,6 +466,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # FIXME: The `descendants`-caching needs to be made first-class on `Thing` instances themselves;
    #        instead of this hacky ‘allow the receiver to pass around a cache, but warn them about
    #        it being unsafe’ system.
+   # FIXME: The constant `uniq`'ing is going to also be slow: need to collect that into a single
+   #        event after any modifications? Ugh, I need `Set`. /=
    _dedicate: (liability, descendants)->
       return true if _.includes @custodians.direct, liability
 
@@ -410,6 +477,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       _.values(descendants).forEach (descendant)=>
          family = if descendant is liability.ward then 'direct' else 'inherited'
          descendant.custodians[family].push liability
+         descendant.custodians[family] = _.uniq descendant.custodians[family]
 
       return true
 
