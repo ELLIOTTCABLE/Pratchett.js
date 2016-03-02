@@ -693,13 +693,13 @@ describe "Paws' Data types:", ->
             expect((a Thing).emancipate).to.be.a 'function'
 
          it "succeeds if the receiver didn't belong to the Liability", ->
-            a Thing; an Execution; a Liability, an.execution, a.thing
+            a Liability, (an Execution), a Thing
 
             rv = a.thing.emancipate a.liability
             expect(rv).to.be yes
 
          it 'succeeds if the receiver belongs to the Liability', ->
-            a Thing; an Execution; a Liability, an.execution, a.thing
+            a Liability, (an Execution), a Thing
 
             a.thing.dedicate a.liability
 
@@ -707,7 +707,7 @@ describe "Paws' Data types:", ->
             expect(rv).to.be yes
 
          it 'removes the passed Liability from the custodians of this node', ->
-            a Thing; an Execution; a Liability, an.execution, a.thing
+            a Liability, (an Execution), a Thing
 
             a.thing.dedicate a.liability
             expect(a.thing.custodians.direct).to.contain a.liability
@@ -716,7 +716,53 @@ describe "Paws' Data types:", ->
             expect(rv).to.be yes
             expect(a.thing.custodians.direct).to.not.contain a.liability
 
-         it 'climbs descendants, removing the Liability from every owned node'
+         it 'climbs descendants, removing the Liability from every owned node', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability, (an Execution), a_thing
+
+            a_thing.dedicate a.liability
+
+            rv = a_thing.emancipate a.liability
+            expect(rv).to.be yes
+
+            expect(foo   .custodians.inherited).not.to.contain a.liability
+            expect(widget.custodians.inherited).not.to.contain a.liability
+
+         it 'succeeds if the receiver belongs to at least one of the Liabilities', ->
+            a Liability,       (an      Execution), a Thing
+            another Liability, (another Execution), a.thing
+
+            a.thing.dedicate another.liability
+
+            rv = a.thing.emancipate a.liability, another.liability
+            expect(rv).to.be yes
+
+         it 'removes all passed Liabilities from the custodians of this node', ->
+            a Liability,       (an      Execution), a Thing
+            another Liability, (another Execution), a.thing
+
+            a.thing.dedicate another.liability
+
+            rv = a.thing.emancipate a.liability, another.liability
+            expect(rv).to.be yes
+
+            expect(a.thing.custodians.direct).to.not.contain a.liability
+
+         it 'climbs descendants, removing all Liabilities from every owned node', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability,       (an      Execution), a_thing
+            another Liability, (another Execution), a_thing
+
+            a_thing.dedicate another.liability
+
+            rv = a_thing.emancipate a.liability, another.liability
+            expect(rv).to.be yes
+
+            expect(foo   .custodians.inherited).not.to.contain another.liability
+            expect(widget.custodians.inherited).not.to.contain another.liability
+
 
       # ### Thing: Utility / convenience methods and functions ###
 

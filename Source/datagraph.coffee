@@ -402,7 +402,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #        instead of this hacky ‘allow the receiver to pass around a cache, but warn them about
    #        it being unsafe’ system.
    _dedicate: (liability, descendants)->
-      return true  if @belongs_to liability
+      return true if _.includes @custodians.direct, liability
 
       unless descendants?
          return false unless @available_to liability, descendants = new Object
@@ -427,30 +427,34 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       return _.all liabilities, (liability, idx)=>
          @_dedicate liability, all_descendants[idx]
 
-
-     #_.all liabilities, (liability)=>
-     #   @_dedicate liability
-
-   _emancipate: (liability)->
-      family = if this is liability.ward then 'direct' else 'inherited'
-      _.pull @custodians[family], liability
-
-   # The inverse of `::dedicate`, this removes an existing `Liability` from the receiver (and its
+   # The inverse of `::_dedicate`, this removes an existing `Liability` from the receiver (and its
    # owned-descendants.)
    #
    # Returns `true` if the `Liability` was successfully removed (or if the receiver didn't belong to
    # it in the first place).
    #
    # Nota bene: This can *only* remove responsibility *from the root node of the adopted sub-graph*.
-   #            It will throw an error if called on a `Liability` that doesn't root at the receiver;
-   #            you probably want `Liability::discard`, which calls this method.
-   emancipate: (liability)->
-      throw new ArgumentError unless this is liability.ward
+   #            It will return truthfully if the `Liability` on which it is called is not in the
+   #            directly-responsible `custodians` for the receiver; this also applies if the passed
+   #            `Liability` roots on another node! You probably want `Liability::discard`, which
+   #            calls this method.
+   _emancipate: (liability)->
       return true unless _.includes @custodians.direct, liability
 
-      @_emancipate liability
-      @_walk_descendants (descendant)=> descendant._emancipate liability
+      @_walk_descendants (descendant)=>
+         family = if descendant is liability.ward then 'direct' else 'inherited'
+         _.pull descendant.custodians[family], liability
+
       return true
+
+   # DOCME
+   # XXX: At the moment, `_emancipate` cannot return false; so this isn't properly transactional. If
+   #      there's any way for emancipation to fail, though, it's important to fix this method to
+   #      *not actually remove the custodians* until the efficacy of the operation can be verified.
+   emancipate: (liabilities...)->
+      liabilities = liabilities[0] if _.isArray liabilities[0]
+
+      return _.all liabilities, (liability)=> @_emancipate liability
 
 
    # ### Utility / convenience ###
