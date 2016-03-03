@@ -679,7 +679,10 @@ Paws.Execution = Execution = class Execution extends Thing
 
       @ops = new Array
 
+      @wards = new Array
+
       return this
+
 
    # ### Common ###
 
@@ -708,6 +711,7 @@ Paws.Execution = Execution = class Execution extends Thing
 
       return to
 
+
    # ### Operation-queue ###
 
    # Pushes a new `Operation` onto this `Execution`'s `ops`-queue.
@@ -724,6 +728,7 @@ Paws.Execution = Execution = class Execution extends Thing
    # This value is stored in the `results` stack, and is later used as one of the values in furhter
    # `Combination`s.
    register_response: (response)-> @results[0] = response
+
 
    # ### Position management and advancement ###
 
@@ -817,10 +822,32 @@ Paws.Execution = Execution = class Execution extends Thing
       upcoming_value = upcoming.valueOf()
       return new Combination null, upcoming_value
 
+
+   # ### Responsibility ###
+
+   # Given a `Liability`, this will record that responsibility into the receiver's `wards`.
+   #
+   # Note: This does not preform any verifications or availability checks; that must be handled by
+   #       the caller; for that reason, this is usually called after `Thing::dedicate`. (You
+   #       probably want to use `Liability::commit` instead of doing these things manually.)
+   accept: (liability)->
+      @wards.push liability unless _.contains @wards, liability
+      return liability
+
+   # Given a `Liability`, this will remove that responsibility from the receiver's `wards`.
+   #
+   # Note: This is usually called after `Thing::emancipate`. (You probably want to use
+   #       `Liability::discard` instead of doing these things manually.)
+   abjure: (liability)->
+      _.pull @wards, liability
+      return liability
+
+
    # ### Utility / convenience ###
 
    # Creates a list-thing of the form that receiver `Execution`s expect.
    @create_params: (caller, subject, message)-> new Thing.with(noughtify: no)(arguments...)
+
 
    # ### Initialization ###
 
@@ -1057,6 +1084,29 @@ Paws.Liability = Liability = delegated('for', Thing) class Liability
       other._write      is @_write     &&
       other.custodian   is @custodian  &&
       other.ward        is @ward
+
+   # This is the union of `Thing::dedicate` and `Execution::accept`, indicating the acceptance of
+   # responsibility (represented by the receiver `Liability`) of the `custodian` `Execution` for the
+   # `ward` `Thing`.
+   #
+   # This returns `false` if the `Thing::dedicate`ion fails, indicating that the responsibility
+   # represented by the receiver conflicts with actively-held responsibility on the part of another
+   # `Execution` than the receiver's `custodian`.
+   commit: ->
+      return false unless @ward.dedicate this
+      @custodian.accept this
+      return true
+
+   # This is the union of `Thing::emancipate` and `Execution::abjure`, indicating the abjuration of
+   # responsibility (represented by the receiver `Liability`) of the `custodian` `Execution` for the
+   # `ward` `Thing`.
+   #
+   # This results in `Thing::_signal` (see `Thing::emancipate`), indicating to the reactor that new
+   # changes in responsibility may allow supplicant `Execution`s to be staged.
+   discard: ->
+      @custodian.abjure this
+      @ward.emancipate this
+      return true
 
 
 # A `Combination` represents a single operation in the Paws semantic. An instance of this class

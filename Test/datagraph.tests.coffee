@@ -1091,6 +1091,42 @@ describe "Paws' Data types:", ->
             expect(ex.ops[0].op).to.be 'advance'
             expect(ex.ops[0].params).to.contain a_thing
 
+      describe '~ Responsibility tracking', ->
+         it 'stores a set of wards', ->
+            an Execution
+            expect(an.execution.wards).to.be.ok()
+            expect(an.execution.wards).to.be.an 'array'
+
+         it 'can accept a Liability', ->
+            a Liability, (an Execution), a Thing
+            expect(an.execution.wards).to.be.empty()
+
+            expect(-> an.execution.accept a.liability ).to.not.throwException()
+
+         it 'adds an accepted Liability to its wards', ->
+            a Liability, (an Execution), a Thing
+            expect(an.execution.wards).to.be.empty()
+
+            an.execution.accept a.liability
+            expect(an.execution.wards).to.not.be.empty()
+            expect(an.execution.wards).to.contain a.liability
+
+         it 'can abjure Liability', ->
+            a Liability, (an Execution), a Thing
+            an.execution.accept a.liability
+
+            expect(-> an.execution.abjure a.liability ).to.not.throwException()
+
+         it 'adds an accepted Liability to its wards', ->
+            a Liability, (an Execution), a Thing
+            expect(an.execution.wards).to.be.empty()
+            an.execution.accept a.liability
+            expect(an.execution.wards).to.not.be.empty()
+
+            an.execution.abjure a.liability
+            expect(an.execution.wards).to.be.empty()
+
+
       # ### Execution: Methods ###
 
       describe '::clone', ->
