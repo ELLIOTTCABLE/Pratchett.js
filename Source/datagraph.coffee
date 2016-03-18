@@ -103,6 +103,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       @metadata = new Array
       @owners = new Array
       @custodians = { direct: [], inherited: [] }
+      @supplicants = new Array
 
       @push elements... if elements.length
       @metadata.unshift undefined if @_?.noughtify != no
@@ -523,6 +524,15 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       liabilities = liabilities[0] if _.isArray liabilities[0]
 
       return _.all liabilities, (liability)=> @_emancipate liability
+
+   # This adds a passed `Liability` into the receiver's `supplicants` array, indicating that the
+   # `Execution` needs to be resumed when it will be able to successfully obtain responsibility for
+   # the receiver.
+   #
+   # This should only be called after `::dedicate` has been called, and has indicated failure; this
+   # is handled for you by ... # DOCME
+   supplicate: (liability)->
+      @supplicants.push liability
 
 
    # ### Utility / convenience ###
@@ -1214,7 +1224,7 @@ Operation.register 'advance', (response)->
 
 
 Operation.register 'adopt', ()->
-
+   # NYI
 
 
 # Debugging output
