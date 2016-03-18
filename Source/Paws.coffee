@@ -45,40 +45,78 @@ Paws.generateRoot = (code = '', name)->
 
 # Reactor
 # =======
-# A `Reactor` is, data-wise, a bag of knowledge about `Execution`s that are pending resumption.
+# This implementation of Paws stores all information about pending evaluation (and thus, information
+# about ordering) *in* the data-graph. That is, there isn't an authoritative source, external to the
+# object-system, dictating a giant list of ‘instructions to carry out.’ Instead, each `Execution` is
+# aware of the (internally-strictly-ordered) `Operation`s pending against it; and meanwhile, each
+# `Thing` is aware of any `Liability`s describing the (*externally*-strictly-ordered) `Execution`s
+# pending against adoption of that particular `Thing`.
 #
-# This is stored in two ways:
+# The `Reactor`, however, is the place where that evaluation *actually happens*. So, to avoid each
+# `Reactor` instance climbing The Entire Datagraph constantly, the methods that manage the above
+# information `::signal` a `Reactor`, so that the `Reactor` can cache a list of “stuff that might
+# need to be done”:
 #
-#  - `Execution`s that are *not* blocked against new responsibility (i.e. that have all the
-#    responsibility they need) are stored in the `queue`, and processed as is convenient (that is,
-#    there are no guarantees about the ordering of those `Execution`s being evaluated in any
-#    particular order.)
-#  - ... while ones that *are* blocked (i.e. they're `adopt`'ing a subgraph, and at adopt-time it
-#    conflicted with something) are known via `hints`: a list of references to `Thing`s against
-#    which `Execution`s are known to be blocking, and which have recently *changed* in ownership.
+#  - Whenever a new operation is queued against an `Execution`, a `Reactor` is notified, so that it
+#    can watch the `Execution` and eventually actually evaluate it. (The `operational` cache.)
+#  - Meanwhile, when the ownership of the datagraph changes, affects which pending `Execution`s
+#    might be evaluable; so with every such mutation, `Reactor` is notified that `Liability`s whose
+#    subgraphs intersect the graph affected by the mutation need to be re-evaluated. (The
+#    `responsibility` cache.)
+#
+# These two caches are stored separately; because the ‘blocking’ cache supersedes the ‘non-blocking’
+# cache: that is, even if there's N pending `Execution`s with operations queued, when a `::signal`
+# is received for a change in ownership or responsibility, then the possibly-affected blocked
+# `Execution`s “jump the queue” to immediately be evaluated. (This is based on two theories: α, that
+# the operation jumping the queue is an `'adopt'`, not an `'advance'`, and thus isn't likely to
+# upset a pseudo-intuitive ordering; and β, that if we wait, a *new* interloper could snap up the
+# responsibility that just became available ... clearly, something that had already been blocked
+# against the ρ in question, should not be made to wait longer for the sake of something that spat
+# out an `'adopt'` in the intervening time.)
 #
 # >  Note: Despite JavaScript being single-threaded (at least with regards to shared memory,
 #    anyway); as a proof-of-concept, this implementation allows multiple `Reactor` instances to
 #    exist simultaneously; and can be told to pseudo-randomize their ordering: this (badly)
-#    simulates a parallel implementation using only *conccurency*; and it should help to surface
+#    simulates a parallel implementation using only *concurrency*; and it should help to surface
 #    issues with the locking and concurrency model.
+#---
+# XXX: I hesitate to document this in the source, as I've already got voice-memos on it elsewhere;
+#      but there's an issue with maintaining the ordering of supplicants across *merged* subgraphs.
 #
+#      It's trivial to order the operations applying to a particular node; it's *relatively* trivial
+#      to order the operations applying to different elements of a particular ownership-delimited
+#      subgraph ... but no order is maintained between operations on two arbitrary objects with no
+#      ancestor-descendant relationship. This becomes problematic when those objects are
+#      subsequently made participants in such a relationship: there exists no data on which
+#      operations on which node were scheduled first, and which were scheduled later.
 #
+#      I'm having a really difficult time even establishing if this is *problematic*; I think this
+#      is just another concern in the ‘I can't evaluate this until I've *written more code in Paws*’
+#      category. /=
 Paws.Reactor = Reactor = do ->
    _reactors = new Array
    _current  = null
 
    class Reactor extends EventEmitter
 
-      constructor: constructify(return: this) (@queue...)->
-         @hints = new Array
+      constructor: constructify(return: this) (ops, resp)->
+         @cache = new Object
+
+         if ops? and not _.isArray ops
+            @cache.operational    = Array::slice.apply arguments
+            @cache.responsibility = new Array
+         else
+            @cache.operational    = ops  ? []
+            @cache.responsibility = resp ? []
+
          _reactors.push this
 
-      # This returns the current `Reactor` instance if called during (on-stack) a tick; otherwise,
+      # This returns the current `Reactor` instance if called during a tick (on-stack); otherwise,
       # `null`.
-      @current: current = -> _current
+      @current: current = ->
+         return _current
 
-      # This returns a `Reactor` instace against which you can `queue` and `signal`.
+      # This returns a `Reactor` instance to which you can `signal` pending operations.
       #
       # It will,
       #
@@ -99,13 +137,33 @@ Paws.Reactor = Reactor = do ->
       @get: get = -> current() ? _.sample(_reactors) ? new Reactor
 
       #---
-      # A private method to `::signal` an arbitrary `Reactor`. This is called by `Thing::_signal`;
+      # A private method to `::notify` an arbitrary `Reactor`. This is called by `Thing::_signal`;
       # and thus by several `Thing`-ownership-mutating methods.
-      @_signal: signal = (thing)-> get().signal(thing)
+      @_notify: notify = (it, type)-> get().notify(it, type)
+
+      notify: (it, type = 'operational')->
+         @cache[type].push it
+
+      # This finds the next `Execution` to be evaluated by `::realize`.
+      #
+      # If any `Thing`s have `::signal`ed the receiver, then those are checked first (that is, any
+      # `Thing.supplicants` are checked for `Thing::available_to` in the order they originally
+      # attempted adoption). If there are no `hints` indicating possible `supplicant` fulfilment,
+      # then an `Execution` is pulled out of the `queue` to be evaluated.
+      #
+      # If there are no supplicants (or all of them
+      next: ->
+
+     #upcoming: ->
+     #   results = _.filter @queue, (staging)=> @table.allowsStagingOf staging
+     #   return if results.length then results else undefined
 
       # DOCME
-      signal: (thing)->
-         @hints.push thing
+      realize: ->
+         unless staging = @next()
+            @awaitingTicks = 0
+            return no
+         {stagee, result, requestedMask} = staging
 
    if debugging.testing()
       Reactor._internals =

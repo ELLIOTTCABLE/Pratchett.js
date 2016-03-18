@@ -531,6 +531,17 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #
    # This should only be called after `::dedicate` has been called, and has indicated failure; this
    # is handled for you by ... # DOCME
+   #---
+   # FIXME: So, just like `custodians`, a `supplicant`-`Liability` can actually cascade through the
+   #        ownership subgraph. I need to *further* abstract the graph-walking code above, because
+   #        this function currently is the equivalent of `_available_to`, when it needs to function
+   #        more like the full-on `available_to`.
+   #
+   # TODO:  In fact, that can (and probably should) be extrapolated: there's a lot of parts of this
+   #        codebase that are very nicely abstracted; and this, should definitely become one of
+   #        them. Specifically, 1. walking-the-datagraph, with 2. early-termination, 3. multiple-
+   #        operation (and *conditional* multiple-operation), and 4. caching, is something that
+   #        simply Needs To Exist Soon.
    supplicate: (liability)->
       @supplicants.push liability
 
@@ -1168,7 +1179,7 @@ Paws.Position = Position = class Position
 # `Operation` instance in the queue.
 #
 # Operations are not removed from a queue (as completed) until they indicate success by returning a
-# truthy value. (They shouldn't, therefore, preform mutating operations and then indicate failure.)
+# truthy value. (They shouldn't, therefore, preform mutating operations and then indicate failure!)
 #
 # Available operations:
 #
@@ -1209,6 +1220,7 @@ Operation.register 'advance', (response)->
 
    if typeof next is 'function'
       next.call this, response
+      return true
 
    else
       if process.env['TRACE_REACTOR']
@@ -1220,11 +1232,31 @@ Operation.register 'advance', (response)->
       params  = Execution.create_params this, subject, next.message
       params.rename '<parameters>'
 
+      # FIXME: Er. What? How does `respond` play with `Reactor::queue` ... I've clearly gained some
+      #        disunified design-plans at some point. D:
       subject.receiver.clone().respond params
+      return true
 
 
-Operation.register 'adopt', ()->
-   # NYI
+Operation.register 'adopt', (liability)->
+   # XXX: Debugging NYI.
+  #if process.env['TRACE_REACTOR']
+  #   warning ">> #{this} ← #{response}"
+  #   if @current() instanceof Function
+  #      body = @current().toString()
+  #      wtf term.block body, (line)->   ' │ ' + line.slice 0, -4
+  #   else
+  #      body = @current().expression().with context: 3, tag: no
+  #         .toString focus: @current().valueOf()
+  #      debug term.block body, (line)-> ' │ ' + line.slice 0, -4
+
+   if @complete()
+      # XXX: Debugging NYI.
+  #   warning ' ╰┄ complete!' if process.env['TRACE_REACTOR']
+      warning 'Completed Execution attempted to adopt o_O'
+      return
+
+   return liability.commit()
 
 
 # Debugging output

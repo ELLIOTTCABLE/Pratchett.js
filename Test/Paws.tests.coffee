@@ -45,10 +45,10 @@ describe "Paws' reactor:", ->
       it 'accepts a set of Executions to immeduately queue at construct-time', ->
          a Reactor, (an Execution), (another Execution)
 
-         expect(a.reactor).to.have.property 'queue'
-         expect(a.reactor.queue).to.not.be.empty()
-         expect(a.reactor.queue).to.contain an.execution
-         expect(a.reactor.queue).to.contain another.execution
+         expect(a.reactor).to.have.property 'cache'
+         expect(a.reactor.cache.operational).to.not.be.empty()
+         expect(a.reactor.cache.operational).to.contain an.execution
+         expect(a.reactor.cache.operational).to.contain another.execution
 
       describe '~ Instance management', ->
          it 'can retrieve the current Reactor', ->
@@ -76,8 +76,11 @@ describe "Paws' reactor:", ->
 
             util.sample.restore()
 
-         it 'multiplexes signals to Reactor instances', ->
-            a Thing; a Reactor
+         it 'multiplexes notifications to Reactor instances', ->
+            an Execution; a Reactor
 
-            expect(Reactor._signal a.thing).to.be.ok()
-            expect(a.reactor.hints).to.contain a.thing
+            expect(Reactor._notify an.execution).to.be.ok()
+            expect(a.reactor.cache.operational).to.contain an.execution
+
+      describe '::next', ->
+         
