@@ -9,7 +9,8 @@ match   = sinon.match
 describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
 
-   {  Thing, Label, Execution, Native, parse
+   {  Reactor, parse
+   ,  Thing, Label, Execution, Native
    ,  Relation, Liability, Combination, Position, Mask, Operation }                           = Paws
 
    {  Context, Sequence, Expression }                                                        = parse
