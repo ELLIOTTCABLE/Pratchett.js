@@ -352,8 +352,57 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # FIXME: Make these proper Symbols.
    @abortIteration:     'abortIteration'
 
-   # This returns a flat array of all the descendants of the receiver that satisfy a condition,
-   # supplied by an optional callback.
+   # This provides flexible tooling to climb the data-graph, discovering and collecting nodes in a
+   # manner specified by supplied ‘supplier’ and ‘filter’ callbacks.
+   #
+   # Beginning with the receiver, for each node touched, the callbacks passed to `::walk` are
+   # invoked, in order. Each is passed at least the following arguments:
+   #
+   # 1. The `current` node being examined,
+   # 2. an `Array` of nodes `visited` thus far, with additional properties for:
+   #     - an `Array` of nodes *`added`* by supplier callbacks preceding the current one
+   #     - an `Array` of nodes *`removed`* by filter callbacks preceding the current one
+   # 3. and the `args` provided to the original invocation of `::walk`. (That is, the list of
+   #    callbacks.)
+   #
+   #(None of these arguments should be modified.)
+   #
+   # If the callback returns a `Thing` node (or `Array` thereof), it is treated as a ‘supplier’: the
+   # nodes returned are added to those *pending* visitation.
+   #
+   # Otherwise, the callback is treated as a ‘filter’: it indicates whether the `current` node
+   # should be included in the results of the walk (by returning `true` or `undefined`), or rejected
+   # (by explicitly returning `false`.)
+   #
+   # Finally, as a special case, a callback may return the sentinel value exposed as
+   # `Thing.abortIteration` to implement early termination: no further callbacks will be evaluated,
+   # no more nodes will be visited, and the `::walk` will return `false`. (Caches, as described
+   # below, will neither be updated.)
+   #
+   #(If no filter-style callbacks apply, all nodes visited are included in the results of the walk;
+   # and a callback may be ‘both’, in that on some invocations it may act as a filter, and on other
+   # invocations as a supplier.)
+   #
+   # ---- ---- ----
+   #
+   # This method also supports cacheing, to a limited extent.
+   #
+   # Callbacks may indicate that their operation may be cached by exposing a truthy value on the
+   # `_walk_cache` property. If such callbacks are used *as the very first filters* during a call to
+   # `::walk`, then:
+   #
+   # 1. A cache, specific to *that set of passed callbacks* (by object-identity), will be created on
+   #    the receiving node; and it will be populated by the set of nodes touched by the walk XXX
+   # 2. XXX
+   #
+   # *Caveats*:
+   #
+   #  - This does *not* guarantee the expiration of any such caches! The implementation of
+   #    expiration is left up to you. (It is handled specifically and only for the `::is_descendant`
+   #    filter.)
+   #  - Each cache is specific to a *set* of filters. (That is, a ‘descendants’ cache cannot be used
+   #    in generating a ‘peers’ cache. This is probably obvious, as the set of nodes being walked
+   #    will be different based on which nodes are added or filtered out at each stage.)
    #
    # The callback may explicitly return `false` to indicate a descendant should be excluded; or the
    # sentinel value `Thing.abortIteration` to terminate the graph-walking early.
@@ -362,9 +411,17 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # in that cache will not be touched by this function. (Tread carefully: if the data-graph is
    # modified between the *creation* of `descendants`, and the re-execution of this function, then
    # that cache may no longer be valid!)
-   #---
+   #--- !QI#OHT$*WO!
    # FIXME: Recursion: will eventually stack-overflow.
-   _walk_descendants: (descendants, cb)->
+   # FIXME: The `descendants`-caching needs to be made first-class on `Thing` instances themselves;
+   #        instead of this hacky ‘allow the receiver to pass around a cache, but warn them about
+   #        it being unsafe’ system.
+   # TODO:  In fact, that can (and probably should) be extrapolated: there's a lot of parts of this
+   #        codebase that are very nicely abstracted; and this, should definitely become one of
+   #        them. Specifically, 1. walking-the-datagraph, with 2. early-termination, 3. multiple-
+   #        operation (and *conditional* multiple-operation), and 4. caching, is something that
+   #        simply Needs To Exist Soon.
+   walk: (descendants, cb)->
       if _.isFunction(descendants)
          cb = descendants
          descendants = new Object
@@ -464,9 +521,6 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # When passed an existing `descendants` object, this assumes you obtained that by already having
    # checked their availability via `::available_to`.
    #---
-   # FIXME: The `descendants`-caching needs to be made first-class on `Thing` instances themselves;
-   #        instead of this hacky ‘allow the receiver to pass around a cache, but warn them about
-   #        it being unsafe’ system.
    # FIXME: The constant `uniq`'ing is going to also be slow: need to collect that into a single
    #        event after any modifications? Ugh, I need `Set`. /=
    _dedicate: (liability, descendants)->
@@ -536,12 +590,6 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #        ownership subgraph. I need to *further* abstract the graph-walking code above, because
    #        this function currently is the equivalent of `_available_to`, when it needs to function
    #        more like the full-on `available_to`.
-   #
-   # TODO:  In fact, that can (and probably should) be extrapolated: there's a lot of parts of this
-   #        codebase that are very nicely abstracted; and this, should definitely become one of
-   #        them. Specifically, 1. walking-the-datagraph, with 2. early-termination, 3. multiple-
-   #        operation (and *conditional* multiple-operation), and 4. caching, is something that
-   #        simply Needs To Exist Soon.
    supplicate: (liability)->
       @supplicants.push liability
 
