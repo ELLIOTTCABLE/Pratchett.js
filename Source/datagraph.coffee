@@ -358,30 +358,29 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # Beginning with the receiver, for each node touched, the callbacks passed to `::walk` are
    # invoked, in order. Each is passed at least the following arguments:
    #
-   # 1. The `current` node being examined,
-   # 2. an `Array` of nodes `visited` thus far, with additional properties for:
-   #     - an `Array` of nodes *`added`* by supplier callbacks preceding the current one
-   #     - an `Array` of nodes *`removed`* by filter callbacks preceding the current one
-   # 3. and the `args` provided to the original invocation of `::walk`. (That is, the list of
+   # 1. The `current` node being examined, (also exposed as `this`)
+   # 2. the `instigator` node from which this one was discovered,
+   # 3. a map of nodes `visited` thus far, with an additional property for:
+   #     - a list, `adding`, of pending nodes discovered by supplier-callbacks preceding this one,
+   # 4. and the `args` provided to the original invocation of `::walk`. (That is, the list of
    #    callbacks.)
-   #
-   #(None of these arguments should be modified.)
    #
    # If the callback returns a `Thing` node (or `Array` thereof), it is treated as a ‘supplier’: the
    # nodes returned are added to those *pending* visitation.
    #
    # Otherwise, the callback is treated as a ‘filter’: it indicates whether the `current` node
    # should be included in the results of the walk (by returning `true` or `undefined`), or rejected
-   # (by explicitly returning `false`.)
+   # (by explicitly returning `false`.) If any filter so-indicates failure, then no nodes
+   # *discovered* via the current node (i.e. the results of supplier-callbacks thus far) are walked.
    #
-   # Finally, as a special case, a callback may return the sentinel value exposed as
-   # `Thing.abortIteration` to implement early termination: no further callbacks will be evaluated,
-   # no more nodes will be visited, and the `::walk` will return `false`. (Caches, as described
-   # below, will neither be updated.)
+   # Finally, as a special case, a callback may return the sentinel value `Thing.abortIteration` to
+   # implement early termination: no further callbacks will be evaluated, no more nodes will be
+   # visited, and the `::walk` will return `false`. (Caches, as described below, will neither be
+   # updated.)
    #
    #(If no filter-style callbacks apply, all nodes visited are included in the results of the walk;
    # and a callback may be ‘both’, in that on some invocations it may act as a filter, and on other
-   # invocations as a supplier.)
+   # invocations as a supplier. None of the lists provided to the callback should be modified.)
    #
    # ---- ---- ----
    #
@@ -391,57 +390,102 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # `_walk_cache` property. If such callbacks are used *as the very first filters* during a call to
    # `::walk`, then:
    #
-   # 1. A cache, specific to *that set of passed callbacks* (by object-identity), will be created on
-   #    the receiving node; and it will be populated by the set of nodes touched by the walk XXX
-   # 2. XXX
+   # 1. A cache, specific to those cache-enabled filters (by object-identity) will be created on the
+   #    receiving node; and it will be populated by the set of nodes touched by the walk after the
+   #    walk's completion.
+   # 2. Thereafter, until the cache is expired, invocations of `::walk` that begin with the *same
+   #    set* of cacheable callbacks will defer to the results stored therein. That is, for a given
+   #    node visited (including the ‘root’ node, the original receiver), if a cache exists *for the
+   #    invoked set of cacheable-callbacks*, those cacheable callbacks will be skipped, the contents
+   #    of the cache will be added to the effectively-visited nodes, and then the *remaining*
+   #    (non-cacheable) callbacks will be evaluated serially on all of the nodes added from the
+   #    cache.
    #
-   # *Caveats*:
+   # Caches are expired at the end of the reactor-tick during which they are created, in general
+   # (this is not the case for the descendants-cache resulting from `::is_owned_by`, which is
+   # handled specially, and persists across ticks.) This behaviour may be supressed by setting
+   # `_walk_expire` on the callback in question to `false`; but this leaves you responsible for
+   # implementing cache-expiration yourself!
    #
-   #  - This does *not* guarantee the expiration of any such caches! The implementation of
-   #    expiration is left up to you. (It is handled specifically and only for the `::is_descendant`
-   #    filter.)
-   #  - Each cache is specific to a *set* of filters. (That is, a ‘descendants’ cache cannot be used
-   #    in generating a ‘peers’ cache. This is probably obvious, as the set of nodes being walked
-   #    will be different based on which nodes are added or filtered out at each stage.)
+   # *Nota bene*: Each cache is specific to a *set* of filters. (That is, a ‘descendants’ cache
+   # cannot be used in generating a ‘peers’ cache. This is probably obvious, as the set of nodes
+   # being walked will be different based on which nodes are added or filtered out at each stage.)
    #
-   # The callback may explicitly return `false` to indicate a descendant should be excluded; or the
-   # sentinel value `Thing.abortIteration` to terminate the graph-walking early.
+   #---
+   # FIXME: I'm not convinced the caching caveats fully cover the possible callbacks. I need to
+   #        experiment with powerful callbacks and caching behaviour before abstracting this out and
+   #        releasing it on its own.
+   # TODO:  I want to abstract this out into a mini-lodash-like library *specifically* for graph-
+   #        manipulation. Most directly, I want to support lodash-esque *efficient*, chainable
+   walk: (callbacks...)->
+      @_walk(callbacks)
+
+  #   if _.isFunction(descendants)
+  #      cb = descendants
+  #      descendants = new Object
+  #   unless descendants
+  #      descendants = new Object
+
+  #   unless descendants[@id]?
+  #      if cb
+  #         rv = cb(this, descendants)
+  #         descendants._abortIteration = true if rv is Thing.abortIteration
+
+  #      unless cb? and (rv is false or rv is Thing.abortIteration)
+  #         descendants[@id] = this
+
+  #         children = _(@metadata).filter('owns').pluck('to').value()
+  #         children.forEach (child)=>
+  #            return null if descendants._abortIteration
+  #            child._walk_descendants descendants, cb
+
+   _walk: (callbacks)->
+      pending = new Array; results = new Object; aborted = no
+      pending.push [null, this]
+
+      while pending.length > 0
+         [instigator, it] = pending.shift()
+         continue if results[it.id]?
+
+         results.adding = new Array
+
+         validated = _.all callbacks, (cb)->
+            rv = cb.apply it, [it, instigator, results, callbacks]
+
+            return false if rv is false
+            return true if not rv? or rv is true
+
+            if rv is Thing.abortIteration
+               aborted = yes
+               return false
+
+            if _.isArray rv
+               Array::push.apply results.adding, rv
+            else
+               results.adding.push rv
+            return rv
+
+         break if aborted
+         if validated
+            results[it.id] = it
+            results.adding.forEach (node)-> pending.push [it, node]
+
+      delete results.adding
+      return if aborted then false else results
+
+
+   # This method returns an `Array` of all descendants of the receiver. This accepts a set of
+   # callbacks with which to filter and manipulate the results, as described in `::walk`, with which
+   # this method is implemented.
    #
-   # The `descendants` return-value may be *passed in* as a pre-cache; any Things already existing
-   # in that cache will not be touched by this function. (Tread carefully: if the data-graph is
-   # modified between the *creation* of `descendants`, and the re-execution of this function, then
-   # that cache may no longer be valid!)
-   #--- !QI#OHT$*WO!
-   # FIXME: Recursion: will eventually stack-overflow.
-   # FIXME: The `descendants`-caching needs to be made first-class on `Thing` instances themselves;
-   #        instead of this hacky ‘allow the receiver to pass around a cache, but warn them about
-   #        it being unsafe’ system.
-   # TODO:  In fact, that can (and probably should) be extrapolated: there's a lot of parts of this
-   #        codebase that are very nicely abstracted; and this, should definitely become one of
-   #        them. Specifically, 1. walking-the-datagraph, with 2. early-termination, 3. multiple-
-   #        operation (and *conditional* multiple-operation), and 4. caching, is something that
-   #        simply Needs To Exist Soon.
-   walk: (descendants, cb)->
-      if _.isFunction(descendants)
-         cb = descendants
-         descendants = new Object
-      unless descendants
-         descendants = new Object
+   # Subsequent invocations pull from cached values.
+   walk_descendants: (callbacks...)->
+      @walk(Thing::_descendants, callbacks...)
 
-      unless descendants[@id]?
-         if cb
-            rv = cb(this, descendants)
-            descendants._abortIteration = true if rv is Thing.abortIteration
-
-         unless cb? and (rv is false or rv is Thing.abortIteration)
-            descendants[@id] = this
-
-            children = _(@metadata).filter('owns').pluck('to').value()
-            children.forEach (child)=>
-               return null if descendants._abortIteration
-               child._walk_descendants descendants, cb
-
-      return descendants
+   #---
+   # Simple getter for owned `metadata`-elements.
+   _descendants: ->
+      _(@metadata).filter('owns').pluck('to').value()
 
 
    # ### Responsibility ###

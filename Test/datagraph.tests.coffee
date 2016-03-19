@@ -157,6 +157,226 @@ describe "Paws' Data types:", ->
             expect(a_child.owners).to.be.empty()
             expect(another_child.owners).to.contain a_parent.metadata[1]
 
+      describe '~ Graph-walking', ->
+         it 'exists', ->
+            a Thing
+            expect(a.thing.walk).to.be.a 'function'
+
+         it "doesn't throw when given no arguments", ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+
+            expect(-> a_thing.walk()).to.not.throwException()
+
+         it 'accepts multiple callbacks', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+
+            expect(-> a_thing.walk (->), (->) ).to.not.throwException()
+
+         it 'calls each callback', ->
+            one = sinon.spy(); two = sinon.spy()
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+
+            a_thing.walk one, two
+
+            expect(one).was.called()
+            expect(two).was.called()
+
+         it 'calls callbacks with the current node', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+
+            a_thing.walk(cb = sinon.spy())
+
+            expect(cb).was.calledWith a_thing
+
+         it 'returns a Thing-map', ->
+            a_thing = new Thing
+
+            rv = a_thing.walk()
+            expect(rv).to.be.ok()
+            expect(rv).to.be.an 'object'
+            expect(util.keys rv).to.not.be.empty()
+            expect(util.keys rv).to.have.length 1
+
+            expect(rv).to.have.property a_thing.id
+            expect(rv[a_thing.id]).to.be a_thing
+
+         it 'collects nodes supplied by callbacks', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+
+            collected = a_thing.walk -> @toArray()
+
+            expect(collected).to.have.property a_thing.id
+            expect(collected).to.have.property foo.id
+            expect(collected).to.have.property bar.id
+            expect(collected).to.have.property widget.id
+
+         it 'visits nodes collected by supplied callbacks', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+
+            collected = a_thing.walk (-> @toArray()), spy = sinon.spy()
+
+            expect(spy).was.calledWith a_thing
+            expect(spy).was.calledWith foo
+            expect(spy).was.calledWith bar
+            expect(spy).was.calledWith widget
+
+         it 'skips nodes rejected by callbacks', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+
+            collected = a_thing.walk(
+               -> @toArray(),
+               -> false if this is bar,
+               spy = sinon.spy()
+            )
+
+            expect(spy).was.calledWith a_thing
+            expect(spy).was.calledWith foo
+            expect(spy).was.neverCalledWith bar
+
+            expect(collected).to.have.property a_thing.id
+            expect(collected).to.have.property foo.id
+            expect(collected).to.not.have.property bar.id
+
+         it 'ceases all iteration upon receiving abortIteration', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+
+            rv = a_thing.walk(
+               -> @toArray(),
+               -> Thing.abortIteration
+               spy = sinon.spy()
+            )
+
+            expect(spy).was.notCalled()
+            expect(rv).to.not.be.ok()
+
+         it 'discards discoveries from nodes that are rejected', ->
+            a Thing; another Thing
+
+            collected = a.thing.walk(
+               before = sinon.spy(),
+               -> another.thing if this is a.thing,
+               -> false         if this is a.thing
+            )
+
+            expect(before).was.calledWith a.thing
+            expect(before).was.neverCalledWith another.thing
+
+         it 'ceases evaluating callbacks for a node upon rejection', ->
+            a Thing; another Thing
+
+            collected = a.thing.walk(
+               before = sinon.spy(),
+               -> false,
+               after = sinon.spy()
+            )
+
+            expect(before).was.calledWith a.thing
+            expect(after).was.notCalled()
+
+         it 'does not call callbacks on descendants which were not supplied', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+
+            collected = a_thing.walk(
+               -> foo if this is a_thing
+               spy = sinon.spy()
+            )
+
+            expect(spy).was.calledWith a_thing
+            expect(spy).was.calledWith foo
+            expect(spy).was.neverCalledWith bar
+
+            expect(collected).to.have.property a_thing.id
+            expect(collected).to.have.property foo.id
+            expect(collected).to.not.have.property bar.id
+
+         it 'only follows circular references once', ->
+            @timeout 500
+
+            a Thing; another Thing
+            a.thing.push another.thing
+            another.thing.push a.thing
+
+            collected = a.thing.walk(
+               -> @at(1),
+               spy = sinon.spy()
+            )
+
+            expect(spy).was.calledTwice()
+            expect(spy).was.calledWith a.thing
+            expect(spy).was.calledWith another.thing
+
+            expect(util.keys collected).to.have.length 2
+            expect(collected).to.have.property a.thing.id
+            expect(collected).to.have.property another.thing.id
+
+         describe '~ Callbacks', ->
+            it 'are called *on* the node being examined, as a receiver', ->
+               (a Thing).walk(cb = sinon.spy())
+
+               expect(cb).was.calledOn a.thing
+
+            it 'are passed the node *from whom* a previous callback discovered the current node', ->
+               a Thing; another Thing
+
+               a.thing.walk(
+                  -> another.thing
+                  spy = sinon.spy()
+               )
+
+               expect(spy).was.calledWith another.thing, a.thing
+
+            it 'are passed the results-so-far', ->
+               a_thing = Thing.construct foo: foo = new Thing, bar:
+                   bar = Thing.construct widget: widget = new Thing
+
+               # FIXME: Awkward testing layout.
+               a_thing.walk (-> @toArray() ), (_, prev, visited)->
+                  if this is a_thing
+                     expect(visited).to.be.an 'object'
+                     expect(visited).to.not.have.property a_thing.id
+
+                  if this is foo
+                     expect(visited).to.be.an 'object'
+                     expect(visited).to.have.property a_thing.id
+                     expect(visited).to.not.have.property foo.id
+                     expect(visited).to.not.have.property bar.id
+
+                  if this is bar
+                     expect(visited).to.be.an 'object'
+                     expect(visited).to.have.property a_thing.id
+                     expect(visited).to.not.have.property foo.id
+                     expect(visited).to.not.have.property bar.id
+
+                  return true
+
+         describe '~ Cache usage', ->
+         describe '::walk_descendants', ->
+            it 'exists', ->
+               a Thing
+               expect(a.thing.walk_descendants).to.be.a 'function'
+
+            it "doesn't throw when given no arguments", ->
+               a_thing = Thing.construct foo: foo = new Thing, bar:
+                   bar = Thing.construct widget: widget = new Thing
+
+               expect(-> a_thing.walk_descendants()).to.not.throwException()
+
+            it 'accepts a callback', ->
+               a_thing = Thing.construct foo: foo = new Thing, bar:
+                   bar = Thing.construct widget: widget = new Thing
+
+               expect(-> a_thing.walk_descendants(->)).to.not.throwException()
+
+
       describe '~ Responsibility', ->
          it 'is expressed as a set of current ‘custodians’', ->
             a Thing
@@ -389,102 +609,6 @@ describe "Paws' Data types:", ->
             bit.apply receiver, [params]
 
             expect(caller.queue).was.notCalled()
-
-      describe '::_walk_descendants', ->
-         it 'exists', ->
-            a Thing
-            expect(a.thing._walk_descendants).to.be.a 'function'
-
-         it "doesn't throw when given no arguments", ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            expect(-> a_thing._walk_descendants()).to.not.throwException()
-
-         it 'accepts a callback', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            expect(-> a_thing._walk_descendants(->)).to.not.throwException()
-
-         it 'accepts an optional pre-constructed descendants-cache', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            expect(-> a_thing._walk_descendants(new Object, ->)).to.not.throwException()
-
-         it 'returns a mapping object', ->
-            a_thing = new Thing
-
-            rv = a_thing._walk_descendants()
-            expect(rv).to.be.an 'object'
-
-         it 'collects owned descendants into the returned object', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            rv = a_thing._walk_descendants()
-            expect(util.values(rv)).to.contain foo
-            expect(rv[foo.id]).to.be foo
-
-         it 'calls the callback on each node walked', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            a_thing._walk_descendants cb = sinon.spy()
-            expect(cb).was.calledWith a_thing
-            expect(cb).was.calledWith foo
-            expect(cb).was.calledWith bar
-            expect(cb).was.calledWith widget
-
-         it 'calls the callback with a node and the descendants mapping', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            a_thing._walk_descendants cb = sinon.spy()
-            expect(cb).was.calledWith a_thing, match {}
-            expect(cb).was.calledWith foo,
-               match.has(a_thing.id, match.same(a_thing))
-
-            expect(cb).was.calledWith widget,
-               match.has(a_thing.id, match.same(a_thing)).and(
-                  match.has(bar.id,  match.same(bar)) )
-
-         it 'skips objects for which the callback returns false', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
-               return false if descendant is bar
-
-            expect(cb).was.calledWith bar
-            expect(descendants[foo.id]).to.be foo
-            expect(descendants[bar.id]).to.be undefined
-
-         it 'can be instructed to cease iteration', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
-               return Thing.abortIteration if descendant is foo
-
-            expect(descendants[a_thing.id]).to.be a_thing
-            expect(descendants[foo.id]).to.be undefined
-            expect(descendants[bar.id]).to.be undefined
-            expect(descendants[widget.id]).to.be undefined
-
-         it 'skips descendants of objects for which the callback returns false', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
-               return false if descendant is bar
-
-            expect(cb).was.neverCalledWith widget
-            expect(descendants[widget.id]).to.be undefined
-
-         it "doesn't touch contained (not-owned) descendants"
-         it 'touches each descendant only once, in the presence of cyclic graphcs'
 
       # ### Thing: Responsibility methods ###
 
