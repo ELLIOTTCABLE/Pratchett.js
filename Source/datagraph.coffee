@@ -417,32 +417,19 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #        releasing it on its own.
    # TODO:  I want to abstract this out into a mini-lodash-like library *specifically* for graph-
    #        manipulation. Most directly, I want to support lodash-esque *efficient*, chainable
-   walk: (callbacks...)->
-      pending = [[null, this]]
-      visited = new Object
-      aborted = no
-
-      # FIXME: Real Symbol!
-      if callbacks[0]?[walkCache]
-         cachebacks = _.filter callbacks, Thing.walkCache
-         cache_key = '_cache__' + cachebacks.map((cb)-> cb.toString() ).join '__' 
-
-      while pending.length > 0
-         [discoverer, it] = pending.shift()
-         continue if visited[it.id]?
-
+   walk: do ->
+      walk = (discoverer, callbacks, results = new Object)->
+         return [] if results[@id]
          discovered = new Array
-         validated = _.all callbacks, (cb)->
+         aborted = no
 
-            if cb[walkCache]
-               null # XXX
-
-            rv = cb.apply it, [it, discoverer, discovered, visited, callbacks]
+         rejected = not _.all callbacks, (callback)=>
+            rv = callback.call this, this, discoverer, discovered, results, callbacks
 
             return false if rv is false
             return true if not rv? or rv is true
 
-            if rv is abortIteration
+            if rv is Thing.abortIteration
                aborted = yes
                return false
 
@@ -452,12 +439,70 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
                discovered.push rv
             return rv
 
+         return false if aborted
+         return [] if rejected
+
+         results[@id] = this
+         discovered.forEach (node)=>
+            walk.call node, this, callbacks, results
+
+         return results
+
+      return (callbacks...)->
+         walk.call this, null, callbacks
+
+  #   if _.isFunction(descendants)
+  #      cb = descendants
+  #      descendants = new Object
+  #   unless descendants
+  #      descendants = new Object
+
+  #   unless descendants[@id]?
+  #      if cb
+  #         rv = cb(this, descendants)
+  #         descendants._abortIteration = true if rv is Thing.abortIteration
+
+  #      unless cb? and (rv is false or rv is Thing.abortIteration)
+  #         descendants[@id] = this
+
+  #         children = _(@metadata).filter('owns').pluck('to').value()
+  #         children.forEach (child)=>
+  #            return null if descendants._abortIteration
+  #            child._walk_descendants descendants, cb
+
+   _walk: (callbacks)->
+      pending = new Array; results = new Object; aborted = no
+      pending.push [null, this]
+
+      while pending.length > 0
+         [instigator, it] = pending.shift()
+         continue if results[it.id]?
+
+         results.adding = new Array
+
+         validated = _.all callbacks, (cb)->
+            rv = cb.apply it, [it, instigator, results, callbacks]
+
+            return false if rv is false
+            return true if not rv? or rv is true
+
+            if rv is Thing.abortIteration
+               aborted = yes
+               return false
+
+            if _.isArray rv
+               Array::push.apply results.adding, rv
+            else
+               results.adding.push rv
+            return rv
+
          break if aborted
          if validated
-            visited[it.id] = it
-            discovered.forEach (node)-> pending.push [it, node]
+            results[it.id] = it
+            results.adding.forEach (node)-> pending.push [it, node]
 
-      return if aborted then false else visited
+      delete results.adding
+      return if aborted then false else results
 
 
    # This method returns an `Array` of all descendants of the receiver. This accepts a set of
