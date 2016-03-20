@@ -4,7 +4,7 @@ util    = require '../Source/utilities.coffee'
 assert  = require 'assert'
 sinon   = require 'sinon'
 expect  = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
-match   = sinon.match
+_       = sinon.match
 
 describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
@@ -204,7 +204,7 @@ describe "Paws' Data types:", ->
             expect(rv).to.have.property a_thing.id
             expect(rv[a_thing.id]).to.be a_thing
 
-         it 'collects nodes supplied by callbacks', ->
+         it 'collects nodes discovered by callbacks', ->
             a_thing = Thing.construct foo: foo = new Thing, bar:
                 bar = Thing.construct widget: widget = new Thing
 
@@ -215,7 +215,7 @@ describe "Paws' Data types:", ->
             expect(collected).to.have.property bar.id
             expect(collected).to.have.property widget.id
 
-         it 'visits nodes collected by supplied callbacks', ->
+         it 'visits nodes discovered by supplied callbacks', ->
             a_thing = Thing.construct foo: foo = new Thing, bar:
                 bar = Thing.construct widget: widget = new Thing
 
@@ -332,31 +332,84 @@ describe "Paws' Data types:", ->
                   spy = sinon.spy()
                )
 
-               expect(spy).was.calledWith another.thing, a.thing
+               expect(spy).was.calledWith _.any, a.thing
 
-            it 'are passed the results-so-far', ->
+            it 'are passed the nodes discovered in the current walk-step', ->
+               some Thing; a Thing; another Thing
+               some.thing.push a.thing
+               some.thing.push another.thing
+
+               some.thing.walk (-> @toArray() ), (_, __, discovered)->
+                  expect(discovered).to.contain a.thing
+                  expect(discovered).to.contain another.thing
+                  return false
+
+            # FIXME: Awkward testing layout on these next few.
+            it 'are passed the results so far', ->
                a_thing = Thing.construct foo: foo = new Thing, bar:
                    bar = Thing.construct widget: widget = new Thing
 
-               # FIXME: Awkward testing layout.
-               a_thing.walk (-> @toArray() ), (_, prev, visited)->
+               a_thing.walk (-> @toArray() ), (_, __, ___, visited)->
                   if this is a_thing
                      expect(visited).to.be.an 'object'
                      expect(visited).to.not.have.property a_thing.id
 
                   if this is foo
-                     expect(visited).to.be.an 'object'
                      expect(visited).to.have.property a_thing.id
-                     expect(visited).to.not.have.property foo.id
-                     expect(visited).to.not.have.property bar.id
 
                   if this is bar
-                     expect(visited).to.be.an 'object'
                      expect(visited).to.have.property a_thing.id
-                     expect(visited).to.not.have.property foo.id
-                     expect(visited).to.not.have.property bar.id
+                  return
 
-                  return true
+            it 'do not receive themselves as visited', ->
+               some Thing; a Thing; another Thing
+               some.thing.push a.thing
+               a.thing   .push another.thing
+
+               some.thing.walk (-> @toArray() ), (_, __, ___, visited)->
+                  if this is some.thing
+                     expect(visited).to.not.have.property some.thing.id
+
+                  if this is a.thing
+                     expect(visited).to.have.property some.thing.id
+                     expect(visited).to.not.have.property a.thing.id
+
+                  if this is another.thing
+                     expect(visited).to.have.property some.thing.id
+                     expect(visited).to.have.property a.thing.id
+                     expect(visited).to.not.have.property another.thing.id
+                  return
+
+            it 'are passed the set of callbacks used', ->
+               a Function; another Function
+
+               (a Thing).walk a.function, another.function, (_, __, ___, ____, callbacks)->
+                  expect(callbacks).to.contain a.function, another.function
+
+            it 'may return a Thing to reveal it to the walking algorithm', ->
+               a Thing; another Thing
+
+               collected = a.thing.walk ->
+                  return another.thing
+
+               expect(collected).to.have.property another.thing.id
+
+            it 'may return booleans to indicate validation of a node', ->
+               a Thing
+
+               truth   = a.thing.walk -> true
+               nothing = a.thing.walk -> undefined
+               failure = a.thing.walk -> false
+
+               expect(truth)  .to.have.property a.thing.id
+               expect(nothing).to.have.property a.thing.id
+               expect(failure).to.not.have.property a.thing.id
+
+            it 'may return abortIteration', ->
+               collected = (a Thing).walk -> Thing.abortIteration
+
+               expect(collected).to.not.be.ok()
+
 
          describe '~ Cache usage', ->
          describe '::walk_descendants', ->
@@ -588,7 +641,7 @@ describe "Paws' Data types:", ->
             bit = receiver.advance params
             bit.apply receiver, [params]
 
-            expect(caller.queue).was.calledWith match.has 'params', [another_thing]
+            expect(caller.queue).was.calledWith _.has 'params', [another_thing]
 
          it 'stages the caller if there is a result', ->
             a_thing = Thing.construct foo: another_thing = new Thing
@@ -1588,7 +1641,7 @@ describe "Paws' Data types:", ->
                sinon.spy a.caller, 'queue'
 
                expect(-> call exe, a.caller).to.not.throwException()
-               expect(a.caller.queue).was.calledWith sinon.match params: [exe]
+               expect(a.caller.queue).was.calledWith _(params: [exe])
 
             it 'can be invoked with further parameters', ->
                exe = synchronous (a, b, c)->
@@ -1598,7 +1651,7 @@ describe "Paws' Data types:", ->
                expect(-> call exe, a.thing).to.not.throwException()
                expect(-> call exe, a.thing).to.not.throwException()
 
-               expect(a.caller.queue).was.calledWith sinon.match params: [exe]
+               expect(a.caller.queue).was.calledWith _(params: [exe])
                expect(a.caller.queue).was.calledThrice()
 
             it 'are each provided the `caller` passed to the first bit', ->

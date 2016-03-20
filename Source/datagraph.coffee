@@ -359,11 +359,10 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # invoked, in order. Each is passed at least the following arguments:
    #
    # 1. The `current` node being examined, (also exposed as `this`)
-   # 2. the `instigator` node from which this one was discovered,
-   # 3. a map of nodes `visited` thus far, with an additional property for:
-   #     - a list, `adding`, of pending nodes discovered by supplier-callbacks preceding this one,
-   # 4. and the `args` provided to the original invocation of `::walk`. (That is, the list of
-   #    callbacks.)
+   # 2. the `discoverer` node from which this one was discovered,
+   # 3. an array of other nodes already `discovered` thus far through this `current` node
+   # 4. a map of all the nodes `visited` thus far (same as the eventual return value),
+   # 5. and the `callbacks` provided to the original invocation of `::walk`.
    #
    # If the callback returns a `Thing` node (or `Array` thereof), it is treated as a ‘supplier’: the
    # nodes returned are added to those *pending* visitation.
@@ -418,39 +417,16 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # TODO:  I want to abstract this out into a mini-lodash-like library *specifically* for graph-
    #        manipulation. Most directly, I want to support lodash-esque *efficient*, chainable
    walk: (callbacks...)->
-      @_walk(callbacks)
-
-  #   if _.isFunction(descendants)
-  #      cb = descendants
-  #      descendants = new Object
-  #   unless descendants
-  #      descendants = new Object
-
-  #   unless descendants[@id]?
-  #      if cb
-  #         rv = cb(this, descendants)
-  #         descendants._abortIteration = true if rv is Thing.abortIteration
-
-  #      unless cb? and (rv is false or rv is Thing.abortIteration)
-  #         descendants[@id] = this
-
-  #         children = _(@metadata).filter('owns').pluck('to').value()
-  #         children.forEach (child)=>
-  #            return null if descendants._abortIteration
-  #            child._walk_descendants descendants, cb
-
-   _walk: (callbacks)->
-      pending = new Array; results = new Object; aborted = no
+      pending = new Array; visited = new Object; aborted = no
       pending.push [null, this]
 
       while pending.length > 0
-         [instigator, it] = pending.shift()
-         continue if results[it.id]?
+         [discoverer, it] = pending.shift()
+         continue if visited[it.id]?
 
-         results.adding = new Array
-
+         discovered = new Array
          validated = _.all callbacks, (cb)->
-            rv = cb.apply it, [it, instigator, results, callbacks]
+            rv = cb.apply it, [it, discoverer, discovered, visited, callbacks]
 
             return false if rv is false
             return true if not rv? or rv is true
@@ -460,18 +436,17 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
                return false
 
             if _.isArray rv
-               Array::push.apply results.adding, rv
+               Array::push.apply discovered, rv
             else
-               results.adding.push rv
+               discovered.push rv
             return rv
 
          break if aborted
          if validated
-            results[it.id] = it
-            results.adding.forEach (node)-> pending.push [it, node]
+            visited[it.id] = it
+            discovered.forEach (node)-> pending.push [it, node]
 
-      delete results.adding
-      return if aborted then false else results
+      return if aborted then false else visited
 
 
    # This method returns an `Array` of all descendants of the receiver. This accepts a set of
