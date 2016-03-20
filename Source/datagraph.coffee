@@ -350,7 +350,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       return rel
 
    # FIXME: Make these proper Symbols.
-   @abortIteration:     'abortIteration'
+   @abortIteration: abortIteration = 'abortIteration'
+   @walkCache: walkCache           = '__walk__do_cache'
 
    # This provides flexible tooling to climb the data-graph, discovering and collecting nodes in a
    # manner specified by supplied ‘supplier’ and ‘filter’ callbacks.
@@ -386,7 +387,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # This method also supports cacheing, to a limited extent.
    #
    # Callbacks may indicate that their operation may be cached by exposing a truthy value on the
-   # `_walk_cache` property. If such callbacks are used *as the very first filters* during a call to
+   # `` property. If such callbacks are used *as the very first filters* during a call to
    # `::walk`, then:
    #
    # 1. A cache, specific to those cache-enabled filters (by object-identity) will be created on the
@@ -417,8 +418,14 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # TODO:  I want to abstract this out into a mini-lodash-like library *specifically* for graph-
    #        manipulation. Most directly, I want to support lodash-esque *efficient*, chainable
    walk: (callbacks...)->
-      pending = new Array; visited = new Object; aborted = no
-      pending.push [null, this]
+      pending = [[null, this]]
+      visited = new Object
+      aborted = no
+
+      # FIXME: Real Symbol!
+      if callbacks[0]?[walkCache]
+         cachebacks = _.filter callbacks, Thing.walkCache
+         cache_key = '_cache__' + cachebacks.map((cb)-> cb.toString() ).join '__' 
 
       while pending.length > 0
          [discoverer, it] = pending.shift()
@@ -426,12 +433,16 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
          discovered = new Array
          validated = _.all callbacks, (cb)->
+
+            if cb[walkCache]
+               null # XXX
+
             rv = cb.apply it, [it, discoverer, discovered, visited, callbacks]
 
             return false if rv is false
             return true if not rv? or rv is true
 
-            if rv is Thing.abortIteration
+            if rv is abortIteration
                aborted = yes
                return false
 
@@ -533,7 +544,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       @_walk_descendants descendants, (descendant)->
          unless descendant._available_to liability
             aborted = true
-            return Thing.abortIteration
+            return abortIteration
 
       return (not aborted)
 

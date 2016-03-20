@@ -410,8 +410,21 @@ describe "Paws' Data types:", ->
 
                expect(collected).to.not.be.ok()
 
-
          describe '~ Cache usage', ->
+            it 'creates a cache on the receiver node', ->
+               a Thing
+
+               filter = new Function
+               filter[Thing.walkCache] = yes
+
+               before = util.keys a.thing
+               a.thing.walk filter
+               after  = util.keys a.thing
+
+               expect(after).to.not.eql before
+
+            it 'XXX'
+
          describe '::walk_descendants', ->
             it 'exists', ->
                a Thing
