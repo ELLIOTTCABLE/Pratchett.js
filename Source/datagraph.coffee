@@ -361,8 +361,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #
    # 1. The `current` node being examined, (also exposed as `this`)
    # 2. the `discoverer` node from which this one was discovered,
-   # 3. an array of other nodes already `discovered` thus far through this `current` node
-   # 4. a map of all the nodes `visited` thus far (same as the eventual return value),
+   # 3. a map of other nodes already `discovered` thus far *through this `current` node*,
+   # 4. a map of *all* the nodes `visited` thus far (same as the eventual return value),
    # 5. and the `callbacks` provided to the original invocation of `::walk`.
    #
    # If the callback returns a `Thing` node (or `Array` thereof), it is treated as a ‘supplier’: the
@@ -371,7 +371,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # Otherwise, the callback is treated as a ‘filter’: it indicates whether the `current` node
    # should be included in the results of the walk (by returning `true` or `undefined`), or rejected
    # (by explicitly returning `false`.) If any filter so-indicates failure, then no nodes
-   # *discovered* via the current node (i.e. the results of supplier-callbacks thus far) are walked.
+   # *discovered* via the current node (i.e. the results of supplier-callbacks thus far) are walked
+   # (or included in the eventual results.)
    #
    # Finally, as a special case, a callback may return the sentinel value `Thing.abortIteration` to
    # implement early termination: no further callbacks will be evaluated, no more nodes will be
@@ -386,9 +387,9 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #
    # This method also supports cacheing, to a limited extent.
    #
-   # Callbacks may indicate that their operation may be cached by exposing a truthy value on the
-   # `` property. If such callbacks are used *as the very first filters* during a call to
-   # `::walk`, then:
+   # Callbacks may indicate that their operation may be cached by exposing a truthy value for the
+   # property associated with the `Thing.walkCache` symbol.  If such callbacks are used *as the very
+   # first filters* during a call to `::walk`, then:
    #
    # 1. A cache, specific to those cache-enabled filters (by object-identity) will be created on the
    #    receiving node; and it will be populated by the set of nodes touched by the walk after the
@@ -417,47 +418,102 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #        releasing it on its own.
    # TODO:  I want to abstract this out into a mini-lodash-like library *specifically* for graph-
    #        manipulation. Most directly, I want to support lodash-esque *efficient*, chainable
-   walk: (callbacks...)->
-      pending = [[null, this]]
-      visited = new Object
-      aborted = no
+   #        operations.
+   walk: do ->
+      walk = (discoverer, callbacks, visited = new Object)->
 
-      # FIXME: Real Symbol!
-      if callbacks[0]?[walkCache]
-         cachebacks = _.filter callbacks, Thing.walkCache
-         cache_key = '_cache__' + cachebacks.map((cb)-> cb.toString() ).join '__' 
+         return null if visited[@id]
+         discovered = new Object
+         aborted = no
 
-      while pending.length > 0
-         [discoverer, it] = pending.shift()
-         continue if visited[it.id]?
+         rejected = not _.all callbacks, (callback)=>
+            rv = callback.call this, this, discoverer, discovered, visited, callbacks
 
-         discovered = new Array
-         validated = _.all callbacks, (cb)->
-
-            if cb[walkCache]
-               null # XXX
-
-            rv = cb.apply it, [it, discoverer, discovered, visited, callbacks]
-
+            # ‘filter-back’,
             return false if rv is false
             return true if not rv? or rv is true
 
+            # ‘abort-back’,
             if rv is abortIteration
                aborted = yes
                return false
 
+            # ‘supply-back’!
             if _.isArray rv
-               Array::push.apply discovered, rv
+               rvs = _.reduce rv, ( (acc, v)-> acc[v.id] = v; acc ), new Object
+               _.assign discovered, rvs
+            else if rv instanceof Thing
+               discovered[rv.id] = rv
             else
-               discovered.push rv
+               # TODO: Safety assertion that all keys are IDs / all values are Things
+               _.assign discovered, rv
+
+            return rv
+
+         return false if aborted # If walk() returns `false`, it immediately propagates upwards,
+         return if rejected      # but if it was merely rejected, then nothing is added on this iter
+         visited[@id] = this     # … and if this was neither abortive *nor* rejected, then add it!
+
+         walk.call node, this, callbacks, visited for own id, node of discovered
+
+         return visited
+
+      return (callbacks...)->
+         visited = walk.call this, null, callbacks
+         return visited ? {}
+
+  #   if _.isFunction(descendants)
+  #      cb = descendants
+  #      descendants = new Object
+  #   unless descendants
+  #      descendants = new Object
+
+  #   unless descendants[@id]?
+  #      if cb
+  #         rv = cb(this, descendants)
+  #         descendants._abortIteration = true if rv is Thing.abortIteration
+
+  #      unless cb? and (rv is false or rv is Thing.abortIteration)
+  #         descendants[@id] = this
+
+  #         children = _(@metadata).filter('owns').pluck('to').value()
+  #         children.forEach (child)=>
+  #            return null if descendants._abortIteration
+  #            child._walk_descendants descendants, cb
+
+   _walk: (callbacks)->
+      pending = new Array; results = new Object; aborted = no
+      pending.push [null, this]
+
+      while pending.length > 0
+         [instigator, it] = pending.shift()
+         continue if results[it.id]?
+
+         results.adding = new Array
+
+         validated = _.all callbacks, (cb)->
+            rv = cb.apply it, [it, instigator, results, callbacks]
+
+            return false if rv is false
+            return true if not rv? or rv is true
+
+            if rv is Thing.abortIteration
+               aborted = yes
+               return false
+
+            if _.isArray rv
+               Array::push.apply results.adding, rv
+            else
+               results.adding.push rv
             return rv
 
          break if aborted
          if validated
-            visited[it.id] = it
-            discovered.forEach (node)-> pending.push [it, node]
+            results[it.id] = it
+            results.adding.forEach (node)-> pending.push [it, node]
 
-      return if aborted then false else visited
+      delete results.adding
+      return if aborted then false else results
 
 
    # This method returns an `Array` of all descendants of the receiver. This accepts a set of
