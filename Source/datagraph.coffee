@@ -361,8 +361,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #
    # 1. The `current` node being examined, (also exposed as `this`)
    # 2. the `discoverer` node from which this one was discovered,
-   # 3. an array of other nodes already `discovered` thus far through this `current` node
-   # 4. a map of all the nodes `visited` thus far (same as the eventual return value),
+   # 3. a map of other nodes already `discovered` thus far *through this `current` node*,
+   # 4. a map of *all* the nodes `visited` thus far (same as the eventual return value),
    # 5. and the `callbacks` provided to the original invocation of `::walk`.
    #
    # If the callback returns a `Thing` node (or `Array` thereof), it is treated as a ‘supplier’: the
@@ -371,7 +371,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # Otherwise, the callback is treated as a ‘filter’: it indicates whether the `current` node
    # should be included in the results of the walk (by returning `true` or `undefined`), or rejected
    # (by explicitly returning `false`.) If any filter so-indicates failure, then no nodes
-   # *discovered* via the current node (i.e. the results of supplier-callbacks thus far) are walked.
+   # *discovered* via the current node (i.e. the results of supplier-callbacks thus far) are walked
+   # (or included in the eventual results.)
    #
    # Finally, as a special case, a callback may return the sentinel value `Thing.abortIteration` to
    # implement early termination: no further callbacks will be evaluated, no more nodes will be
@@ -420,9 +421,9 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #        operations.
    walk: do ->
       walk = (discoverer, callbacks, visited = new Object)->
-         return [] if visited[@id]
 
-         discovered = new Array
+         return null if visited[@id]
+         discovered = new Object
          aborted = no
 
          rejected = not _.all callbacks, (callback)=>
@@ -439,24 +440,27 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
             # ‘supply-back’!
             if _.isArray rv
-               Array::push.apply discovered, rv
+               rvs = _.reduce rv, ( (acc, v)-> acc[v.id] = v; acc ), new Object
+               _.assign discovered, rvs
+            else if rv instanceof Thing
+               discovered[rv.id] = rv
             else
-               discovered.push rv
+               # TODO: Safety assertion that all keys are IDs / all values are Things
+               _.assign discovered, rv
 
             return rv
 
          return false if aborted # If walk() returns `false`, it immediately propagates upwards,
-         return [] if rejected   # else the returned nodes are added to the queue.
-
+         return if rejected      # but if it was merely rejected, then nothing is added on this iter
          visited[@id] = this     # … and if this was neither abortive *nor* rejected, then add it!
-         discovered.forEach (node)=>
-            # FIXME: wait so what's happening to the return-value of this, wtf
-            walk.call node, this, callbacks, visited
+
+         walk.call node, this, callbacks, visited for own id, node of discovered
 
          return visited
 
       return (callbacks...)->
-         walk.call this, null, callbacks
+         visited = walk.call this, null, callbacks
+         return visited ? {}
 
   #   if _.isFunction(descendants)
   #      cb = descendants

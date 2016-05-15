@@ -334,17 +334,20 @@ describe "Paws' Data types:", ->
 
                expect(spy).was.calledWith _.any, a.thing
 
+            # FIXME: Awkward testing layout on these next few.
             it 'are passed the nodes discovered in the current walk-step', ->
                some Thing; a Thing; another Thing
                some.thing.push a.thing
                some.thing.push another.thing
 
                some.thing.walk (-> @toArray() ), (_, __, discovered)->
-                  expect(discovered).to.contain a.thing
-                  expect(discovered).to.contain another.thing
+                  expect(discovered).to.be.an 'object'
+                  expect(discovered).to.have.property a.thing.id
+                  expect(discovered[a.thing.id]).to.be a.thing
+                  expect(discovered).to.have.property another.thing.id
+                  expect(discovered[another.thing.id]).to.be another.thing
                   return false
 
-            # FIXME: Awkward testing layout on these next few.
             it 'are passed the results so far', ->
                a_thing = Thing.construct foo: foo = new Thing, bar:
                    bar = Thing.construct widget: widget = new Thing
