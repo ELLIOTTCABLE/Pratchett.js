@@ -386,9 +386,9 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #
    # This method also supports cacheing, to a limited extent.
    #
-   # Callbacks may indicate that their operation may be cached by exposing a truthy value on the
-   # `` property. If such callbacks are used *as the very first filters* during a call to
-   # `::walk`, then:
+   # Callbacks may indicate that their operation may be cached by exposing a truthy value for the
+   # property associated with the `Thing.walkCache` symbol.  If such callbacks are used *as the very
+   # first filters* during a call to `::walk`, then:
    #
    # 1. A cache, specific to those cache-enabled filters (by object-identity) will be created on the
    #    receiving node; and it will be populated by the set of nodes touched by the walk after the
@@ -417,36 +417,43 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #        releasing it on its own.
    # TODO:  I want to abstract this out into a mini-lodash-like library *specifically* for graph-
    #        manipulation. Most directly, I want to support lodash-esque *efficient*, chainable
+   #        operations.
    walk: do ->
-      walk = (discoverer, callbacks, results = new Object)->
-         return [] if results[@id]
+      walk = (discoverer, callbacks, visited = new Object)->
+         return [] if visited[@id]
+
          discovered = new Array
          aborted = no
 
          rejected = not _.all callbacks, (callback)=>
-            rv = callback.call this, this, discoverer, discovered, results, callbacks
+            rv = callback.call this, this, discoverer, discovered, visited, callbacks
 
+            # ‘filter-back’,
             return false if rv is false
             return true if not rv? or rv is true
 
-            if rv is Thing.abortIteration
+            # ‘abort-back’,
+            if rv is abortIteration
                aborted = yes
                return false
 
+            # ‘supply-back’!
             if _.isArray rv
                Array::push.apply discovered, rv
             else
                discovered.push rv
+
             return rv
 
-         return false if aborted
-         return [] if rejected
+         return false if aborted # If walk() returns `false`, it immediately propagates upwards,
+         return [] if rejected   # else the returned nodes are added to the queue.
 
-         results[@id] = this
+         visited[@id] = this     # … and if this was neither abortive *nor* rejected, then add it!
          discovered.forEach (node)=>
-            walk.call node, this, callbacks, results
+            # FIXME: wait so what's happening to the return-value of this, wtf
+            walk.call node, this, callbacks, visited
 
-         return results
+         return visited
 
       return (callbacks...)->
          walk.call this, null, callbacks
