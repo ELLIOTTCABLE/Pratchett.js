@@ -16,7 +16,6 @@ env:
     - BATS=yes
    #- RULEBOOK=yes
    global:
-    - CI=yes
     - RULEBOOK=no # FIXME: Pending completion of the queueless reactor!
     - CXX=g++-4.8
 addons:
