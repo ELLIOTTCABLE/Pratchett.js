@@ -14,8 +14,9 @@
 #    npm test
 #
 #    npm test -- --grep 'Parser'          # Run a specific unit-test suite
-#    BATS=no npm test                     # Disable execution of any shell-tests
 #    INTEGRATION=no npm test              # Run the unit-tests *only* (not the integration tests)
+#
+#    BATS=no npm test                     # Disable execution of any shell-tests
 #    RULEBOOK=no npm test                 # Ignore the Rulebook, even if present
 #    LETTERS=yes npm test                 # Execute the Letters, as well as the rest of the Rulebook
 #
@@ -106,9 +107,9 @@ elif [ -n "${PRE_COMMIT##[NFnf]*}" ]; then                                    cr
 else
    [ -n "$DEBUG_SCRIPTS" ] && pute "Running in interactive-invocation mode."
 
-   # When raw arguments are passed (presumably, for `mocha`,) we default to not running the other
-   # suites.
-   if [ -n "$*" ]; then                                                       cr=no
+   # When raw arguments are passed (presumably, for `mocha`) or the Node debugger is enabled, we
+   # default to not running the other suites.
+   if [ -n "$*" ] || [ -n "${DEBUGGER##[NFnf]*}" ]; then                      cr=no
       [ -z "$BATS" ]       && BATS=no                                               # 4.  $BATS
       [ -z "$RULEBOOK" ]   && RULEBOOK=no                                           # 5.  $RULEBOOK
    fi
@@ -118,14 +119,31 @@ else
    [ -z "${BATS##[YTyt]*}" ]           && INTEGRATION=yes                           # 6.  $INTEGRATION
 
    if [ -n "${DEBUGGER##[NFnf]*}" ]; then                                     cr=no # 7.  $DEBUGGER
-      [ ! -x "./node_modules/.bin/node-debug" ] && \
-         pute 'You must `npm install node-inspector` to use the $DEBUGGER flag!' && exit 127
+      debugging=yes
+
+      # FIXME: It's actually specifiaclly Node v6.3.0 that first introduced native `--inspect`
+      #        support; I need to do a true semver comparison for this — this will fail between
+      #        v6.0.0 and v6.3.0.
+      [ "${npm_config_node_version%%.*}" -lt 6 ] && \
+         debug_with_module=yes
 
       WATCH='no'
 
-      [ -z "${DEBUG_MODULES##[NFnf]*}" ] && \
-         hidden='--hidden node_modules/'
-      node_debugger="./node_modules/.bin/node-debug $hidden --cli --config './Scripts/node-inspectorrc.json'"
+      if [ -n "$debug_with_module" ]; then
+         if [ ! -x "./node_modules/.bin/node-debug" ]; then
+            pute 'You must `npm install node-inspector` to use the $DEBUGGER flag on Node versions'
+            pute '   prior to v6.3.0.'
+            exit 127
+         fi
+
+         [ -z "${DEBUG_MODULES##[NFnf]*}" ] && \
+            hidden='--hidden node_modules/'
+
+         invocation_guard="./node_modules/.bin/node-debug $hidden --cli --config \
+            './Scripts/node-inspectorrc.json'"
+      else
+         invocation_guard="node --inspect --debug-brk"
+      fi
    fi
 
    if [ -n "${WATCH##[NFnf]*}" ]; then                                              # 8. $WATCH
@@ -157,19 +175,20 @@ fi
    "Tracing reactor:       ${TRACE_REACTOR:+Yes!}"                            \
    "Watching filesystem:   ${WATCH:--}"                                       \
    "Running debugger:      ${DEBUGGER:--}"                                    \
+   "Using node-inspector:  ${debug_with_module:-No!}"                         \
    "Generating coverage:   ${COVERAGE:--}"                                    \
    "Debugging modules:     ${DEBUG_MODULES:--}"                               \
    "" \
-   "Verbosity:             '$VERBOSE'"                                        \
+   "Verbosity:            '$VERBOSE'"                                         \
    "Printing commands:     ${print_commands:--}"                              \
    "" \
-   "Tests directory:       '$unit_dir'"                                       \
-   "Integration directory: '$integration_dir'"                                \
-   "Rulebook directory:    '$rulebook_dir'"                                   \
-   "Coverage directory:    '$coverage_dir'"                                   \
+   "Tests dir:            '$unit_dir'"                                        \
+   "Integration dir:      '$integration_dir'"                                 \
+   "Rulebook dir:         '$rulebook_dir'"                                    \
+   "Coverage dir:         '$coverage_dir'"                                    \
    "" \
    "Running units:         ${UNIT:--}"                                        \
-   "Running "'`bats`'" tests:  ${BATS:--}"                                    \
+   "Running shell tests:   ${BATS:--}"                                        \
    "Running integration:   ${INTEGRATION:--}"                                 \
    "Checking rulebook:     ${RULEBOOK:--}"                                    \
    "Checking letters:      ${LETTERS:--}"                                     \
@@ -183,9 +202,9 @@ fi
 go () { [ -n "$print_commands" ] && puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 mochaify() {
-   [ -z "${UNIT##[YTyt]*}" ] && go $node_debugger                             \
-      "./node_modules/.bin/${node_debugger:+_}${coverage:+_}mocha"            \
-      ${node_debugger:+ --no-timeouts }                                       \
+   [ -z "${UNIT##[YTyt]*}" ] && go $invocation_guard                          \
+      "./node_modules/.bin/${invocation_guard:+_}${coverage:+_}mocha"         \
+      ${debugging:+ --no-timeouts }                                           \
       ${coverage:+ --require './Library/register-coffee-coverage.js' }        \
       --require mocha-clean/brief                                             \
       --compilers coffee:coffee-script/register                               \
@@ -200,7 +219,7 @@ ruleify() {
    book="$1"; shift
 
    if [ -d "$PWD/$rulebook_dir/$book/" ]; then
-      go $node_debugger ./node_modules/.bin/taper                             \
+      go $invocation_guard ./node_modules/.bin/taper                          \
          --runner "$PWD/Executables/paws.js" --runner-param='check'           \
          "$PWD/$rulebook_dir/$book"/*                                         \
          $TAPER_FLAGS -- $CHECK_FLAGS "$@"                                    ;fi ;}
