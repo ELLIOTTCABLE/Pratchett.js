@@ -1,3 +1,4 @@
+Walker           = (require 'giraphe').default
 uuid             = require 'uuid'
 { EventEmitter } = require 'events'
 
@@ -349,8 +350,10 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return rel
 
-   # FIXME: Make these proper Symbols.
-   @abortIteration:     'abortIteration'
+   #---
+   # XXX: At construct-time, this depends on `Relation` being defined. Sans hoisting (WHY DID I LAY
+   #      THIS OUT THIS WAY?), these can't be constructed until init-time — see `Thing._init`.
+   _walk: walk = undefined
 
    # This returns a flat array of all the descendants of the receiver that satisfy a condition,
    # supplied by an optional callback.
@@ -362,29 +365,9 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # in that cache will not be touched by this function. (Tread carefully: if the data-graph is
    # modified between the *creation* of `descendants`, and the re-execution of this function, then
    # that cache may no longer be valid!)
-   #---
-   # FIXME: Recursion: will eventually stack-overflow.
-   _walk_descendants: (descendants, cb)->
-      if _.isFunction(descendants)
-         cb = descendants
-         descendants = new Object
-      unless descendants
-         descendants = new Object
+   _walk_descendants: undefined
 
-      unless descendants[@id]?
-         if cb
-            rv = cb(this, descendants)
-            descendants._abortIteration = true if rv is Thing.abortIteration
-
-         unless cb? and (rv is false or rv is Thing.abortIteration)
-            descendants[@id] = this
-
-            children = _(@metadata).filter('owns').pluck('to').value()
-            children.forEach (child)=>
-               return null if descendants._abortIteration
-               child._walk_descendants descendants, cb
-
-      return descendants
+   @abortIteration: Walker.abortIteration
 
 
    # ### Responsibility ###
@@ -566,6 +549,11 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # ### Initialization ###
 
    @_init: ->
+      Thing::_walk = walk =
+         new Walker class: Thing, key: 'id', edge: { class: Relation, extract_path: 'to' }
+
+      Thing::_walk_descendants = walk -> _.compact(@metadata)
+
       # The default receiver for `Thing`s simply preforms a ‘lookup.’
       Thing::receiver = new Native (params)->
          caller  = params.at 0

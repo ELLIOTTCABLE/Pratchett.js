@@ -4,7 +4,8 @@ util    = require '../Source/utilities.coffee'
 assert  = require 'assert'
 sinon   = require 'sinon'
 expect  = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
-match   = sinon.match
+__      = sinon.match
+
 
 describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
@@ -368,7 +369,7 @@ describe "Paws' Data types:", ->
             bit = receiver.advance params
             bit.apply receiver, [params]
 
-            expect(caller.queue).was.calledWith match.has 'params', [another_thing]
+            expect(caller.queue).was.calledWith __.has 'params', [another_thing]
 
          it 'stages the caller if there is a result', ->
             a_thing = Thing.construct foo: another_thing = new Thing
@@ -390,97 +391,83 @@ describe "Paws' Data types:", ->
 
             expect(caller.queue).was.notCalled()
 
+      # NB: A lot of this is duplicating effort from the Giraphe tests; but hey.
       describe '::_walk_descendants', ->
          it 'exists', ->
             a Thing
             expect(a.thing._walk_descendants).to.be.a 'function'
 
          it "doesn't throw when given no arguments", ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            expect(-> a_thing._walk_descendants()).to.not.throwException()
+            expect(-> (a Thing)._walk_descendants()).to.not.throwException()
 
          it 'accepts a callback', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
+            a.thing = Thing.construct
+               foo: foo = new Thing, bar: bar = Thing.construct
+                  widget: widget = new Thing
 
-            expect(-> a_thing._walk_descendants(->)).to.not.throwException()
+            expect(-> a.thing._walk_descendants(->)).to.not.throwException()
 
-         it 'accepts an optional pre-constructed descendants-cache', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            expect(-> a_thing._walk_descendants(new Object, ->)).to.not.throwException()
+         it.skip 'provides a method to cache results during a particular reactor-step'
 
          it 'returns a mapping object', ->
-            a_thing = new Thing
+            a Thing
 
-            rv = a_thing._walk_descendants()
+            rv = a.thing._walk_descendants()
             expect(rv).to.be.an 'object'
 
          it 'collects owned descendants into the returned object', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
+            a.thing = Thing.construct
+               foo: foo = new Thing, bar: bar = Thing.construct
+                  widget: widget = new Thing
 
-            rv = a_thing._walk_descendants()
+            rv = a.thing._walk_descendants()
             expect(util.values(rv)).to.contain foo
             expect(rv[foo.id]).to.be foo
 
          it 'calls the callback on each node walked', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
+            a.thing = Thing.construct
+               foo: foo = new Thing, bar: bar = Thing.construct
+                  widget: widget = new Thing
 
-            a_thing._walk_descendants cb = sinon.spy()
-            expect(cb).was.calledWith a_thing
-            expect(cb).was.calledWith foo
-            expect(cb).was.calledWith bar
-            expect(cb).was.calledWith widget
-
-         it 'calls the callback with a node and the descendants mapping', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
-
-            a_thing._walk_descendants cb = sinon.spy()
-            expect(cb).was.calledWith a_thing, match {}
-            expect(cb).was.calledWith foo,
-               match.has(a_thing.id, match.same(a_thing))
-
-            expect(cb).was.calledWith widget,
-               match.has(a_thing.id, match.same(a_thing)).and(
-                  match.has(bar.id,  match.same(bar)) )
+            a.thing._walk_descendants cb = sinon.spy()
+            expect(cb).was.calledOn a.thing
+            expect(cb).was.calledOn foo
+            expect(cb).was.calledOn bar
+            expect(cb).was.calledOn widget
 
          it 'skips objects for which the callback returns false', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
+            a.thing = Thing.construct
+               foo: foo = new Thing, bar: bar = Thing.construct
+                  widget: widget = new Thing
 
-            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
-               return false if descendant is bar
+            descendants = a.thing._walk_descendants cb = sinon.spy ->
+               return false if this is bar
 
-            expect(cb).was.calledWith bar
+            expect(cb).was.calledOn bar
             expect(descendants[foo.id]).to.be foo
             expect(descendants[bar.id]).to.be undefined
 
          it 'can be instructed to cease iteration', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
+            a.thing = Thing.construct
+               foo: foo = new Thing, bar: bar = Thing.construct
+                  widget: widget = new Thing
 
-            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
-               return Thing.abortIteration if descendant is foo
+            rv = a.thing._walk_descendants cb = sinon.spy ->
+               return Thing.abortIteration if this is foo
 
-            expect(descendants[a_thing.id]).to.be a_thing
-            expect(descendants[foo.id]).to.be undefined
-            expect(descendants[bar.id]).to.be undefined
-            expect(descendants[widget.id]).to.be undefined
+            expect(rv).to.not.be.ok()
 
          it 'skips descendants of objects for which the callback returns false', ->
-            a_thing = Thing.construct foo: foo = new Thing, bar:
-                  bar = Thing.construct widget: widget = new Thing
+            a.thing = Thing.construct
+               foo: foo = new Thing, bar: bar = Thing.construct
+                  widget: widget = new Thing
 
-            descendants = a_thing._walk_descendants cb = sinon.spy (descendant)->
-               return false if descendant is bar
+            descendants = a.thing._walk_descendants cb = sinon.spy ->
+               return false if this is bar
 
-            expect(cb).was.neverCalledWith widget
+            # FIXME: Yes, this is awkwardly-worded. It's pending sinon-expect#5:
+            #        <https://github.com/lightsofapollo/sinon-expect/issues/5>
+            expect(!cb.calledOn widget)
             expect(descendants[widget.id]).to.be undefined
 
          it "doesn't touch contained (not-owned) descendants"
@@ -1464,7 +1451,7 @@ describe "Paws' Data types:", ->
                sinon.spy a.caller, 'queue'
 
                expect(-> call exe, a.caller).to.not.throwException()
-               expect(a.caller.queue).was.calledWith sinon.match params: [exe]
+               expect(a.caller.queue).was.calledWith __ params: [exe]
 
             it 'can be invoked with further parameters', ->
                exe = synchronous (a, b, c)->
@@ -1474,7 +1461,7 @@ describe "Paws' Data types:", ->
                expect(-> call exe, a.thing).to.not.throwException()
                expect(-> call exe, a.thing).to.not.throwException()
 
-               expect(a.caller.queue).was.calledWith sinon.match params: [exe]
+               expect(a.caller.queue).was.calledWith __ params: [exe]
                expect(a.caller.queue).was.calledThrice()
 
             it 'are each provided the `caller` passed to the first bit', ->
