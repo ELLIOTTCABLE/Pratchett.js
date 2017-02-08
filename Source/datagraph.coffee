@@ -534,8 +534,14 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # TODO: Option to include the noughty
    toArray: (cb)-> @metadata.slice(1).map (rel)-> (cb ? _.identity) rel?.to
 
-   # FIXME: This is ... not precise. /=
-   isPair:   -> Boolean @metadata[1] and @metadata[2]
+   # This ascertains if the receiver is “pair-shaped” — has precisely two non-metadata elements, the
+   # first of which is a Label, and the second of which isn't undefined.
+   #---
+   # FIXME: This almost certainly *shouldn't* exist publically at all; and especially shouldn't be
+   #        central to the crucial `find()` algorihtm. D:
+   isPair:   -> Boolean (@metadata.length is 3) and @metadata[1].to instanceof Label and @metadata[2]
+
+
    keyish:   -> @at 1
    valueish: -> @at 2
 
@@ -1249,50 +1255,58 @@ Operation.register 'adopt', (liability)->
 
 # Debugging output
 # ----------------
-# Convenience to call whatever string-making methods are available on the passed object.
+# Convenience to call whatever string-making methods are available on the passed JavaScript value.
 Paws.inspect = (object)->
    object?.inspect?() or
    object instanceof Thing && Thing::inspect.apply(object) or
    _.node.inspect object
 
+# Generates a short, string-ish form of the UUID to uniquely identify a given object during debug
 Thing::_inspectID = ->
    if @id? then @id.slice(-8) else ''
-Thing::_inspectName = ->
+# Describes a given object, using the string-ish unique ID along with the object's `name`, if any.
+Thing::_inspectNames = ->
    names = []
-   names.push ''
    names.push @_inspectID()   if @_inspectID and (not @name or process.env['ALWAYS_ID'] or @_?.tag == no)
    names.push term.bold @name if @name
-   names.join(':')
-Thing::_tagged = (output)->
-   tag = @constructor.__name__ or @constructor.name
-   content = if output then ' '+output else ''
-   "<#{tag}#{(@_inspectName or Thing::_inspectName).call this}#{content}>"
-
-Execution::_inspectName = ->
-   names = []
-   names.push ''
-   names.push @_inspectID()   if @_inspectID and (not @name or process.env['ALWAYS_ID'] or @_?.tag == no)
-   names.push term.bold @name if @name
-   names.join(':')
-Native::_inspectName = ->
-   names = Execution::_inspectName.call this
-   if @advancements?
-      calls = @advancements - @bits.length
-      names + new Array(calls).join 'ʹ'
    names
 
+Thing::_inspectTag = -> @constructor.__name__ or @constructor.name
+# Wraps an (optional) string and prefixes it with a description of the receiving object. If called
+# without content to wrap, this simply wraps all of the object's names.
+Thing::_tagged = (content)->
+   names = (@_inspectNames or Thing::_inspectNames).call this
+   tag   = (@_inspectTag   or Thing::_inspectTag  ).call this
 
+   if this instanceof Thing and @isPair()
+      names.push '~' + @keyish().alien
+   else
+      names.unshift(tag) if tag
+
+   content = if content then ' '+content else ''
+
+   "<#{names.join ':'}#{content}>"
+
+Native::_inspectNames = ->
+   names = Thing::_inspectNames.call this
+   if @advancements?
+      calls = @advancements - @bits.length
+      names[names.length - 1] = names[names.length - 1] + new Array(calls).join 'ʹ'
+   names
+
+# The first public-entry into the debugging code; `toString` produces a short(ish) description of
+# the receiving Paws object.
 Thing::toString = ->
-   if @_?.tag == no then @_inspectName() else @_tagged()
+   if @_?.tag == no then @_inspectNames().join(':') else @_tagged()
 
+# As an alternative to `toString`, one can invoke `inspect` to produce a more-lengthy description of
+# some Paws objects (possibly multi-line.)
 Thing::inspect = ->
    @toString()
 
-Label::_inspectName = ->
-   names = []
-   names.push ''
-   names.push term.bold @name if @name
-   names.join(':')
+Label::_inspectNames = ->
+   if @name then term.bold [@name] else []
+
 Label::toString = ->
    output = "“#{@alien}”"
    if @_?.tag == no then output else @_tagged output
@@ -1300,6 +1314,8 @@ Label::toString = ->
 # By default, this will print a serialized version of the `Execution`, with `focus` on the current
 # `Thing`, and a type-tag. If explicitly invoked with `tag: true`, then the serialized content will
 # be omitted; if instead with `serialize: true`, then the tag will be omitted.
+#---
+# FIXME: Should `Execution` and `Native` do their multi-line debugging-info-printing in `inspect`?
 Execution::toString = ->
    if @_?.tag != yes or @_?.serialize == yes
       output = "{ #{if @begin? then @begin.toString focus: @current().valueOf() else ''} }"
