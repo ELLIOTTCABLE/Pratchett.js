@@ -425,24 +425,21 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # no conflicting responsibility); and `false` if the receiver or one of its descendants *cannot*
    # be adopted (i.e. currently has some form of conflicting responsibility.)
    #
-   # (If calling both this *and* `::dedicate` in the same reactor-tick, with the same arguments,
-   # then they can be passed a shared `descendants` cache, saving duplicated graph-climbing effort.)
-   #
    # This is, of course, checked as a part of `dedicate`; so explicitly calling this method is
    # usually only necessary if something being available for adoption *changes the decision of what
    # to adopt*. (Or, possibly, adopting across reactor ticks?)
-   available_to: (liability, descendants = new Object)->
+   #---
+   # TODO: This *badly* needs to share a cache with `::dedicate`, as the previous implementation did
+   available_to: (liability)->
       # First, check this object itself,
       return false unless @_available_to liability
 
       # Then, depth-first traverse every *owned child*
-      aborted = false
-      @_walk_descendants descendants, (descendant)->
-         unless descendant._available_to liability
-            aborted = true
+      result = @_walk_descendants ->
+         unless this._available_to liability
             return Thing.abortIteration
 
-      return (not aborted)
+      return false != result
 
    # When passed an existing `descendants` object, this assumes you obtained that by already having
    # checked their availability via `::available_to`.
