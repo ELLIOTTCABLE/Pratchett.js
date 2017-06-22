@@ -453,7 +453,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       # Then, depth-first traverse every *owned child*
       result = @_walk_descendants ->
-         unless this._available_to liability
+         unless @_available_to liability
             return Thing.abortIteration
 
       return false != result
@@ -502,9 +502,11 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    _emancipate: (liability)->
       return true unless _.includes @custodians.direct, liability
 
-      @_walk_descendants (descendant)=>
-         family = if descendant is liability.ward then 'direct' else 'inherited'
-         _.pull descendant.custodians[family], liability
+      @_walk_descendants ->
+         family = if this is liability.ward then 'direct' else 'inherited'
+         _.pull @custodians[family], liability
+
+         undefined
 
       return true
 

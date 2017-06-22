@@ -723,6 +723,8 @@ describe "Paws' Data types:", ->
             a Liability, (an Execution), a_thing
 
             a_thing.dedicate a.liability
+            expect(foo   .custodians.inherited).to.contain a.liability
+            expect(widget.custodians.inherited).to.contain a.liability
 
             rv = a_thing.emancipate a.liability
             expect(rv).to.be yes
