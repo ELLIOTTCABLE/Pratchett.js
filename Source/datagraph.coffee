@@ -352,7 +352,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    #---
    # XXX: At construct-time, this depends on `Relation` being defined. Sans hoisting (WHY DID I LAY
-   #      THIS OUT THIS WAY?), these can't be constructed until init-time — see `Thing._init`.
+   #      THIS OUT THIS WAY?), these can't be exist until init-time — see `Thing._init_walkers`,
+   #      `Thing._init_responsibility_walkers`, etc.
    _walk: walk = undefined
 
    # This returns a flat array of all the descendants of the receiver that satisfy a condition,
@@ -365,9 +366,18 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # in that cache will not be touched by this function. (Tread carefully: if the data-graph is
    # modified between the *creation* of `descendants`, and the re-execution of this function, then
    # that cache may no longer be valid!)
-   _walk_descendants: undefined
+   _walk_descendants: walk_descendants = undefined
 
    @abortIteration: Walker.abortIteration
+
+   @_init_walkers: ->
+      Thing::_walk = walk =
+         new Walker class: Thing, key: 'id'
+          , edge: { class: Relation, extract_path: 'to' }
+          , inspector: Paws.inspect
+
+      Thing::_walk_descendants = walk_descendants =
+         walk -> _.compact(@metadata)
 
 
    # ### Responsibility ###
@@ -385,6 +395,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          _.all custodians, f
       else
          custodians.value()
+
+   # Returns a walker that only walks descendants *with custodians*.
+   _walk_adopted: walk_adopted = undefined
+
+   @_init_responsibility_walkers: ->
+      Thing::_walk_adopted = walk_adopted =
+         walk_descendants -> @is_adopted()
 
    # Indicates success if the passed `Execution` *already* holds the indicated license (or a greater
    # one) for the receiver. (For instance, if the `Execution` holds write-license to a parent of the
@@ -444,18 +461,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # When passed an existing `descendants` object, this assumes you obtained that by already having
    # checked their availability via `::available_to`.
    #---
-   # FIXME: The `descendants`-caching needs to be made first-class on `Thing` instances themselves;
-   #        instead of this hacky ‘allow the receiver to pass around a cache, but warn them about
-   #        it being unsafe’ system.
    # FIXME: The constant `uniq`'ing is going to also be slow: need to collect that into a single
    #        event after any modifications? Ugh, I need `Set`. /=
-   _dedicate: (liability, descendants)->
+   _dedicate: (liability)->
       return true if _.includes @custodians.direct, liability
 
-      unless descendants?
-         return false unless @available_to liability, descendants = new Object
 
-      _.values(descendants).forEach (descendant)=>
+      _.values(@_walk_descendants()).forEach (descendant)=>
          family = if descendant is liability.ward then 'direct' else 'inherited'
          descendant.custodians[family].push liability
          descendant.custodians[family] = _.uniq descendant.custodians[family]
@@ -552,10 +564,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # ### Initialization ###
 
    @_init: ->
-      Thing::_walk = walk =
-         new Walker class: Thing, key: 'id', edge: { class: Relation, extract_path: 'to' }
-
-      Thing::_walk_descendants = walk -> _.compact(@metadata)
+      @_init_walkers()
+      @_init_responsibility_walkers()
 
       # The default receiver for `Thing`s simply preforms a ‘lookup.’
       Thing::receiver = new Native (params)->
