@@ -1065,6 +1065,9 @@ Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
    # an existing `Relation`, if passed, with this receiver's state.)
    #---
    # FIXME: Make truly immutable (i.e. refuse to modify once this Relation has been used in a Thing)
+   #
+   # UPDATE (June 2016): idk, *copying* Relations every time the edge is modified seems performance-
+   #        foolish?
    clone: (other)->
       other ?= new Relation
       other.from = @from
