@@ -560,6 +560,8 @@ describe "Paws' Data types:", ->
             it 'succeeds if the receiver belongs to the passed Liability', ->
                (a Thing).dedicate a Liability, new Execution, a.thing
 
+               expect(a.thing.belongs_to a.liability).to.be yes
+
             it 'fails if it has other custodians, but not the passed Liability', ->
                (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
                another Liability, (another Execution), a.thing, 'read'
