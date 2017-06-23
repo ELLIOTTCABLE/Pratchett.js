@@ -1012,8 +1012,26 @@ describe "Paws' Data types:", ->
          expect(li.read()).to.be no
          expect(li.write()).to.be yes
 
-      it 'can invoke the relevant adoption-operations on the associated Execution and Thing'
-      it 'can invoke the relevant relinquishment-operations on the associated Execution and Thing'
+      it 'can invoke the relevant adoption-operations on the associated Execution and Thing', ->
+         a_thing = Thing(); an_exec = Execution()
+
+         li = Liability an_exec, a_thing
+
+         expect(li.commit()).to.be yes
+         expect(a_thing.belongs_to li).to.be yes
+         expect(an_exec.wards).to.contain li # FIXME: Shouldn't this be an API method?
+
+      it 'can invoke the relevant relinquishment-operations on the associated Execution and Thing', ->
+         a_thing = Thing(); an_exec = Execution()
+
+         li = Liability an_exec, a_thing
+         li.commit()
+         expect(a_thing.belongs_to li).to.be yes
+         expect(an_exec.wards).to.contain li # FIXME: Shouldn't this be an API method?
+
+         expect(li.discard()).to.be yes
+         expect(a_thing.belongs_to li).to.be no
+         expect(an_exec.wards).not.to.contain li # FIXME: Shouldn't this be an API method?
 
 
    describe 'Label', -> # ---- ---- ---- ---- ----                                             Label
