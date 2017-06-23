@@ -614,6 +614,30 @@ describe "Paws' Data types:", ->
 
                expect(widget.belongs_to an.execution, 'read').to.be yes
 
+            it 'succeeds if a parent already belongs to the the Exec with a greater license', ->
+               a_thing = Thing.construct foo: foo = new Thing, bar:
+                   bar = Thing.construct widget: widget = new Thing
+
+               a_thing.dedicate a Liability, (an Execution), a_thing, 'write'
+
+               expect(widget.belongs_to an.execution, 'read').to.be yes
+
+            it 'fails if a parent already belongs to the the Exec with a lesser license', ->
+               a_thing = Thing.construct foo: foo = new Thing, bar:
+                   bar = Thing.construct widget: widget = new Thing
+
+               a_thing.dedicate a Liability, (an Execution), a_thing, 'read'
+
+               expect(widget.belongs_to an.execution, 'write').to.be no
+
+            it 'fails if a parent has other custodians, but not the passed Exec', ->
+               a_thing = Thing.construct foo: foo = new Thing, bar:
+                   bar = Thing.construct widget: widget = new Thing
+
+               a_thing.dedicate a Liability, (an Execution), a_thing, 'write'
+
+               expect(widget.belongs_to (another Execution), 'read').to.be no
+
       describe '::dedicate', ->
          it 'exists', ->
             expect((a Thing).dedicate).to.be.a 'function'
