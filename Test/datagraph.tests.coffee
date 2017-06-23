@@ -470,8 +470,25 @@ describe "Paws' Data types:", ->
             expect(!cb.calledOn widget)
             expect(descendants[widget.id]).to.be undefined
 
-         it "doesn't touch contained (not-owned) descendants"
-         it 'touches each descendant only once, in the presence of cyclic graphcs'
+         it "doesn't touch contained (not-owned) descendants", ->
+            a.thing = Thing.construct
+               foo: foo = new Thing, bar: bar = Thing.construct
+                  widget: widget = (new Thing).contained_by(bar)
+
+            descendants = a.thing._walk_descendants cb = sinon.spy()
+
+            # FIXME: See above.
+            expect(!cb.calledOn widget)
+            expect(descendants[widget.id]).to.be undefined
+
+         it 'touches each descendant only once, in the presence of cyclic graphcs', ->
+            a.thing = Thing.construct
+               child: child = new Thing
+            child.define('cyclic', a.thing)
+
+            a.thing._walk_descendants cb = sinon.spy()
+            # FIXME: This could probably be better expressed (slash less-tightly-coupled)
+            expect(cb.callCount).to.be 6
 
       # ### Thing: Responsibility methods ###
 
@@ -529,34 +546,63 @@ describe "Paws' Data types:", ->
          it 'accepts a Liability', ->
             expect(-> (a Thing).belongs_to a Liability).to.not.throwException()
 
+         it 'accepts a Thing with parents', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability, (an Execution), a_thing
+
+            expect(-> widget.belongs_to a.Liability).to.not.throwException()
+
          it 'indicates false if there are no custodians', ->
             expect((a Thing).belongs_to a Liability).to.be no
 
-         it 'succeeds if the receiver belongs to the passed Liability', ->
-            (a Thing).dedicate a Liability, new Execution, a.thing
+         describe '~ Direct responsibility', ->
+            it 'succeeds if the receiver belongs to the passed Liability', ->
+               (a Thing).dedicate a Liability, new Execution, a.thing
 
-         it 'fails if it has other custodians, but not the passed Liability', ->
-            (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
-            another Liability, (another Execution), a.thing, 'read'
+            it 'fails if it has other custodians, but not the passed Liability', ->
+               (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
+               another Liability, (another Execution), a.thing, 'read'
 
-            expect(a.thing.belongs_to another.liability).to.be no
+               expect(a.thing.belongs_to another.liability).to.be no
 
-         it 'succeeds if the receiver already belongs to the Exec with the same license', ->
-            (a Thing).dedicate a Liability, (an Execution), a.thing, 'read'
+            it 'succeeds if the receiver already belongs to the Exec with the same license', ->
+               (a Thing).dedicate a Liability, (an Execution), a.thing, 'read'
 
-            expect(a.thing.belongs_to an.execution, 'read').to.be yes
+               expect(a.thing.belongs_to an.execution, 'read').to.be yes
 
-         it 'succeeds if it already belongs to the the Exec with a greater license', ->
-            (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
+            it 'succeeds if it already belongs to the the Exec with a greater license', ->
+               (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
 
-            expect(a.thing.belongs_to an.execution, 'read').to.be yes
+               expect(a.thing.belongs_to an.execution, 'read').to.be yes
 
-         it 'fails if it has other custodians, but not the passed Exec', ->
-            (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
+            it 'fails if it already belongs to the the Exec with a lesser license', ->
+               (a Thing).dedicate a Liability, (an Execution), a.thing, 'read'
 
-            expect(a.thing.belongs_to (another Execution), 'read').to.be no
+               expect(a.thing.belongs_to an.execution, 'write').to.be no
 
-         it.skip 'FIXME: test for indirect responsibility ...'
+            it 'fails if it has other custodians, but not the passed Exec', ->
+               (a Thing).dedicate a Liability, (an Execution), a.thing, 'write'
+
+               expect(a.thing.belongs_to (another Execution), 'read').to.be no
+
+         describe '~ Indirect responsibility', ->
+            it 'succeeds if a parent of the receiver belongs to the passed Liability', ->
+               a_thing = Thing.construct foo: foo = new Thing, bar:
+                   bar = Thing.construct widget: widget = new Thing
+
+               a_thing.dedicate a Liability, (an Execution), a_thing
+
+               expect(widget.belongs_to a.liability).to.be yes
+
+            it 'fails if a parent has other custodians, but not the passed Liability', ->
+               a_thing = Thing.construct foo: foo = new Thing, bar:
+                   bar = Thing.construct widget: widget = new Thing
+
+               a_thing.dedicate a Liability, (an Execution), a_thing, 'write'
+               another Liability, (another Execution), a_thing, 'read'
+
+               expect(widget.belongs_to another.liability).to.be no
 
       describe '::dedicate', ->
          it 'exists', ->
