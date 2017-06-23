@@ -386,8 +386,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       not _.isEmpty(@custodians.direct) or not _.isEmpty(@custodians.inherited)
 
    _any_custodian: (f)->
-      _.any @custodians.direct, f or
-      _.any @custodians.inherited, f
+      _.any(@custodians.direct, f) or
+      _.any(@custodians.inherited, f)
 
    _all_custodians: (f)->
       custodians = _(@custodians.direct).concat(@custodians.inherited).uniq()

@@ -606,6 +606,14 @@ describe "Paws' Data types:", ->
 
                expect(widget.belongs_to another.liability).to.be no
 
+            it 'succeeds if a parent already belongs to the Exec with the same license', ->
+               a_thing = Thing.construct foo: foo = new Thing, bar:
+                   bar = Thing.construct widget: widget = new Thing
+
+               a_thing.dedicate a Liability, (an Execution), a_thing, 'read'
+
+               expect(widget.belongs_to an.execution, 'read').to.be yes
+
       describe '::dedicate', ->
          it 'exists', ->
             expect((a Thing).dedicate).to.be.a 'function'
