@@ -1808,5 +1808,39 @@ describe "Paws' Data types:", ->
          expect(params.at 1).to.be an_exec.locals
 
    describe "~ The 'adopt' operation", -> # ---- ---- ---- ---- ----                    Ops['adopt']
-      it 'exists'
-      it 'does things'
+      it 'exists', ->
+         expect(Operation.operations['adopt']).to.be.ok()
+         expect(Operation.operations['adopt']).to.be.a 'function'
+
+      it 'adopts responsibility if available', ->
+         a Thing; an Execution, parse 'foo []'
+         a Liability, an.execution, a.thing
+
+         op = new Operation 'adopt', a.liability
+
+         expect(-> op.perform an.execution).to.not.throwException()
+
+         expect(a.thing.belongs_to a.liability).to.be yes
+         expect(an.execution.wards).to.contain a.liability # FIXME: Shouldn't this be an API method?
+
+      it 'returns truthy if it was able to take ownership', ->
+         a Thing; an Execution, parse 'foo []'
+         a Liability, an.execution, a.thing
+
+         op = new Operation 'adopt', a.liability
+
+         expect(op.perform an.execution).to.be yes
+
+      it 'returns falsey if ownership-taking failed', ->
+         a Thing; an Execution, parse 'foo []'
+         a Liability, an.execution, a.thing
+         another Liability, (another Execution), a.thing, 'write'
+         another.liability.commit()
+
+         li = Liability an.execution, a.thing, 'write'
+         op = new Operation 'adopt', li
+
+         expect(op.perform an.execution).to.be no
+
+         expect(a.thing.belongs_to li).to.be no
+         expect(an.execution.wards).not.to.contain li # FIXME: Shouldn't this be an API method?
