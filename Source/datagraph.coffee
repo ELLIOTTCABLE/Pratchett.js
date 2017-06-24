@@ -1194,6 +1194,8 @@ Paws.Position = Position = class Position
 #    evaluation of that `Execution` by one step, generally producing the *next* `Combo`.
 #  - `'adopt'`: given a target object, block further operations (so, advancements) in this
 #    `Execution`'s queue until it is available for responsibility; then take that responsibility.
+#    This is acheived by returning false every time it's attempted, unless the responsibility in
+#    question has become available.
 Paws.Operation = Operation = class Operation
    constructor: constructify(return:@) (@op, @params...)->
 
@@ -1219,7 +1221,15 @@ Operation.register 'advance', (response)->
 
    if @complete()
       warning ' ╰┄ complete!' if process.env['TRACE_REACTOR']
-     #stage.flushed() unless stage.upcoming()
+      # NYI: The old `reactor.coffee` extended EventEmitter and emitted a `flushed` event when the
+      #      global-queue was full; this was depended upon both by the `paws.js` executable and
+      #      (much more heavily) by the `Rule` implementation to determine when something was
+      #      “finished.”
+      #
+      #      I've known for a while, though, that I need a more robust and langauge-integration
+      #      definition /implementation thereof, so I guess this queueless-rewrite is as good a time
+      #      as any to figure that the fuck out?
+      #stage.flushed() unless stage.upcoming()
       return
 
    next = @advance response
@@ -1258,7 +1268,7 @@ Operation.register 'adopt', (liability)->
 
    if @complete()
       # XXX: Debugging NYI.
-  #   warning ' ╰┄ complete!' if process.env['TRACE_REACTOR']
+      #warning ' ╰┄ complete!' if process.env['TRACE_REACTOR']
       warning 'Completed Execution attempted to adopt o_O'
       return
 
