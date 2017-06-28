@@ -214,6 +214,8 @@ Thing.init_receiver = ->
 # (colloquially called ‘character soups’) are provided as a primitive form of string-manipulation.
 Paws.Label = Label = class Label extends Thing
    constructor: constructify(return:@) (@alien)->
+      if @alien instanceof Label
+         @alien.clone this
 
    clone: (to)->
       super (to ?= new Label)
