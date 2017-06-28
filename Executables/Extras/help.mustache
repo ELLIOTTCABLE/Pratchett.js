@@ -1,4 +1,16 @@
 {{! -- minimum 80-column terminal ------------------------------------------- }}
+Paws is a programming language. It is:
+
+ - {{#b}}Concurrent{{/b}}, (dependencies between operations are expressed explicitly; and
+      tasks are naturally parallelized using this metadata.)
+ - {{#b}}Asynchronous{{/b}}, (every single operation is, by default, non-blocking, right
+      down to the marrow of the language.)
+ - and {{#b}}Dynamic{{/b}}. (there is no dictated syntax; everything is expressed as
+      relationships in a graph; and even the most basic default parsing rules
+      can be re-defined and overriden from within the language.)
+
+{{#important}}NOTE: This is a young project, under active development!{{/important}}
+
 {{#title}}Usage:{{/title}}
 {{#pre}}{{{prompt}}} paws.js [{{#bgflag}}flags{{/bgflag}}] {{#bgop}}operation{{/bgop}} [operation parameters]
 
@@ -10,34 +22,37 @@
 The first non-flag argument will be an operation to perform; the second depends
 on the operation, but is usually a path to a file to load. If no operation is
 given, then the {{#op}}start{{/op}} operation is assumed.
-
-In true UNIX style, single-letter flags may be combined serially; that is, {{#c}}-aBc{{/c}}
-is synonymous with {{#c}}-a -B -c{{/c}}. Furthermore, all arguments following a bare {{#c}}--{{/c}} are
-passed to the program un-parsed (that is, even if it's a flag that would
-otherwise be interpreted by the Paws.js CLI, it will be ignored and passed
+{{#arcane}}
+In true UNIX style, single-letter flags may be combined serially; that is,
+{{#c}}-aBc{{/c}} is synonymous with {{#c}}-a -B -c{{/c}}. Furthermore, all arguments following a
+bare {{#flag}}--{{/flag}} are passed to the program un-parsed (that is, even if it's a flag that
+would otherwise be interpreted by the Paws.js CLI, it will be ignored and passed
 verbatim to the Paws program being run.)
+{{/arcane}}
 
 {{#title}}Operations:{{/title}}
-   {{#op}}start{{/op}} {{#u}}filename.paws{{/u}}           Start the Paws reactor, load the given unit
-   {{#op}}parse{{/op}} {{#u}}filename.paws{{/u}}           Show the computed parse-tree for a cPaws file
-   {{#op}}interact{{/op}}                      Begin an interactive Paws session (a ‘repl’)
+   {{#opdef}}start{{/opdef}} {{#u}}filename.paws{{/u}}  Start the Paws reactor, load the given unit
+   {{#opdef}}parse{{/opdef}} {{#u}}filename.paws{{/u}}  Show the computed parse-tree for a cPaws file
+   {{#opdef}}interact{{/opdef}}             Begin an interactive Paws session (a ‘repl’)
 
 {{#title}}Flags:{{/title}}
-{{#flag}}   --help{{/flag}}:        Show this usage information
-{{#flag}}   --version{{/flag}}:     Show version information
+{{#flagdef}}   --help{{/flagdef}}:              Show this usage information
+{{#flagdef}}   --arcane{{/flagdef}}:            Display more obscure information in {{#flag}}--help{{/flag}}
+{{#flagdef}}   --version{{/flagdef}}:           Show version information
+{{#flagdef}}   -V{{/flagdef}}, {{#flagdef}}--verbose{{/flagdef}}:       Show extra debugging information (see {{#var}}VERBOSE{{/var}} below)
 
-{{#flag}}   -e "EXPR"{{/flag}},{{#flag}} --expression="EXPR"{{/flag}}:
+{{#flagdef}}   -e "EXPR"{{/flagdef}},{{#flagdef}} --expression="EXPR"{{/flagdef}}:
       For {{#op}}parse{{/op}} and {{#op}}start{{/op}}, allows you to provide a cPaws expression at the
-      command-line, to substitute for a file. (If at least one {{#c}}--expression{{/c}} is
-      included, the filname for those operations, normally a required parameter,
-      may be omitted.)
-
-{{#flag}}   --[no-]start{{/flag}}:
+      command-line, to substitute for a file. (If at least one {{#flag}}--expression{{/flag}} is
+      included, the filename for those operations, normally a required
+      parameter, may be omitted.)
+{{#arcane}}
+{{#flagdef}}   --[no-]start{{/flagdef}}:
       Disable the self-scheduling reactor functionality.
 
-      Under normal circumstances (i.e. {{#c}}--start{{/c}}, the default) a Paws reactor
-      runs indefinately, processing combinations when they become available.
-      With the {{#c}}--no-start{{/c}} flag, however, the reactor will shut down as soon as
+      Under normal circumstances (i.e. {{#flag}}--start{{/flag}}, the default) a Paws reactor
+      runs indefinitely, processing combinations when they become available.
+      With the {{#flag}}--no-start{{/flag}} flag, however, the reactor will shut down as soon as
       all ‘immediately’ queued stagings have been completed.
 
       This means your program will more intuitively ‘automatically exit,’ but
@@ -48,14 +63,41 @@ verbatim to the Paws program being run.)
 
       This is usually a bad thing. Avoid this flag without good reason.
 
+{{#flagdef}}   --[no-]expose-specification{{/flagdef}}:
+      Instructs {{#op}}check{{/op}} to include the {{#c}}specification{{/c}} namespace itself into the
+      tests' bodies (yes, this is very meta.)
+
+      (This is only meaningful under {{#op}}check{{/op}}, and probably only useful when Paws
+      is executing its own ‘Rulebook’ test-suite.)
+{{/arcane}}
+
 {{#title}}Variables:{{/title}}
 Paws.js pays attention to several environment variables. These can be passed at
 invocation-time via whatever methodology your shell provides; ex.:
 {{#pre}}{{{prompt}}} VAR=value paws.js ...{{/pre}}
 
-   {{#b}}SILENT{{/b}}=[true|false]           Suppress all output from Paws.js itself
-   {{#b}}VERBOSE{{/b}}=[0-10]                Manually adjust the logging level [default: {{#b}}4{{/b}}]
-   {{#b}}COLOUR{{/b}}=[true|false]           Enable coloured output [default: {{#b}}true{{/b}}]
+   {{#vardef}}SILENT{{/vardef}}=[yes|no]         Suppress all output from Paws.js itself
+   {{#vardef}}VERBOSE{{/vardef}}=[0-10]          Manually adjust the logging level [default: {{#b}}4{{/b}}]
+   {{#vardef}}COLOUR{{/vardef}}=[yes|no]         Enable coloured output [default: {{#b}}yes{{/b}}]
+{{#arcane}}
+   {{#vardef}}SIMPLE_ANSI{{/vardef}}=[yes|no]                                         [default: {{#b}}no{{/b}}]
+      Disables advanced ANSI control-codes that modify the terminal interface.
+      (This can be useful when wrapping the output in simplistic CLI programs
+      like {{#c}}less{{/c}}, but basic ANSI {{#var}}COLOUR{{/var}} functionality is still desired.)
+
+   {{#vardef}}PAGINATE{{/vardef}}=[yes|no]       Identical to, and can override, the {{#flag}}--pager{{/flag}} flag
+
+The boolean variables above accept anything along the lines of {{#c}}TRUE{{/c}}, {{#c}}no{{/c}},
+{{#c}}false{{/c}}, {{#c}}YES{{/c}}, etceteras. Additionally, their {{#b}}names{{/b}} may be prefixed by {{#var}}NO{{/var}} to
+invert their meaning (that is, {{#c}}NOCOLOR=true{{/c}} means the same thing as
+{{#c}}COLOUR=no{{/c}}.)
+
+{{#var}}VERBOSE{{/var}} is handled specially: a low value for the debugging-verbosity, when
+set at invocation-time via one of these environment variables, can {{#b}}never be
+raised{{/b}} for the duration of execution. This means that {{#var}}SILENT{{/var}} (or {{#c}}VERBOSE=0{{/c}})
+{{#b}}always{{/b}} means ‘silent.’ However, it {{#b}}can{{/b}} be lowered (this means modules depending
+on Paws can programmatically silence warnings.)
+{{/arcane}}
 
 {{#title}}Community:{{/title}}
 Paws homepage: <{{#link}}http://Paws.mu{{/link}}>

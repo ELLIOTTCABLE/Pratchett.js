@@ -1,0 +1,6 @@
+{
+  "save-live-edit": true,
+  "hidden": [],
+  "nodejs": ["--harmony"],
+  "stack-trace-limit": 100
+}

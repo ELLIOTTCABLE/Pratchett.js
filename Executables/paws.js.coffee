@@ -13,6 +13,11 @@ kexec       = optional 'kexec'
 path        = require 'path'
 fs          = bluebird.promisifyAll require 'fs'
 
+bluebird.config
+   warnings: true
+   longStackTraces: true
+
+
 # I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
 Paws        = require '../Library/Paws.js'
 
@@ -50,6 +55,13 @@ argv = argf._
 if argf.V || argf.verbose
    debugging.VERBOSE 6
 
+ENV ['PAGINATE'], type: 'boolean', value: null
+ENV ['PAGINATED'], immutable: yes, infect: yes, handler: (paginated)->
+   info "-- Already paginated, disabling pagination"
+   debugging.paginate no if paginated; return paginated
+
+debugging.paginate(argf.paginate ? argf.pager) if _.isBoolean debugging.paginate()
+
 
 sources = _([argf.e, argf.expr, argf.expression])
    .flatten().compact().map (expression, i)-> { from: '--expression #' + i, code: expression }
@@ -64,21 +76,26 @@ if verbosity() >= debugging.verbosities['info']
    wtf process.env
 
 choose = ->
-   if argf.pager == true and not process.env['_PAGINATED']
-      return page()
-
-   if argf.help or (_.isEmpty(argv[0]) and !sources.length)
-      return help ->
-         process.exit 1
+   if debugging.paginate()
+      info '-- Trying to paginate,'
+      return page choose
 
    if argf.version
-      version()
-      process.exit 0
+      info '-- Writing version and exiting.'
+      return version -> process.exit 0
 
+   if argf.help
+      info '-- Displaying help-text and exiting.'
+      return help -> process.exit 0
+
+   if (_.isEmpty(argv[0]) and !sources.length)
+      notice '-- No operation specified, displaying usage and exiting.'
+      return help -> process.exit 1
 
    switch operation = argv.shift()
 
       when 'pa', 'parse'
+         info '-- Invoking parse operation'
          go = -> _.forEach sources, (source)->
             info "-- Parse-tree for '#{term.bold source.from}':"
             seq = Paws.parse Paws.parse.prepare source.code
@@ -94,6 +111,7 @@ choose = ->
       # FIXME: Single TAP count / output, for all Collections
       # FIXME: OHFUCK, any input files need to be started *in serial*, despite asynchronicity
       when 'ch', 'check'
+         info '-- Invoking check operation'
          {Collection} = require '../Source/rule.coffee'
          readSourcesAsync(argv).then (files)->
             # FIXME: Promisify this a bit more.
@@ -145,12 +163,14 @@ choose = ->
             here.start() if argf.start == true
 
       when 'in', 'interact', 'interactive'
+         info '-- Invoking interact operation'
          Interactive = require '../Source/interactive.coffee'
          interact = new Interactive
          interact.on 'close', -> goodbye 0
          interact.start()
 
       when 'st', 'start'
+         info '-- Invoking start operation'
          go = -> _.forEach sources, (source)->
             info "-- Staging '#{term.bold source.from}' from the command-line ..."
             root = Paws.generateRoot source.code, path.basename source.from, '.paws'
@@ -180,7 +200,9 @@ process.nextTick choose
 # FIXME: Check for existence of `less` if `$PAGER` is not defined.
 # FIXME: `less` seems to mangle the emoji heart above by default.
 page = (cb)->
-   if process.env['_PAGINATED'] or argf.pager == false
+   if debugging.paginated() or debugging.paginate() == no
+      info '-- Refusing to paginate: ' +
+         if debugging.paginated() then 'already paginated.' else 'pagination disabled.'
       return cb()
 
    # A simpler hack, to send `-R` to `less`, if possible.
@@ -191,8 +213,8 @@ page = (cb)->
    escapeShellArg = (cmd)-> "'" + cmd.replace(/\'/g, "'\\''") + "'"
 
    process.env['SIMPLE_ANSI'] = true
-   process.env['_PAGINATED'] = true
-   process.env['_PAGINATED_COLUMNS'] = term.columns
+   process.env['PAGINATED'] = true
+   process.env['PAGINATED_COLUMNS'] = term.columns # XXX: Would `COLUMNS` work?
 
    # These are passed to `"sh" "-c" ...` by `kexec()`.
    params = process.argv.slice()
@@ -214,20 +236,63 @@ help = (cb)-> page -> readFilesAsync([extra('help.mustache'), extra('figlets.mus
    usage = divider + "\n" + _(figlets).sample() + template + divider
    #  -- standard 80-column terminal -------------------------------------------------|
 
-   out.write mustache.render usage+"\n",
+   usage = mustache.render usage+"\n",
       heart: if colour() then heart else '<3'
       b: ->(text, r)-> term.bold r text
       u: ->(text, r)-> term.underline r text
-      c: ->(text, r)-> if colour() then term.invert r text else '`'+r(text)+'`'
+      c: ->(text, r)-> if colour() then term.invert ' '+r(text)+' ' else '`'+r(text)+'`'
 
-      op:   ->(text, r)-> term.fg 2, r text
-      bgop: ->(text, r)-> term.bg 2, r text
-      flag: ->(text, r)-> term.fg 6, r text
-      bgflag: ->(text, r)-> term.bg 6, r text
+      # `op` and `flag` are meant to be used inline in other text, as they surround their content
+      # with backticks when COLOUR is disabled. The other four are meant to be used in code-samples
+      # or headlines, where backticks are unnecessary.
+      op:      ->(text, r)-> if colour() then term.fg 2, r text else '`'+r(text)+'`'
+      bgop:    ->(text, r)-> term.bg 2, r text
+      opdef:   ->(text, r)-> term.fg 2, r text
 
-      title: ->(text, r)-> term.bold term.underline r text
+      flag:    ->(text, r)-> if colour() then term.fg 6, r text else '`'+r(text)+'`'
+      bgflag:  ->(text, r)-> term.bg 6, r text
+      flagdef: ->(text, r)-> term.fg 6, r text
+
+      var:     ->(text, r)-> if colour() then term.fg 5, r text else '`'+r(text)+'`'
+      bgvar:   ->(text, r)-> term.bg 5, r text
+      vardef:  ->(text, r)-> term.fg 5, r text
+
+      title: ->(text, r)->
+         text = r text.toUpperCase() # FIXME: Well, will obviously break with embedded codes ...
+         if colour()
+            term.bold term.underline text
+         else
+            text + "\n" + _.repeat '=', text.length
+
       link:  ->(text, r)->
          if colour() then term.sgr(34) + term.underline(r text) + term.sgr(39) else r text
+
+      arcane: ->(text, r)-> if argf.arcane then r text else ''
+      important: ->(text, r)->
+         info '-- Disabling blink' unless debugging.blink()
+         carets = (arr...)->
+            if colour() and term.tput.max_colors == 256
+               arr[0] = term.xfg 52, arr[0]
+               arr[1] = term.xfg 124, arr[1]
+               arr[2] = term.xfg 196, arr[2]
+            else if colour()
+               arr[0] = term.fg 10, arr[0]
+               arr[1] = term.fg 1, arr[1]
+               arr[2] = term.fg 11, arr[2]
+            return arr
+
+         # FIXME: Why isn't exit-blink in the termcap o_O?
+         blink = if debugging.blink() then [ term.sgr(5), term.sgr(25) ] else ['', '']
+
+         # FIXME: This Unicode may be fuuuuugly on Linux / Windows.
+         wrap = [ carets('❮ ','❮ ','❮ ').join(''), carets(' ❯',' ❯',' ❯').reverse().join('') ]
+
+         line = blink[0]+wrap[0]+blink[1] + r(text) + blink[0]+wrap[1]+blink[1]
+
+        #padding = _.floor (term.columns - term.strip(line).length) / 2
+         padding = _.floor (80- term.strip(line).length) / 2
+         (_.repeat ' ', padding) + line
+
       prompt: -> # Probably only makes sense inside {{pre}}. Meh.
          if colour() and not debugging.simple_ansi()
             term.sgr(27) + term.csi('3D') + term.fg(7, prompt+' ') + term.sgr(7) + term.sgr(90)
@@ -243,20 +308,19 @@ help = (cb)-> page -> readFilesAsync([extra('help.mustache'), extra('figlets.mus
          else
             "   #{line}"
 
-   version()
-   cb()
+   out.write usage, 'utf8', -> version cb
 
-version = ->
-   # TODO: Extract this `git describe`-style, platform-independant?
+version = (cb)->
+   # TODO: Extract this `git describe`-style, platform-independent?
    release      = module.package['version'].split('.')[0]
    release_name = module.package['version-name']
    spec_name    = module.package['spec-name']
    out.write """
       Paws.js release #{release}, “#{release_name}”
          conforming to: #{spec_name}
-   """ + "\n"
+   """ + "\n", 'utf8', cb
 
-ENV 'BLINK'
+ENV 'BLINK', value: colour()
 goodbye = (code = 0)->
    if not process.env['_PAGINATED'] and verbosity() >= debugging.verbosities['error']
       salutation = _(salutations).sample()
