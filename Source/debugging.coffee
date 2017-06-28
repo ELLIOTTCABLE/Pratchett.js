@@ -53,6 +53,8 @@ module.exports = debugging =
          debugging.ENV ['COLOUR', 'COLOR'], value: true, infect: true
          debugging.ENV 'SIMPLE_ANSI', value: false
 
+         debugging.ENV ['TESTING', 'NODE_ENV'], handler: parse_testing
+
       $init.browser = (window = window, console = console)->
          _.extend debugging,
             _environment: 'browser'
@@ -174,8 +176,10 @@ module.exports = debugging =
                $values[key] = handler process.env[name], $values[key], key, name
 
                if debugging.VERBOSE?() >= debugging.verbosities['verbose']
-                  exists_as = if (name is key) then '' else " (as '#{name}')"
-                  debugging.log "-- ENV-option '#{key}' present#{exists_as}: #{$values[key]}"
+                  unparsed_value = if process.env[name] is $values[key].toString() then '' else
+                     "'#{process.env[name]}' -> "
+                  exists_as      = if (name is key) then '' else " (as '#{name}')"
+                  debugging.log "-- ENV-option '#{key}' present#{exists_as}: #{unparsed_value}#{$values[key]}"
 
          if defavlt? and not $values[key]?
             $values[key] = defavlt
@@ -202,13 +206,19 @@ parse_numberish  = (arg)->
    int = parseInt arg
    if isNaN int then undefined else int
 
-parse_booleanish = (arg, braaaaiiins, braaaaaaaiiiiiinnns, as_name)->
+parse_booleanish = (arg, braaaaiiins, braaaaaaaiiiiiinnns, as)->
    bool = if arg is false or /^[nf]/i.test arg.toString() then false
    else   if arg is true  or /^[yt]/i.test arg.toString() then true
 
    return null unless bool?
-   return !bool if /^NO/.test as_name
+   return !bool if /^NO/.test as
    return bool
+
+parse_testing    = (arg, hm, i_dont_know_how_i_feel_about_that, as)->
+   if 'NODE_ENV' == as
+      /^test/i.test arg.toString()
+   else
+      parse_booleanish arg ,_,_, as
 
 
 # The `VERBOSE` environment-variable and friends are handled specially: every `verbosities`-name in
