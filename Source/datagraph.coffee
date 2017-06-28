@@ -718,39 +718,6 @@ Paws.Position = Position = class Position
          return new Position @_sequence, @expression_index + 1
 
 
-# A Mask is a lens through which one can use a `Thing` as a delinator of a particular sub-graph of
-# the running program's object-graph.
-Paws.Mask = Mask = class Mask
-   constructor: constructify(return:@) (@root)->
-
-   # Given the `Thing`-y root, flatten out the nodes (more `Thing`s) of the sub-graph ‘owned’ by
-   # that root (at the time this function is called) into a simple unique-set. Achieved by climbing
-   # the graph.
-   flatten: ()->
-      recursivelyMask = (set, root)->
-         set.push root
-         _(root.metadata)
-            .filter().filter('owns')
-            .pluck('to')
-            .reduce(recursivelyMask, set)
-
-      _.uniq recursivelyMask new Array, @root
-
-   # Explores other `Mask`'s graphs, returning `true` if this `Mask` encapsulates any of the same nodes.
-   conflictsWith: (others...)->
-      others = others.reduce ((others, other)->
-         others.concat other.flatten() ), new Array
-
-      _(others).some (thing)=> _(@flatten()).contains thing
-
-   # Explores other `Mask`'s graphs, returning `true` if they include *all* of this `Mask`'s nodes.
-   containedBy: (others...)->
-      others = others.reduce ((others, other)->
-         others.concat other.flatten() ), new Array
-
-      _(@flatten()).difference(others).isEmpty()
-
-
 # An `Operation` is effectively just a delayed function-invocation; every operation is a function-
 # member of this class, which is evaluable once preceding operations in a given `Execution`'s queue
 # are complete.
