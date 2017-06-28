@@ -52,7 +52,7 @@ Paws.debugging.infect Paws
 #
 # The default receiver for a flavour of object depends on the additional data it carries around
 # (that is, the JavaScript type of the node). For instance, the default receiver for plain `Thing`s
-# (those carrying no additional data around) is an equivalent to the `#find()` operation; that is,
+# (those carrying no additional data around) is an equivalent to the `::find()` operation; that is,
 # to treat the subject-object as a dictionary, and the message-object as a key to search that
 # dictionary for. The default for any object, however, can be overridden per-object, changing how a
 # given node in the graph responds to `Combination`s with other objects. (See the documentation for
@@ -68,8 +68,8 @@ Paws.debugging.infect Paws
 #
 # These `Relation`s are stored in an ordered `Array`; manipulable via `::set()`, `::push()`,
 # `::pop()`, `::shift()`, and `::unshift()`. When structured as a dictionary (a list of key-value
-# ‘pairs’), the values are searchable by `::find()`; and the apparent key / value of a pair are
-# exposed by `::keyish()` and `::valueish()`.
+# ‘pairs’, usually created with `::define()`), the values are searchable by `::find()`; and the
+# apparent key / value of a pair are exposed by `::keyish()` and `::valueish()`.
 Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    constructor: constructify(return:@) (elements...)->
       @id = uuid.v4()
@@ -141,8 +141,19 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    # Convenience method to create a ‘pair-ish’ `Thing` (one with only two members, the first of
    # which is a string-ish ‘key.’)
-   @pair: (key, value)->
-      new Thing(Label(key), value)
+   @pair: (key, value, own)->
+      it = new Thing
+      it.push new Relation Label(key), yes
+      it.push new Relation value, own
+      return it
+
+   # A further convenience to add a new pair to the end of a ‘dictionary-ish’ `Thing`.
+   #
+   # The pair-object itself is always owned by the receiver `Thing`; but the third `own` argument
+   # specifies whether the *`value`* is to be further owned by the dictionary-structure as well.
+   define: (key, value, own)->
+      pair = Thing.pair key, value, own
+      @push pair.owned()
 
    # FIXME: This is ... not precise. /=
    isPair:   -> @metadata[1] and @metadata[2]
@@ -167,15 +178,17 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 # passed in. (The latter is a behaviour configurable by `.with(own: no)`.)
 #
 # @option own: Whether to construct the structure's `Relation`s as `own`ing the leaf-objects
+# @option names: Whether to `rename` the resulting `Thing` according to the key it's being assigned
 Thing.construct = (representation)->
-   members = for key, value of representation
+   pairs = for key, value of representation
       value = Native.synchronous value if _.isFunction value
       value = @construct value unless value instanceof Thing
       value.rename key if @_?.names
       relation = Relation(value, @_?.own ? yes)
       Thing.pair( key, relation ).owned()
 
-   return Thing members...
+   # FIXME: Why am I *passing on* with-flags? I need to fix that system, if this is necessary.
+   return Thing.with(own: yes) pairs...
 
 Thing.init_receiver = ->
    # The default receiver for `Thing`s simply preforms a ‘lookup.’
@@ -301,8 +314,8 @@ Paws.Execution = Execution = class Execution extends Thing
 
       @pristine = yes
       @locals = new Thing().rename 'locals'
-      @locals.push Thing.pair 'locals', @locals.disowned()
-      this   .push Thing.pair 'locals', @locals.owned()
+      @locals.define 'locals', @locals, no
+      this   .define 'locals', @locals, yes
 
       @ops = new Array
 
@@ -349,7 +362,7 @@ Paws.Execution = Execution = class Execution extends Thing
       to.pristine    = @pristine
 
       to.locals      = @locals.clone().rename('locals')
-      to.push Thing.pair 'locals', to.locals.owned()
+      to.define        'locals', to.locals.owned()
 
       to.advancements = @advancements if @advancements?
 
@@ -614,9 +627,16 @@ Execution.init_receiver = ->
 # ================
 Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
 
-   constructor: constructify (@to, @owns = false)->
-      return @to.clone this if @to instanceof Relation
-      return this
+   constructor: constructify (to, owns)->
+      if to instanceof Relation
+         it      = to.clone this
+      else
+         it      = this
+         it.to   = to
+         it.owns = false
+
+      it.owns    = owns if owns?
+      return it
 
    clone: -> new Relation @to, @owns
 

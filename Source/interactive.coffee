@@ -43,7 +43,7 @@ Interactive = parameterizable class Interactive extends EventEmitter
       inspector = new Native (result)->
          process.stdout.write Paws.inspect(result) + "\n"
       .rename '<interact: inspect result>'
-      @shared_locals.push Thing.pair '_INTERACTIVE_INSPECT', inspector
+      @shared_locals.define '_INTERACTIVE_INSPECT', inspector
 
    prompt: -> @readline.prompt()
 
