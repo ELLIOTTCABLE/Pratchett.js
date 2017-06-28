@@ -301,7 +301,10 @@ Paws.Execution = Execution = class Execution extends Thing
 
       # If this belongs to a `LiabilityFamily` (i.e. is participating with other 'read'-access
       # `Execution`s, it will be linked here by `LiabilityFamily#add()`.
-      @associates = undefined
+      #---
+      # WAT: This makes no sense, because an Execution can hold Liabilities for multiple nodes in
+      # a subgraph, each separately, and thus belong-by-extension to multiple LiabilityFamilies ...
+     #@associates = undefined
 
       return this
 
@@ -664,12 +667,12 @@ Paws.Liability.Family = LiabilityFamily = delegated('custodians', Array) class L
          return false if @includes it
 
       @members.push it
-      it.custodian.associates = this
+     #it.custodian.associates = this
 
    remove: (it)->
       _(@members)
          .remove( (member)-> member.compare it ) # FIXME: Wasteful.
-         .forEach (member)-> member.custodian.associates = undefined
+      #  .forEach (member)-> member.custodian.associates = undefined
          .commit()
 
    includes: (it)-> _(@members).any (member)-> member.compare it

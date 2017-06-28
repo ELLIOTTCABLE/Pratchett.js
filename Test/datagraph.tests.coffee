@@ -352,7 +352,7 @@ describe "Paws' Data types:", ->
             family = new Liability.Family li
             expect(family.write()).to.be.ok()
 
-         it 'sets `associates` on the first member', ->
+         it.skip 'sets `associates` on the first member', ->
             an_exec = new Execution
             li = new Liability an_exec, Thing()
 
@@ -397,7 +397,7 @@ describe "Paws' Data types:", ->
             expect(rv).to.not.be.ok()
             expect(family.members).to.not.contain li3
 
-         it 'sets `associates` on successfully-added members', ->
+         it.skip 'sets `associates` on successfully-added members', ->
             family = new Liability.Family Liability(Execution(), Thing())
 
             an_exec = new Execution
@@ -406,7 +406,7 @@ describe "Paws' Data types:", ->
             family.add li
             expect(an_exec.associates).to.be family
 
-         it "doesn't set `associates` on members that can't be added", ->
+         it.skip "doesn't set `associates` on members that can't be added", ->
             family = new Liability.Family Liability(Execution(), Thing(), no)
 
             an_exec = new Execution
@@ -427,7 +427,7 @@ describe "Paws' Data types:", ->
             expect(rv).to.be.ok()
             expect(family.members).to.not.contain li2
 
-         it "resets `associates` on removed custodians", ->
+         it.skip "resets `associates` on removed custodians", ->
             an_exec = new Execution()
             li = new Liability an_exec, Thing()
             family = new Liability.Family Liability(Execution(), Thing())
