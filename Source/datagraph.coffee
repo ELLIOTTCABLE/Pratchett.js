@@ -78,7 +78,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       @metadata.unshift undefined if @_?.noughtify != no
 
-   rename: (name)-> @name = name ; return this
+   rename: selfify (name)-> @name = name
 
    at: (idx)->       @metadata[idx]?.to
    set: (idx, to)->  @metadata[idx] = new Relation to

@@ -192,21 +192,25 @@ _.constructify = (opts)->
 # ----
 # TODO: This could all be a lot more succinct, and prettier.
 _.parameterizable = (Klass)->
+
+   # The constructor-version of `with()` operates by A) pre-creating a base object for the
+   # constructor to later operate on, and then B) creating a bound version of the `Klass`'s
+   # constructor that operates specifically on that object.
    Klass.with = (opts)->
 
       # XXX: Perhaps this should use constructify()?
       # XXX: Should this handle super-constructors?
-      F = -> @constructor = Klass; return this
-      F:: = Klass::
-      it = new F
+      A = -> @constructor = Klass; return this
+      A:: = Klass::
+      base = new A
 
-      it.with opts
-      bound = _.bind Klass, it
-      _.extend bound, Klass
-      bound.prototype = Klass.prototype
-      bound._ = opts
-      process.nextTick => delete bound._
-      bound
+      base.with opts
+      B = _.bind Klass, base
+      _.extend B, Klass
+      B.prototype = Klass.prototype
+      B._ = opts
+      process.nextTick => delete B._
+      return B
 
    Klass.prototype.with = (@_)->
       process.nextTick => delete @_
