@@ -13,6 +13,43 @@ describe "Paws' utilities:", ->
       expect(utilities.node).to.be.ok()
       expect(utilities.node).to.have.key 'inherits'
 
+   describe '.isShallowEqual', ->
+      it 'exists', ->
+         expect(_.isShallowEqual).to.be.ok()
+         expect(_.isShallowEqual).to.be.a 'function'
+
+      it 'succeeds two equal objects', ->
+         it = {a: 123}; other = {a: 123}
+
+         expect(it).to.not.be other
+         expect(it).to.eql other
+         expect(_.isShallowEqual it, other).to.be yes
+
+      it 'fails two different objects', ->
+         it = {a: 123}; other = {a: 456}
+         expect(_.isShallowEqual it, other).to.be no
+
+      it 'fails when the second is missing a property', ->
+         it = {a: 123, b: 456}; other = {a: 123}
+         expect(_.isShallowEqual it, other).to.be no
+
+      it 'fails when the first is missing a property', ->
+         it = {a: 123}; other = {a: 123, b: 456}
+         expect(_.isShallowEqual it, other).to.be no
+
+      it 'succeeds when a property is NaN', ->
+         it = {a: 123, b: NaN}; other = {a: 123, b: NaN}
+         expect(_.isShallowEqual it, other).to.be yes
+
+      it 'succeeds when a property is undefined', ->
+         it = {a: 123, b: undefined}; other = {a: 123, b: undefined}
+         expect(_.isShallowEqual it, other).to.be yes
+
+      it 'fails when a property is undefined in one, and missing in the other', ->
+         it = {a: 123, b: undefined}; other = {a: 123}
+         expect(_.isShallowEqual it, other).to.be no
+
+
    describe '.selfify', -> # ---- ---- ---- ---- ----                                      selfify()
       composed = utilities.selfify -> 'whee'
       it 'always returns the `this` value', ->

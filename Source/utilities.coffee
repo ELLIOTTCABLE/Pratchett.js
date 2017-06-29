@@ -246,6 +246,17 @@ functions = (prototype, uuntil = Object.prototype)->
    .concat(unless metaproto is uuntil then functions metaproto else [])
    .uniq().without('constructor')
 
+# CoffeeScript compiles a hot fucking mess out of this. ಠ_ಠ
+_.isShallowEqual = (it, other)->
+   for own key, value of it
+      return false unless other.hasOwnProperty(key)
+      return false unless value is other[key] or (isNaN(value) and isNaN other[key])
+
+   for own key, value of other
+      return false unless it.hasOwnProperty(key)
+      return false unless value is it[key]    or (isNaN(value) and isNaN it[key])
+
+   return true
 
 # `debugging.coffee` depends on this, and thus must be loaded *after* this. (Similarly, it cannot be
 # used inside this file until post-init; so any debugging statements must be inside invocations.)
