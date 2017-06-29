@@ -13,7 +13,7 @@
 
 ,       "scripts" :{
              "build" : "./Scripts/build.sh"
-,       "prepublish" : "./Scripts/build.sh"
+,          "prepare" : "./Scripts/build.sh"
 
 ,             "test" : "./Scripts/test.sh"
 ,               "ci" : "./Scripts/travis.sh"
