@@ -1,4 +1,4 @@
-uuid             = require 'node-uuid'
+uuid             = require 'uuid'
 { EventEmitter } = require 'events'
 
 _                = require './utilities.coffee'
