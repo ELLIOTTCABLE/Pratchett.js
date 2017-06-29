@@ -5,12 +5,18 @@
 # This script will convert your local .git/hooks directory to allow for multiple scripts for each
 # `git`-hook, and will then install the hooks associated with contributing to this project.
 #
-#     VERBOSE=true npm run-script install-git-hooks
+#     VERBOSE=4 npm run-script install-git-hooks
+#
+# It takes as its optional first argument a particular git-hook to install scripts for, and as its
+# second, a particular git-directory to install the hooks in:
+#
+#     npm run-script install-git-hooks -- pre-commit a/project/dir/.git
+
 puts() { printf %s\\n "$@" ;}
 pute() { printf %s\\n "~~ $*" >&2 ;}
 
 hook_dir="${2:-.git}/hooks"
-tracked_dir="Scripts/git-hooks"
+tracked_dir="$npm_package_config_dirs_hooks"
 requested_hook="$1"
 
 # ‘Arrays’ in POSIX shell are a nasty topic. It's possible to work relatively sanely with
@@ -28,47 +34,58 @@ if echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)'; then
 fi
 
 [ -n "$DEBUG_SCRIPTS" ] && puts \
-   "Requested hook:        '$1'"                                              \
-   "Default hooks:         '$npm_package_config_git_hooks'"                   \
+   "Requested hook:         ${1:--}"                                          \
+   "Default hooks:         '$default_hooks'"                                  \
+   "Installing to:         '$hook_dir'"                                       \
    "" >&2
 
 [ ! -d ".git" ] && \
-   pute 'You must be in the root directory of a `git` project to use this script!' && exit 1
+   pute 'You must be in the root directory of a `git` project to use this script!' \
+   && exit 10
+
+[ ! -d "$tracked_dir" ] && \
+   pute "The tracked hooks-dir, '$tracked_dir', doesn't seem to exist. Check your package.json?" \
+   && exit 11
 
 mkdir -p "$hook_dir"
 
+# An attempt to make a Dropbox-compatible (i.e. doesn't care if you flatten symlinks) alternative to
+# `ln -s`.
+install_link() {
+   existing="$1"
+   new="$2"
+
+   if [ -h "$new" ]; then
+      rm "$new"                                                               || return 21
+   fi
+
+   # If the file exists, and isn't identical / a symlink, then move it aside ...
+   if [ -e "$new" ] && ! diff "$existing" "$new" >/dev/null; then
+      pute "Moving your '$new' to '$new-preexisting' ..."
+      mv "$new" "$new-preexisting"                                            || return 22 ;fi
+
+   # ... and link the requested contents.
+   ln -s "$existing" "$new"                                                   || return 23
+}
 
 install_hook() {
    hook_name="$1"
 
-   [ -n "$VERBOSE" ] && pute "Installing '$hook_name' hooks ..."
+   [ "$VERBOSE" -ge 4 ] && pute "Installing '$hook_name' hooks ..."
 
-   # If the primary hook-file exists, and isn't a symlink, then we need to move it out of the way.
-   if [ ! -h "$hook_dir/$hook_name" -a -x "$hook_dir/$hook_name" ]; then
-      pute "Moving original '$hook_name' to '$hook_name-local' ..."
-      mv "$hook_dir/$hook_name" "$hook_dir/$hook_name-local" || exit 1        ;fi
+   # First, link the hook-chaining script to process these hooks
+   install_link "$tracked_dir/chain-hooks.sh" "$hook_dir/$hook_name"          || exit $?
 
-   # If it still exists now, it's either already a symlink or not executable. Either way, don't care
-   rm "$hook_dir/$hook_name" 2>/dev/null
-
-   # Now, we link the hook-chaining script to process these hooks
-   ln -s "../../$tracked_dir/chain-hooks.sh" "$hook_dir/$hook_name"
-
-   # For each tracked hook in the repository,
+   # Then, for each tracked hook in the repository,
    for tracked_path in "$tracked_dir/$hook_name"-*; do
       if [ ! -x "$tracked_path" ]; then continue                              ;fi
 
       hook_path="$hook_dir/$(basename "$tracked_path")"
-      [ -n "$VERBOSE" ] && pute " - '$hook_path' ..."
+      [ "$VERBOSE" -ge 4 ] && pute " - '$hook_path'"
+      [ "$VERBOSE" -ge 6 ] && pute " -> '$tracked_path'"
 
-      # ... remove any existing symlink,
-      if [ -L "$hook_path" ]; then
-         rm $hook_path                                                        ;fi
-
-      # ... and create a symlink to the tracked version of the hook.
-      ln -s "../../$tracked_path" "$hook_path" || exit 1
-
-   done
+      # create a symlink back to the tracked hook-file
+      install_link "$tracked_path" "$hook_path"                               || exit $?; done
 }
 
 for hook in ${requested_hooks:-$default_hooks}; do

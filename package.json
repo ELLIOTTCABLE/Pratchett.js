@@ -33,7 +33,8 @@
                   , "documentation"
                                  : "Docs"
                   , "coverage"
-                                 : "Docs/Coverage" }
+                                 : "Docs/Coverage"
+                  , "hooks"      : "Scripts/git-hooks" }
 ,         "mocha" :{"ui"         : "bdd"
                   , "reporter"   : "mocha-fivemat-reporter" }
 ,           "git" :{"hooks"      : "prepare-commit-msg pre-commit post-merge post-checkout" }
