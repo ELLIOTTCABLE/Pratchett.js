@@ -351,7 +351,9 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    # FIXME: Make these proper Symbols.
    @abortIteration: abortIteration = 'abortIteration'
-   @walkCache: walkCache           = '__walk__do_cache'
+   @walkCache: walkCache           = '::walk__do_cache'
+   @cachesKey: cachesKey           = '::walk__caches'
+   @cachebackKey: cachebackKey     = '::walk__cachingKey'
 
    # This provides flexible tooling to climb the data-graph, discovering and collecting nodes in a
    # manner specified by supplied ‘supplier’ and ‘filter’ callbacks.
@@ -420,14 +422,43 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #        manipulation. Most directly, I want to support lodash-esque *efficient*, chainable
    #        operations.
    walk: do ->
-      walk = (discoverer, callbacks, visited = new Object)->
+      # Reverse-mapping of each ‘unique set of caching filter-back Functions’ to ‘caching key.’
+      # (Each set's-key to which a given Function belongs is *also* stored on the Function, to index
+      # into this mapping.)
+      cache_keys = {}
 
+      # So, implementation: The recursive function, `walk()`, steps over a passed node, `this` (that
+      # being the node *it is called on*, not the original receiver), by invoking each function in
+      # `cachebacks` (if it's defined ... see below) and then the oens in `runbacks`, on that node.
+      # (See documentation above.)
+      #
+      # Before the first invocation, `cachebacks` is constructed by the below implementation of
+      # the *actual* `::walk`-shim; it consists of all of the functions with which `::walk` was
+      # originally invoked, up until the first function *not* including a truthy value for the
+      # `walkCache` symbol-key. In addition, an arbitrary key is constructed for each unique set of
+      # `Function`-objects, and that key is used to cache results of that *particular*
+      # walking-pattern to the visited nodes. (See documentation above.)
+      #
+      # Each (recursive) step returns either `undefined` (if a filterback rejects it), `null` (if it
+      # has already been visited, i.e. in a circular graph), `false` (if any callback returns
+      # `abortIteration`), or finally, an `Object`-map of the discovered results of that step
+      # (including, of course, the results of sub-steps.)
+      walk = (discoverer, cachebacks, runbacks, allbacks, visited = new Object)->
          return null if visited[@id]
+         visited[@id] = this
+
+         if cachebacks?
+            if cache = this[cachesKey]?[cachebacks.key]
+               rejected = cache is false
+            else
+               # XXX
+
+
          discovered = new Object
          aborted = no
 
-         rejected = not _.all callbacks, (callback)=>
-            rv = callback.call this, this, discoverer, discovered, visited, callbacks
+         rejected = not _.all runbacks, (cb)=>
+            rv = cb.call this, this, discoverer, discovered, visited, allbacks
 
             # ‘filter-back’,
             return false if rv is false
@@ -451,15 +482,32 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
             return rv
 
          return false if aborted # If walk() returns `false`, it immediately propagates upwards,
-         return if rejected      # but if it was merely rejected, then nothing is added on this iter
-         visited[@id] = this     # … and if this was neither abortive *nor* rejected, then add it!
+         return {} if rejected   # but if it was merely rejected, then nothing is added on this iter
 
-         walk.call node, this, callbacks, visited for own id, node of discovered
+         can_cache = yes
 
-         return visited
+         for own id, node of discovered
+            returned = walk.call node, this, cachebacks, runbacks, allbacks, visited
+            return false if returned is false
 
-      return (callbacks...)->
-         visited = walk.call this, null, callbacks
+            can_cache = null if returned == null     # invalidate the cache if *any* child was skipped
+            _.assign discovered, returned
+
+         return discovered
+
+      # FIXME: This is a meeeessssss ...
+      return (allbacks...)->
+         # FIXME: Make the cachebacks-unique-key as Symbols! Seriously!
+         if allbacks[0]?[walkCache]
+            { true: cachebacks, false: runbacks } = _.groupBy allbacks, (cb)-> cb[walkCache]?
+
+            cachebacks.key = _.find cache_keys, (cbs, key)-> _.isShallowEqual cbs, cachebacks
+            unless key?
+               cachebacks.key = '_cache__' + cachebacks.map((cb)-> cb.toString() ).join '__'
+               cacheback[cachebackKey] = cachebacks.key for cacheback in cachebacks
+               cache_keys[cachebacks.key] = cachebacks
+
+         visited = walk.call this, null, cachebacks, runbacks ? allbacks, allbacks
          return visited ? {}
 
   #   if _.isFunction(descendants)
