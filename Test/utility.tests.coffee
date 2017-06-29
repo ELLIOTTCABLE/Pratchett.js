@@ -108,7 +108,7 @@ describe "Paws' utilities:", ->
          expect(new Klass)  .to.be.a Klass
          expect(    Klass()).to.be.a Klass
 
-      it 'uses a really hacky system that requires you not to call the wrapper before CoffeeScript does', ->
+      it.skip 'uses a really hacky system that requires you not to call the wrapper before CoffeeScript does', ->
          Paws.notice "-- SILENCING ALL DEBUGGING OUTPUT!"
          verbosity = Paws.debugging.verbosity(); Paws.debugging.VERBOSE 2
 
