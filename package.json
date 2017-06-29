@@ -37,7 +37,7 @@
                   , "hooks"      : "Scripts/git-hooks" }
 ,         "mocha" :{"ui"         : "bdd"
                   , "reporter"   : "mocha-fivemat-reporter" }
-,           "git" :{"hooks"      : "prepare-commit-msg pre-commit post-merge post-checkout" }
+,           "git" :{"hooks"      : "post-checkout post-commit post-merge pre-commit pre-push prepare-commit-msg" }
  }
 
 ,          "engines" :{"node":"~0.10.7"}
