@@ -29,16 +29,18 @@
 
 ,     "config" :{
            "dirs" :{"source"     : "Source"
+                  , "bin"        : "Executables"
                   , "test"       : "Test"
                   , "rulebook"   : "Test/Rulebook"
                   , "integration": "Test/Integration"
                   , "documentation"
                                  : "Docs"
                   , "coverage"
-                                 : "Docs/Coverage" }
+                                 : "Docs/Coverage"
+                  , "hooks"      : "Scripts/git-hooks" }
 ,         "mocha" :{"ui"         : "bdd"
-                  , "reporter"   : "spec" }
-,           "git" :{"hooks"      : "prepare-commit-msg pre-commit post-merge post-checkout" }
+                  , "reporter"   : "mocha-fivemat-reporter" }
+,           "git" :{"hooks"      : "post-checkout post-commit post-merge pre-commit pre-push prepare-commit-msg" }
  }
 
 ,          "engines" :{"node":"~0.10.7"}
@@ -63,11 +65,11 @@
                      , "expect.js"              : "^0.3.1"
                      , "sinon"                  : "^1.17.2"
                      , "sinon-expect"           : "^0.2.0"
+                     , "mocha-fivemat-reporter" : "^0.0.6"
+                     , "mocha-clean"            : "^1.0.0"
 
                      , "coffee-coverage"        : "^0.7.0"
                      , "istanbul"               : "^0.4.1"
-
-                     , "node-inspector"         : "^0.12.3"
                      , "chokidar-cli"           : "^1.2.0"
 
                      , "taper"                  : "^0.5.0"
