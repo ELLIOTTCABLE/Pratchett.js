@@ -923,6 +923,13 @@ describe "Paws' Data types:", ->
             expect(pair.at 2).to.be.an Execution
             expect(pair.at 2).to.have.property 'synchronous'
 
+         it 'names the passed objects, if requested', ->
+            a Thing
+            expect(a.thing.name).to.be undefined
+
+            Thing.with(names: yes).construct {something: a.thing}
+            expect(a.thing.name).to.be 'something'
+
 
    # ### Thing: Supporting types ###
 

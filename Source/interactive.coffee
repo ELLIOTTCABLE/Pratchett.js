@@ -145,10 +145,11 @@ Interactive = parameterizable class Interactive extends EventEmitter
 
 
    # Generates an `Execution` that will clean up the `mutex` and then print the next prompt.
-   generateResumer: -> new Native =>
-      @mutex = undefined
-      @prompt()
-   .rename '<interact: resume prompt>'
+   generateResumer: ->
+      new Native =>
+         @mutex = undefined
+         @prompt()
+      .rename '<interact: resume prompt>'
 
 
    # --- ---- --- /!\ --- ---- --- #

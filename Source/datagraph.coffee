@@ -136,7 +136,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          leave_ownership_alone = value instanceof Relation
          should_own = @_?.own ? (if leave_ownership_alone then undefined else yes)
 
-         rel.to.rename key if @_?.names
+         value.rename key if @_?.names
          Thing.pair key, value, should_own
 
       return Thing.with(own: yes) pairs...

@@ -13,7 +13,7 @@
 
 ,       "scripts" :{
              "build" : "./Scripts/build.sh"
-,       "prepublish" : "./Scripts/build.sh"
+,          "prepare" : "./Scripts/build.sh"
 
 ,             "test" : "./Scripts/test.sh"
 ,               "ci" : "./Scripts/travis.sh"
@@ -35,7 +35,7 @@
                   , "coverage"
                                  : "Docs/Coverage" }
 ,         "mocha" :{"ui"         : "bdd"
-                  , "reporter"   : "mocha-fivemat-reporter" }
+                  , "reporter"   : "@elliottcable/mocha-fivemat-reporter" }
 ,           "git" :{"hooks"      : "prepare-commit-msg pre-commit post-merge post-checkout" }
  }
 
@@ -43,7 +43,7 @@
 ,     "dependencies" :{"coffee-script"          : "^1.9.1"
                      , "uuid"                   : "^3.0.1"
                      , "pegjs"                  : "~0.8.0"
-                     , "giraphe"                : "^2.0.0"
+                     , "giraphe"                : "^2.0.1"
 
                      , "minimist"               : "^1.2.0"
                      , "mustache"               : "^2.2.0"
@@ -58,19 +58,19 @@
 , "optionalDependencies":{
                        "kexec"                  : "^3.0.0"                                        }
 
-,  "devDependencies" :{"mocha"                  : "^3.2.0"
-                     , "expect.js"              : "^0.3.1"
-                     , "sinon"                  : "^1.17.2"
-                     , "sinon-expect"           : "^0.3.0"
-                     , "mocha-fivemat-reporter" : "^0.0.9"
-                     , "mocha-clean"            : "^1.0.0"
+,  "devDependencies" :{"mocha"                                  : "^3.2.0"
+                     , "expect.js"                              : "^0.3.1"
+                     , "sinon"                                  : "^1.17.2"
+                     , "sinon-expect"                           : "^0.3.0"
+                     , "@elliottcable/mocha-fivemat-reporter"   : "^0.0.10"
+                     , "mocha-clean"                            : "^1.0.0"
 
-                     , "coffee-coverage"        : "^0.7.0"
-                     , "istanbul"               : "^0.4.1"
-                     , "chokidar-cli"           : "^1.2.0"
+                     , "coffee-coverage"                        : "^0.7.0"
+                     , "istanbul"                               : "^0.4.1"
+                     , "chokidar-cli"                           : "^1.2.0"
 
-                     , "taper"                  : "^0.5.0"
-                     , "yamljs"                 : "^0.2.4"                                        }
+                     , "taper"                                  : "^0.5.0"
+                     , "yamljs"                                 : "^0.2.4"                         }
 
 ,   "testling" :{
           "files" : "Test/*.coffee"
