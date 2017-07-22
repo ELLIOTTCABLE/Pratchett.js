@@ -1046,6 +1046,36 @@ Paws.Native = Native = class Native extends Execution
 # Supporting types
 # ================
 
+#---
+# N.B.: Apeing the ES6 Set() interface
+Paws.ThingSet = ThingSet = class ThingSet
+   constructor: constructify(return:@) (things...)->
+      @clear()
+      things.forEach (thing)=>
+         @add thing
+
+   size: -> Object.keys(@_store).length
+
+   # TODO: Assertions or error-handling of some sort
+   add: (value)->
+      @_store[value.id] = value
+      return this
+
+   clear: -> @_store = new Object
+
+   delete: (value)->
+      h = @has value
+      delete @_store[value.id]
+      return h
+
+   has: (value)-> @_store[value.id]?
+
+#---
+# N.B.: Hahaha, CoffeeScript is failing me even harder than usual, here.
+ThingSet.prototype[Symbol.iterator] = -> {
+      foo: 'bar'
+   }
+
 Paws.Relation = Relation = parameterizable delegated('to', Thing) class Relation
 
    constructor: constructify(return:@) (from, to, owns)->

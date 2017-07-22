@@ -12,7 +12,7 @@ describe "Paws' Data types:", ->
 
    {  Reactor, parse
    ,  Thing, Label, Execution, Native
-   ,  Relation, Liability, Combination, Position, Mask, Operation }                           = Paws
+   ,  ThingSet, Relation, Liability, Combination, Position, Mask, Operation }                 = Paws
 
    {  Context, Sequence, Expression }                                                        = parse
 
@@ -932,6 +932,76 @@ describe "Paws' Data types:", ->
 
 
    # ### Thing: Supporting types ###
+
+   describe 'ThingSet', -> # ---- ---- ---- ---- ----                                       ThingSet
+      it 'exists', ->
+         expect(ThingSet).to.be.ok()
+         expect(ThingSet).to.be.a 'function'
+
+      it 'starts out with no length', ->
+         a ThingSet
+
+         expect(a.thingset.size()).to.be 0
+
+      it 'gets larger when Things are added', ->
+         a Thing; a ThingSet
+
+         a.thingset.add(a.thing)
+         expect(a.thingset.size()).to.be 1
+
+      it 'tracks when a given Thing has been added', ->
+         a Thing; a ThingSet
+
+         a.thingset.add(a.thing)
+         expect(a.thingset.has(a.thing)).to.be true
+
+      it "doesn't confuse one Thing for another", ->
+         a Thing; another Thing; a ThingSet
+
+         a.thingset.add(a.thing)
+         expect(a.thingset.has(another.thing)).to.be false
+
+      it 'does not get larger when an already-present Thing is added', ->
+         a Thing; a ThingSet
+
+         a.thingset.add(a.thing)
+         expect(a.thingset.size()).to.be 1
+         a.thingset.add(a.thing)
+         expect(a.thingset.size()).to.be 1
+
+      it 'can remove Things', ->
+         a Thing; a ThingSet
+
+         a.thingset.add(a.thing)
+         expect(a.thingset.has(a.thing)).to.be true
+         a.thingset.delete(a.thing)
+         expect(a.thingset.has(a.thing)).to.be false
+
+      it 'reports whether a Thing was actually removed when deleting it', ->
+         a Thing; a ThingSet
+
+         a.thingset.add(a.thing)
+         expect(a.thingset.delete(a.thing)).to.be true
+         expect(a.thingset.delete(a.thing)).to.be false
+
+      it 'shrinks when Things are deleted', ->
+         a Thing; a ThingSet
+
+         a.thingset.add(a.thing)
+         expect(a.thingset.size()).to.be 1
+         a.thingset.delete(a.thing)
+         expect(a.thingset.size()).to.be 0
+
+      it 'can contain multiple different Things', ->
+         a Thing; another Thing; a ThingSet
+
+         a.thingset.add(a.thing)
+         a.thingset.add(another.thing)
+         expect(a.thingset.size()).to.be 2
+         a.thingset.delete(a.thing)
+         expect(a.thingset.size()).to.be 1
+         expect(a.thingset.has(a.thing)).to.be false
+         expect(a.thingset.has(another.thing)).to.be true
 
    describe 'Relation', -> # ---- ---- ---- ---- ----                                       Relation
       it 'exists', ->
