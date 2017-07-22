@@ -524,18 +524,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # the receiver.
    #
    # This should only be called after `::dedicate` has been called, and has indicated failure; this
-   # is handled for you by ... # DOCME
-   #---
-   # FIXME: So, just like `custodians`, a `supplicant`-`Liability` can actually cascade through the
-   #        ownership subgraph. I need to *further* abstract the graph-walking code above, because
-   #        this function currently is the equivalent of `_available_to`, when it needs to function
-   #        more like the full-on `available_to`.
-   #
-   # TODO:  In fact, that can (and probably should) be extrapolated: there's a lot of parts of this
-   #        codebase that are very nicely abstracted; and this, should definitely become one of
-   #        them. Specifically, 1. walking-the-datagraph, with 2. early-termination, 3. multiple-
-   #        operation (and *conditional* multiple-operation), and 4. caching, is something that
-   #        simply Needs To Exist Soon.
+   # is handled for you by ... # FIXME: DOCME
    supplicate: (liability)->
       @supplicants.push liability
 

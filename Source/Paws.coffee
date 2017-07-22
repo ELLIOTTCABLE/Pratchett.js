@@ -79,20 +79,6 @@ Paws.generateRoot = (code = '', name)->
 #    exist simultaneously; and can be told to pseudo-randomize their ordering: this (badly)
 #    simulates a parallel implementation using only *concurrency*; and it should help to surface
 #    issues with the locking and concurrency model.
-#---
-# XXX: I hesitate to document this in the source, as I've already got voice-memos on it elsewhere;
-#      but there's an issue with maintaining the ordering of supplicants across *merged* subgraphs.
-#
-#      It's trivial to order the operations applying to a particular node; it's *relatively* trivial
-#      to order the operations applying to different elements of a particular ownership-delimited
-#      subgraph ... but no order is maintained between operations on two arbitrary objects with no
-#      ancestor-descendant relationship. This becomes problematic when those objects are
-#      subsequently made participants in such a relationship: there exists no data on which
-#      operations on which node were scheduled first, and which were scheduled later.
-#
-#      I'm having a really difficult time even establishing if this is *problematic*; I think this
-#      is just another concern in the ‘I can't evaluate this until I've *written more code in Paws*’
-#      category. /=
 Paws.Reactor = Reactor = do ->
    _reactors = new Array
    _current  = null
