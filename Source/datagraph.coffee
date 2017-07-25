@@ -103,8 +103,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       @metadata = new Array
       @owners = new Array
-      @custodians = { direct: [], inherited: [] }
-      @supplicants = new Array
+      @custodians  = { direct: [], inherited: [] }
+      @supplicants = { direct: [], inherited: [] }
 
       @push elements... if elements.length
       @metadata.unshift undefined if @_?.noughtify != no
@@ -383,11 +383,18 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # ### Responsibility ###
 
    is_adopted: ->
-      not _.isEmpty(@custodians.direct) or not _.isEmpty(@custodians.inherited)
+      not _.isEmpty(@custodians.direct)   or not _.isEmpty(@custodians.inherited)
+
+   is_supplicated: ->
+      not _.isEmpty(@supplicants.direct)  or not _.isEmpty(@supplicants.inherited)
 
    _any_custodian: (f)->
       _.any(@custodians.direct, f) or
       _.any(@custodians.inherited, f)
+
+   _any_supplicant: (f)->
+      _.any(@supplicants.direct, f) or
+      _.any(@supplicants.inherited, f)
 
    _all_custodians: (f)->
       custodians = _(@custodians.direct).concat(@custodians.inherited).uniq()
@@ -395,6 +402,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          _.all custodians, f
       else
          custodians.value()
+
+   _all_supplicants: (f)->
+      supplicants = _(@supplicants.direct).concat(@supplicants.inherited).uniq()
+      if f?
+         _.all supplicants, f
+      else
+         supplicants.value()
 
    # Returns a walker that only walks descendants *with custodians*.
    _walk_adopted: walk_adopted = undefined
