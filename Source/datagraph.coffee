@@ -515,29 +515,21 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # FIXME: The constant `uniq`'ing is going to also be slow: need to collect that into a single
    #        event after any modifications? Ugh, I need `Set`. /=
    _dedicate: (liability)->
-      return true if _.includes @custodians.direct, liability
-
-
-      _.values(@_walk_descendants()).forEach (descendant)=>
-         family = if descendant is liability.ward then 'direct' else 'inherited'
-         descendant.custodians[family].push liability
-         descendant.custodians[family] = _.uniq descendant.custodians[family]
-
-      return true
+      unless _.includes @custodians.direct, liability
+         _.values(@_walk_descendants()).forEach (descendant)=>
+            family = if descendant is liability.ward then 'direct' else 'inherited'
+            descendant.custodians[family].push liability
+            descendant.custodians[family] = _.uniq descendant.custodians[family]
 
    # DOCME
    dedicate: (liabilities...)->
       liabilities = liabilities[0] if _.isArray liabilities[0]
 
-      # FIXME: I need an ‘allMap’ function of some sort; this is ugly and procedural. /=
-      all_descendants = new Array
-      return false unless _.all liabilities, (liability)=>
-         rv = @available_to liability, descendants = new Object
-         all_descendants.push descendants
-         rv
+      return false unless _.every liabilities, (li)=> @available_to li
 
-      return _.all liabilities, (liability, idx)=>
-         @_dedicate liability, all_descendants[idx]
+      liabilities.forEach (li)=> @_dedicate li
+
+      return true
 
    # The inverse of `::_dedicate`, this removes an existing `Liability` from the receiver (and its
    # owned-descendants.)
