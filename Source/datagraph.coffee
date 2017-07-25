@@ -75,6 +75,41 @@ Paws.debugging.infect Paws
 #
 # ---- ---- ----
 #
+# Many Paws operations change the data-graph; *any* of these operations can, thus, also effectively
+# mutate responsibility. Libside, this is handled by the user: ‘<operation> assumes you've taken
+# responsibility for its arguments’, or ‘<operation> will return when responsibility is available.’
+# This becomes a little more complicated when calling from JavaScript, however.
+#
+# While *everything* is effectively asynch in Paws (that is, after all, sort of the point!), most
+# things happening within a reactor-tick (or in a consuming/embedding application) are
+# *synchronous*. This is problematic, both because there is no way to ‘block’ an operation mutating
+# responsibility until such responsibility is available, and because when these operations are
+# already being called from within the reactor-tick of a particular Paws operation, we can't
+# retroactively change that operation to an `Operation['adopt']`! From another perspective,
+# JavaScript operations happen atomically, in a single reactor-tick, from perspective of Paws
+# operations.)
+#
+# This is exposed and communicated in this JavaScript API by partitioning available methods into
+# three categories, and prefixing the names based on their behaviour. In general,
+#
+# 1. *underscore-prefixed methods* like `::_set` generally do no responsibility-checking, and must
+#    be used after explicitly checking that the required responsibility is available (or during a
+#    tick on a native that has responsibility for the relevant arguments);
+#
+# 2. *bare methods* like `::set` or `::dedicate` are still synchronous, but will preform
+#    responsibility-checking in the due course of their behaviour, and throw synchronously if they
+#    are unable to complete their operations or need to be placed into the operation-queue;
+#
+# 3. and *dollar-prefixed methods* like `::$dedicate` will return a `Promise`, and preform their
+#    behaviour *asynchronously*, placing themselves in the Paws operation-queue if necessary
+#    (meaning that, if called *during* a reactor-tick, these may effectively unstage and block the
+#    calling operation.)
+#
+# In general, underscore-prefixed methods may be considered ‘private’, as the bare methods will
+# behave exactly the same, but with additional reasonableness-checks; and dollar-prefixed methods
+# are often essentially analogues to libside primitives.
+#
+# ### Method summary:
 # `Thing`s are obtained via ...
 #  - direct creation, `new Thing`, with a list of children,
 #  - by `::clone`ing an existing `Thing`,
