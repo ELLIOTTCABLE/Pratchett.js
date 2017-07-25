@@ -1305,7 +1305,13 @@ Operation.register 'adopt', (liability)->
       warning 'Completed Execution attempted to adopt o_O'
       return
 
-   return liability.commit()
+   # This will return `false` if `Thing::dedicate` does so, which indicates that, in turn, the
+   # `Thing::available_to` failed.
+   unless succeeded = liability.commit()
+      liability.ward.supplicate liability
+
+   # If the dedication failed, then this operation failed as well
+   return succeeded
 
 
 # Debugging output
