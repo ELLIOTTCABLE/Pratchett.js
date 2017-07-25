@@ -26,8 +26,7 @@ Paws.debugging.infect Paws
 
 # Core data-types
 # ===============
-
-# The Paws object-space implements a single graph (in the computer-science sense) of homogenous(!)
+# The Paws object-space implements a single graph (in the computer-science sense) of homogeneous(!)
 # objects. Each object, or node in that graph, is called a `Thing`; and is singly-linked² to an
 # ordered list of other nodes.
 #
@@ -69,7 +68,7 @@ Paws.debugging.infect Paws
 # single data-structure as a subgraph thereof.)
 #
 # 2. Note that although Paws objects are, by default, singly-linked, each `Thing` *also* includes
-# seperate reverse-links to all of the `Thing`s that ‘own’ it, to facilitate responsibility
+# separate reverse-links to all of the `Thing`s that ‘own’ it, to facilitate responsibility
 # calculations. (Although actual ownership flows only-downwards along the graph, responsibility
 # existing lower on the graph can still preclude owning ancestors from being adopted; so these back-
 # links are maintained on those descendants as hints that they have adopted.)
@@ -77,25 +76,28 @@ Paws.debugging.infect Paws
 # ---- ---- ----
 #
 # `Thing`s are obtained via ...
-#  - direct creation `new Thing` with a list of children,
+#  - direct creation, `new Thing`, with a list of children,
 #  - by `::clone`ing an existing `Thing`,
-#  - or by following a JavaScript template, with `.construct`, below.
+#  - or, as a convenience, with a provided JavaScript template, with `.construct`, below.
 #
-# Their `Relation`s to children are stored in an ordered `Array`, manipulable ...
-#  - as an ordered set, via `::at`, `::set`, `::push`, `::pop`, `::shift`, and `::unshift`,
-#  - and as a dictionary, with ‘pairs’ created by `::define()` and queried by `::find`.
+# Their `Relation`s to children are stored in an `Array`, manipulable ...
+#  - canonically, as an ordered set: `::at`, `::set`, `::push`, `::pop`, `::shift`, and `::unshift`;
+#  - or as a pseudo-dictionary, with ordered ‘pairs’ added by `::define` and queried by `::find`.
 #
-# The ownership amongst a structure's elements is exposed through:
-#  - `::own_at`, `::disown_at`, and `::is_owned_by`, to control and query children and parents'
-#    ownership relationships,
-#  - or directly, as `Relations`, via `::owned_by` and `::contained_by`. All methods that take a
-#    `Thing`, can also be given a pre-constructed `Relation` indicating the desired relationship. It
-#    won't be used directly, but the relationship will be imitated by the produced changes:
+# Meanwhile, the data-structure ownership amongst a structure's elements is exposed through:
+#  - `::own_at` (or `Relation::owned_by`), to create new membership in a data-structure;
+#  - `::disown_at` (or `Relation::contained_by`), to leave ownership-less links between nodes;
+#  - and `::is_owned_by` to query ownership relationships.
 #
-#         a_thing.set(1, another_thing.owned_by(a_thing))
-#         # Equivalent to:
-#         a_thing.set(1, another_thing)
-#         a_thing.own_at(1)
+# >  Of note, as another convenience: all methods that take a `Thing` and manipulate relationships,
+# >  can *also* take given a pre-constructed `Relation` indicating the desired relationship. It
+# >  won't be used directly, but the relationship will be imitated by the changes produced in the
+# >  data-graph:
+# >
+# >           a_thing.set(1, another_thing.owned_by(a_thing))
+# >           # Equivalent to:
+# >           a_thing.set(1, another_thing)
+# >           a_thing.own_at(1)
 Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    constructor: constructify(return:@) (elements...)->
@@ -114,10 +116,10 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # (as the key, which will be converted into the `Label`), and 2. a Paws `Thing`-subclass (as the
    # value.) These may be nested.
    #
-   #  > For instance, given `{foo: thing_A, bar: thing_B}`, `construct()` will product a `Thing`
+   # >  For instance, given `{foo: thing_A, bar: thing_B}`, `construct()` will product a `Thing`
    #    resembling the following (disregarding noughties):
    #
-   #        ((‘foo’, thing_B), (‘bar’, thing_B))
+   #             ((‘foo’, thing_B), (‘bar’, thing_B))
    #
    # The ‘pair-ish’ values are always owned by their container; as are, by default, the ‘leaf’
    # objects passed in. (The latter is a behaviour configurable by `.with(own: no)`.)
@@ -1315,7 +1317,7 @@ Operation.register 'adopt', (liability)->
 
 
 # Debugging output
-# ----------------
+# ================
 # Convenience to call whatever string-making methods are available on the passed JavaScript value.
 Paws.inspect = (object)->
    object?.inspect?() or
