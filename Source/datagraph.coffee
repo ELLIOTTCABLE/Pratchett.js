@@ -476,8 +476,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          return _.includes(@custodians.direct, it)    or
                 _.includes(@custodians.inherited, it)
 
-   # Helper that checks *only* the receiver's custodians for conflicts
-   _available_to: (liability)->
+   # Private helper that checks *only* the receiver's custodians for conflicts
+   _directly_available_to: (liability)->
       return true if @belongs_to liability.custodian, liability.write()
 
       if liability.write()
@@ -498,16 +498,18 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # to adopt*. (Or, possibly, adopting across reactor ticks?)
    #---
    # TODO: This *badly* needs to share a cache with `::dedicate`, as the previous implementation did
-   available_to: (liability)->
+   # TODO: Specify how this handles being given an *unrelated* (or blank) Liability
+   available_to: (liabilities...)->
+      liabilities = liabilities[0] if _.isArray liabilities[0]
+
       # First, check this object itself,
-      return false unless @_available_to liability
+      return false unless _.every liabilities, (li)=> @_directly_available_to li
 
       # Then, depth-first traverse every *owned child*
-      result = @_walk_descendants ->
-         unless @_available_to liability
-            return Thing.abortIteration
+      walk_result = @_walk_descendants ->
+         return Thing.abortIteration unless _.every liabilities, (li)=> @_directly_available_to li
 
-      return false != result
+      return (false != walk_result)
 
    # When passed an existing `descendants` object, this assumes you obtained that by already having
    # checked their availability via `::available_to`.

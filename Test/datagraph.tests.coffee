@@ -503,6 +503,22 @@ describe "Paws' Data types:", ->
 
             expect(-> a_thing.available_to a.liability).to.not.throwException()
 
+         it 'accepts multiple Liabilities', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability,       (an Execution),      a_thing
+            another Liability, (another Execution), a_thing
+
+            expect(-> a_thing.available_to a.liability, another.liability).to.not.throwException()
+
+         it 'accepts an Array of Liabilities', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability,       (an Execution),      a_thing
+            another Liability, (another Execution), a_thing
+
+            expect(-> a_thing.available_to [a.liability, another.liability]).to.not.throwException()
+
          it 'succeeds if the root has no children and is not adopted', ->
             expect((a Thing).available_to a Liability).to.be yes
 
@@ -512,7 +528,7 @@ describe "Paws' Data types:", ->
 
             expect(a_thing.available_to a Liability).to.be true
 
-         it 'succeeds if the receiver is already adopted by the execution', ->
+         it 'succeeds if the receiver is already adopted by the Execution', ->
             a_thing = Thing.construct foo: foo = new Thing, bar:
                 bar = Thing.construct widget: widget = new Thing
             a Liability, (an Execution), a_thing
@@ -520,21 +536,40 @@ describe "Paws' Data types:", ->
             a_thing.dedicate new Liability an.execution, a_thing
             expect(a_thing.available_to a.liability).to.be yes
 
-         it 'fails if the receiver is adopted by another execution', ->
+         it 'succeeds if the receiver is already adopted by all of the Executions', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability,       (an Execution),      a_thing
+            another Liability, (another Execution), a_thing
+
+            a_thing.dedicate new Liability an.execution,      a_thing
+            a_thing.dedicate new Liability another.execution, a_thing
+            expect(a_thing.available_to a.liability, another.liability).to.be yes
+
+         it 'fails if the receiver is adopted by someone else, and conflicts', ->
             a_thing = Thing.construct foo: foo = new Thing, bar:
                 bar = Thing.construct widget: widget = new Thing
             a Liability, (an Execution), a_thing
 
-            a_thing.dedicate new Liability (another Execution), a_thing, 'write'
+            a_thing.dedicate (some Liability, (another Execution), a_thing, 'write')
             expect(a_thing.available_to a.liability).to.be no
 
-         it "fails when one of the root's descendants is adopted by another execution", ->
+         it 'fails when an owned descendant is adopted by someone else, and conflicts', ->
             a_thing = Thing.construct foo: foo = new Thing, bar:
                 bar = Thing.construct widget: widget = new Thing
-            an Execution; a Liability
+            a Liability, (an Execution), a_thing
 
-            widget.dedicate new Liability (another Execution), widget, 'write'
+            widget.dedicate (some Liability, (another Execution), widget, 'write')
             expect(a_thing.available_to a.liability).to.be no
+
+         it 'fails when only one argument conflicts with such an adopted owned-descendant', ->
+            a_thing = Thing.construct foo: foo = new Thing, bar:
+                bar = Thing.construct widget: widget = new Thing
+            a Liability,       (an Execution),      a_thing, 'read'
+            another Liability, (another Execution), a_thing, 'write'
+
+            widget.dedicate (some Liability, (another Execution), widget, 'read')
+            expect(a_thing.available_to a.liability, another.liability).to.be no
 
       describe '::belongs_to', ->
          it 'exists', ->
