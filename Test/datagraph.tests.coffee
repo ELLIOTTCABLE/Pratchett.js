@@ -169,60 +169,59 @@ describe "Paws' Data types:", ->
       # ### Thing: Metadata methods ###
 
       describe '::set', ->
-         describe '(metadata)', ->
-            it 'changes a metadata value', ->
-               child = new Thing
-               a_thing = new Thing child
+         it 'changes a metadata value', ->
+            child = new Thing
+            a_thing = new Thing child
 
-               expect(a_thing.at(1)).to.be child
-               a_thing.set 1, new Thing
-               expect(a_thing.at(1)).to.not.be child
+            expect(a_thing.at(1)).to.be child
+            a_thing.set 1, new Thing
+            expect(a_thing.at(1)).to.not.be child
 
-            it 'accepts a Thing', ->
-               replacement = new Thing
-               a_thing = new Thing(new Thing)
+         it 'accepts a Thing', ->
+            replacement = new Thing
+            a_thing = new Thing(new Thing)
 
-               a_thing.set 1, replacement
-               expect(a_thing.at 1).to.be replacement
+            a_thing.set 1, replacement
+            expect(a_thing.at 1).to.be replacement
 
-            it 'accepts a Relation', ->
-               replacement = new Thing
-               a_thing = new Thing(new Thing)
+         it 'accepts a Relation', ->
+            replacement = new Thing
+            a_thing = new Thing(new Thing)
 
-               a_thing.set 1, (new Relation a_thing, replacement)
-               expect(a_thing.at 1).to.be replacement
+            a_thing.set 1, (new Relation a_thing, replacement)
+            expect(a_thing.at 1).to.be replacement
 
-            it 'does not directly use the passed Relation object', ->
-               replacement = new Thing
-               a_relation = new Relation a_thing, replacement
-               a_thing = new Thing(new Thing)
+         it 'does not directly use the passed Relation object', ->
+            replacement = new Thing
+            a_relation = new Relation a_thing, replacement
+            a_thing = new Thing(new Thing)
 
-               a_thing.set 1, a_relation
-               expect(a_thing.metadata[1]).to.not.be a_relation
+            a_thing.set 1, a_relation
+            expect(a_thing.metadata[1]).to.not.be a_relation
 
-            it 'changes the noughty', ->
-               replacement = new Thing
-               a_thing = new Thing
+         it 'changes the noughty', ->
+            replacement = new Thing
+            a_thing = new Thing
 
-               a_thing.set 0, replacement
-               expect(a_thing.at 0).to.be replacement
+            a_thing.set 0, replacement
+            expect(a_thing.at 0).to.be replacement
 
-            it 'changes values at any index', ->
-               child1 = new Thing; child2 = new Thing; child3 = new Thing
-               replacement = new Thing
-               a_thing = new Thing child1, child2, child3
+         it 'changes values at any index', ->
+            child1 = new Thing; child2 = new Thing; child3 = new Thing
+            replacement = new Thing
+            a_thing = new Thing child1, child2, child3
 
-               expect(a_thing.at 2).to.be child2
-               a_thing.set 2, replacement
-               expect(a_thing.at 2).to.be replacement
+            expect(a_thing.at 2).to.be child2
+            a_thing.set 2, replacement
+            expect(a_thing.at 2).to.be replacement
 
-            it 'changes values at an arbitrary index, higher than that of any existing elements', ->
-               child = new Thing
-               a_thing = new Thing
+         it 'changes values at an arbitrary index, higher than that of any existing elements', ->
+            child = new Thing
+            a_thing = new Thing
 
-               expect(a_thing.at 1337).to.be undefined
-               a_thing.set 1337, child
-               expect(a_thing.at 1337).to.be child
+            expect(a_thing.at 1337).to.be undefined
+            a_thing.set 1337, child
+            expect(a_thing.at 1337).to.be child
 
          describe '(ownership)', ->
             it 'creates backlinks on newly-owned nodes', ->
@@ -263,7 +262,7 @@ describe "Paws' Data types:", ->
                a.thing.set 1, another.thing.contained_by(a.thing)
                expect(another.thing.belongs_to an.execution, 'read').to.be no
 
-            it 'dedicates a newly-added-as-owned nods to *multiple* custodians of the parent', ->
+            it 'dedicates a newly-added-as-owned nodes to *multiple* custodians of the parent', ->
                a Thing; another Thing
                an Execution; another Execution
 
