@@ -190,6 +190,14 @@ describe "Paws' Data types:", ->
                a_thing.set 1, (new Relation a_thing, replacement)
                expect(a_thing.at 1).to.be replacement
 
+            it 'does not directly use the passed Relation object', ->
+               replacement = new Thing
+               a_relation = new Relation a_thing, replacement
+               a_thing = new Thing(new Thing)
+
+               a_thing.set 1, a_relation
+               expect(a_thing.metadata[1]).to.not.be a_relation
+
             it 'changes the noughty', ->
                replacement = new Thing
                a_thing = new Thing
