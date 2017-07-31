@@ -211,19 +211,20 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # @throws ResponsibilityError If the new child is to be owned by the parent, but is not available
    #    to one of the parent's custodian-Executions
    #---
-   # TODO: Async `$set()`.
+   # TODO: Async `::$set`.
    set: (idx, it)->
       if it? then rel = new Relation this, it
 
       if rel?.owns
          unless _.isEmpty (custodians = @_all_custodians())
             unless rel.to.available_to custodians...
-               throw new ResponsibilityError "Attempt to set a child with conflicting responsibility."
+               throw new ResponsibilityError(
+                  "Attempt to `set` a child currently held through conflicting responsibility.")
 
       return @_set idx, rel
 
-   # Private implementation of directly assigning another Thing to an indexed location in the
-   # receiver's metadata. Assumes the caller has checked availability.
+   # Private; directly assigns another `Thing` to an index-specified location in the receiver's
+   # metadata. Assumes the caller has checked availability, expects a pre-constructed `Relation`.
    #
    # @see set
    _set: (idx, rel)->
