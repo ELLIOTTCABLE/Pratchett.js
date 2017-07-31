@@ -242,19 +242,26 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return rel
 
-   # Append elements to this Thing.
+   # Append passed values to the receiver's metadata.
    #
-   # Nota bene: These direct-access methods assume the caller is handling responsibility manually;
-   #            thus they throw an exception if the new value doesn't already `::belongs_to` all of
-   #            the same `Liability` instances as the receiver (the new parent.)
+   # Passed values can each be either a `Thing` (`foo.push(a_thing)`), or a `Relation` expressing
+   # the desired ownership of that value (`foo.push(a_thing.contained_by(foo))` or the same with
+   # `owned_by`, for instance). The arguments need not be homogenous.
+   #
+   # You can configure the ownership of all the passed values, wholesale, by explicitly setting the
+   # `own:` option to either `true` or `false`:
+   #
+   #     blah.with(own: yes).push(foo, bar, baz)
+   #
+   # @arg {...(Relation|Thing)} elements  Values to be appended as children
+   # @returns {Thing}                     The receiver
+   # @throws ResponsibilityError          If one of the new children is to be owned by the parent,
+   #    but is not available to one of the parent's custodian-Executions
+   # @option own {Boolean}                Override the ownership of the added values
    #---
-   # FIXME: Repeat after me ... *Paws needs real error-handling*. /=
-   # FIXME: Okay, so this isn't caching `descendants` ... I. really. need. to. bubble. that.
-   #        cache. upwards. ffffffffff. However, that isn't *currently* an issue, because there's no
-   #        attempt to *recover* from that failure: it's working out that we're touching the
-   #        data-graph as we go along, because when it fails, we're throwing a fatal error. There is
-   #        no implication of recovery.
-   # TODO: Async `push()`.
+   # TODO: Async `::$push`.
+   # TODO: There's gotta be some shortcut-fusion / lazy-evaluation methodology to squash the
+   #       iteration here, and the iteration in `::_push`, into one iteration-pass ...
    push: (elements...)->
       relations = elements.map (it)=>
          if it instanceof Relation
@@ -266,15 +273,29 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
          rel?.owns = @_?.own if @_?.own?
 
-         rel
+         return rel
 
       unless _.isEmpty custodians = @_all_custodians()
          _.forEach relations, (rel)=>
             if rel?.owns
-               dedication_successful = rel.to.dedicate custodians
+               unless rel.to.available_to custodians...
+                  throw new ResponsibilityError(
+                     "Attempt to `push` a child currently held through conflicting responsibility.")
 
-               unless dedication_successful
-                  throw new Error("Attempt to push a child with conflicting responsibility.")
+      @_push relations
+
+      return this
+
+   # Private; directly adds other `Thing`s to the end of the receiver's metadata. Assumes the caller
+   # has checked availability, expects an `Array` of pre-constructed `Relation`s.
+   #
+   # @see push
+   _push: (relations)->
+      unless _.isEmpty (custodians = @_all_custodians())
+         _.forEach relations, (rel)=>
+            if rel?.owns
+               # FIXME: Use the non-checking version, #_dedicate, when it's properly segregated
+               rel.to.dedicate custodians
 
       _.forEach relations, (rel)=>
          rel.to._add_owner rel if rel?.owns
@@ -366,13 +387,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       else prev
 
    # FIXME: Okay, this naming is becoming a mess.
+   owns_at: (idx)-> @metadata[idx]?.owns
+
    is_owned_by: (other)->
       if other instanceof Relation
          _.contains @owners, other
       else
          _.any @owners, 'from', other
-
-   is_not_owned_by: (other)-> not @is_owned_by other
 
    # N.B.: Multiple Relations `from` and `to` the *same pair of Things* can exist in `@owners`,
    # because they can exist in the @metadata of the parent, and one of them could be deleted,

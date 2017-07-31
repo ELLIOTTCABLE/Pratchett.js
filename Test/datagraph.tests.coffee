@@ -305,7 +305,158 @@ describe "Paws' Data types:", ->
                expect(a.thing.at 1).to.be undefined
                expect(a.thing      .belongs_to an.execution,      'write').to.be yes
                expect(another.thing.belongs_to another.execution, 'read').to.be yes
+               expect(another.thing.belongs_to an.execution,      'read').to.be no
+
+
+      describe '::push', ->
+         it 'adds metadata values', ->
+            a Thing; another Thing
+
+            expect(a.thing.metadata).to.have.length 1
+            a.thing.push another.thing
+            expect(a.thing.metadata).to.have.length 2
+
+         it 'accepts Things', ->
+            a Thing; another Thing
+
+            a.thing.push another.thing
+            expect(a.thing.at 1).to.be another.thing
+
+         it 'accepts Relations', ->
+            a Thing; another Thing
+
+            a.thing.push(new Relation a.thing, another.thing)
+            expect(a.thing.at 1).to.be another.thing
+
+         it 'accepts multiple arguments', ->
+            a Thing; a Relation, a.thing, new Thing; another Thing
+
+            a.thing.push a.thing, a.relation, another.thing
+            expect(a.thing.at 1).to.be a.thing
+            expect(a.thing.at 3).to.be another.thing
+
+         it 'defaults pushed Things to not being owned', ->
+            a Thing; another Thing
+
+            a.thing.push another.thing
+            expect(a.thing.owns_at 1).to.be no
+
+         it 'respects the declared ownership of passed Relations', ->
+            a Thing; another Thing
+
+            a.thing.push a.thing.owned_by(another.thing)
+            expect(a.thing.owns_at 1).to.be yes
+
+         it 'does not directly use passed Relation objects', ->
+            a Thing; another Thing
+            a Relation, a.thing, another.thing
+
+            a.thing.push a.relation
+            expect(a.thing.at 1).to.be another.thing
+            expect(a.thing.metadata[1]).to.not.be a.relation
+
+         it 'can add a noughty', ->
+            a_thing = new Thing.with(noughtify: no)()
+            noughty = new Thing
+
+            expect(a_thing.metadata).to.have.length 0
+            a_thing.push noughty
+            expect(a_thing.metadata).to.have.length 1
+
+         describe '(ownership)', ->
+            it 'creates backlinks on newly-owned nodes', ->
+               a Thing; another Thing
+
+               expect(another.thing.is_owned_by a.thing).to.be no
+               a.thing.set(1, another.thing.owned_by a.thing)
+               expect(another.thing.is_owned_by a.thing).to.be yes
+
+            it 'removes backlinks on replaced nodes', ->
+               a Thing; another Thing
+
+               a.thing.set(1, another.thing.owned_by a.thing)
+               expect(another.thing.is_owned_by a.thing).to.be yes
+               a.thing.set(1, (some Thing).owned_by a.thing)
+               expect(another.thing.is_owned_by a.thing).to.be no
+
+         describe '(ownership)', ->
+            it 'creates backlinks on any newly-owned nodes', ->
+               a Thing; some Thing; another Thing
+
+               expect(another.thing.is_owned_by a.thing).to.be no
+               a.thing.push some.thing, another.thing.owned_by(a.thing)
+               expect(another.thing.is_owned_by a.thing).to.be yes
+               expect(some.thing   .is_owned_by a.thing).to.be no
+
+         describe '(responsibility)', ->
+            it 'dedicates newly-added-as-owned nodes to an existing custodian of the parent', ->
+               a Thing; another Thing
+               an Execution
+
+               a.thing.dedicate(new Liability an.execution, a.thing)
+               expect(a.thing      .belongs_to an.execution, 'read').to.be yes
+
                expect(another.thing.belongs_to an.execution, 'read').to.be no
+               a.thing.push another.thing.owned_by(a.thing)
+               expect(another.thing.belongs_to an.execution, 'read').to.be yes
+
+            it 'does not dedicate added-as-contained nodes to an existing custodian of the parent', ->
+               a Thing; some Thing; another Thing
+               an Execution
+
+               a.thing.dedicate(new Liability an.execution, a.thing)
+               expect(a.thing      .belongs_to an.execution, 'read').to.be yes
+
+               expect(another.thing.belongs_to an.execution, 'read').to.be no
+               a.thing.push some.thing.owned_by(a.thing), another.thing
+               expect(another.thing.belongs_to an.execution, 'read').to.be no
+
+            it 'dedicates a newly-added-as-owned nodes to *multiple* custodians of the parent', ->
+               a Thing; another Thing
+               an Execution; another Execution
+
+               a.thing.dedicate(new Liability an.execution,      a.thing)
+               a.thing.dedicate(new Liability another.execution, a.thing)
+
+               expect(another.thing.belongs_to another.execution, 'read').to.be no
+               a.thing.push another.thing.owned_by(a.thing)
+               expect(another.thing.belongs_to an.execution,      'read').to.be yes
+               expect(another.thing.belongs_to another.execution, 'read').to.be yes
+
+            # phew.
+            it 'dedicates *multiple* owned nodes to *multiple* custodians', ->
+               a Thing; some Thing; another Thing
+               an Execution; another Execution
+
+               a.thing.dedicate(new Liability an.execution,      a.thing)
+               a.thing.dedicate(new Liability another.execution, a.thing)
+
+               expect(some.thing.belongs_to    an.execution,      'read').to.be no
+               expect(some.thing.belongs_to    another.execution, 'read').to.be no
+               expect(another.thing.belongs_to an.execution,      'read').to.be no
+               expect(another.thing.belongs_to another.execution, 'read').to.be no
+               a.thing.push some.thing.owned_by(a.thing), another.thing.owned_by(a.thing)
+               expect(some.thing.belongs_to    an.execution,      'read').to.be yes
+               expect(some.thing.belongs_to    another.execution, 'read').to.be yes
+               expect(another.thing.belongs_to an.execution,      'read').to.be yes
+               expect(another.thing.belongs_to another.execution, 'read').to.be yes
+
+         describe '(errors)', ->
+            it 'checks availability, and throws an ResponsibilityError if there is a conflict', ->
+               a Thing; another Thing
+               an Execution; another Execution
+
+               a.thing      .dedicate new Liability(an.execution,      a.thing, 'write')
+               another.thing.dedicate new Liability(another.execution, another.thing, 'read')
+
+               expect(-> a.thing.push another.thing.owned_by(a.thing)).to
+                  .throwException ResponsibilityError
+
+               expect(a.thing.at 1).to.be undefined
+               expect(a.thing      .belongs_to an.execution,      'write').to.be yes
+               expect(another.thing.belongs_to another.execution, 'read').to.be yes
+               expect(another.thing.belongs_to an.execution,      'read').to.be no
+
 
 
       describe '::clone', ->
