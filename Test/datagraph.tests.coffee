@@ -6,13 +6,15 @@ sinon   = require 'sinon'
 expect  = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
 __      = sinon.match
 
+debugger;
 
 describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
 
    {  Reactor, parse
    ,  Thing, Label, Execution, Native
-   ,  ThingSet, Relation, Liability, Combination, Position, Mask, Operation }                 = Paws
+   ,  ThingSet, Relation, Liability, Combination, Position, Mask, Operation
+   ,  ResponsibilityError }                                                                   = Paws
 
    {  Context, Sequence, Expression }                                                        = parse
 
@@ -272,6 +274,22 @@ describe "Paws' Data types:", ->
                a.thing.set 1, another.thing.owned_by(a.thing)
                expect(another.thing.belongs_to an.execution,      'read').to.be yes
                expect(another.thing.belongs_to another.execution, 'read').to.be yes
+
+         describe '(errors)', ->
+            it 'checks availability, and throws an ResponsibilityError if there is a conflict', ->
+               a Thing; another Thing
+               an Execution; another Execution
+
+               a.thing      .dedicate new Liability(an.execution,      a.thing, 'write')
+               another.thing.dedicate new Liability(another.execution, another.thing, 'read')
+
+               expect(-> a.thing.set 1, another.thing.owned_by(a.thing)).to
+                  .throwException ResponsibilityError
+
+               expect(a.thing.at 1).to.be undefined
+               expect(a.thing      .belongs_to an.execution,      'write').to.be yes
+               expect(another.thing.belongs_to another.execution, 'read').to.be yes
+               expect(another.thing.belongs_to an.execution, 'read').to.be no
 
 
       describe '::clone', ->

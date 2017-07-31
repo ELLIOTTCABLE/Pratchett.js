@@ -208,7 +208,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # @arg {Number} idx           Index on the receiver's metadata to change
    # @arg {(Relation|Thing)} it  Node to place at the given index
    # @returns {Relation}         New relation placed at idx
-   # @throws AvailabilityError   If the new child is to be owned by the parent, but is not available
+   # @throws ResponsibilityError If the new child is to be owned by the parent, but is not available
    #    to one of the parent's custodian-Executions
    #---
    # TODO: Async `$set()`.
@@ -218,7 +218,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       if rel?.owns
          unless _.isEmpty (custodians = @_all_custodians())
             unless rel.to.available_to custodians...
-               throw new AvailabilityError "Attempt to set a child with conflicting responsibility."
+               throw new ResponsibilityError "Attempt to set a child with conflicting responsibility."
 
       return @_set idx, rel
 
@@ -1367,7 +1367,7 @@ Operation.register 'adopt', (liability)->
 # This is the error thrown by synchronous, responsibility-checking methods (ones not prefixed by `_`
 # or `$`) when the responsibility required for the operation isn't available / held by the
 # currently-evaluating code.
-Paws.AvailabilityError = class AvailabilityError extends Error
+Paws.ResponsibilityError = class ResponsibilityError extends Error
 
 
 # Debugging output
