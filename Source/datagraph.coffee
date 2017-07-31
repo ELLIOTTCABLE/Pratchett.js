@@ -205,22 +205,34 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    # Directly set the child at a particular index to the passed value.
    #
-   # Nota bene: These direct-access methods assume the caller is handling responsibility manually;
-   #            thus they throw an exception if the new value doesn't already `::belongs_to` all of
-   #            the same `Liability` instances as the receiver (the new parent.)
+   # @arg {Number} idx           Index on the receiver's metadata to change
+   # @arg {(Relation|Thing)} it  Node to place at the given index
+   # @returns {Relation}         New relation placed at idx
+   # @throws AvailabilityError   If the new child is to be owned by the parent, but is not available
+   #    to one of the parent's custodian-Executions
    #---
-   # FIXME: Repeat after me ... *Paws needs real error-handling*. /=
-   # TODO: Async `set()`.
+   # TODO: Async `$set()`.
    set: (idx, it)->
       if it? then rel = new Relation this, it
+
+      if rel?.owns
+         unless _.isEmpty (custodians = @_all_custodians())
+            unless rel.to.available_to custodians...
+               throw new AvailabilityError "Attempt to set a child with conflicting responsibility."
+
+      return @_set idx, rel
+
+   # Private implementation of directly assigning another Thing to an indexed location in the
+   # receiver's metadata. Assumes the caller has checked availability.
+   #
+   # @see set
+   _set: (idx, rel)->
       prev = @metadata[idx]
 
       if rel?.owns
-         unless _.isEmpty custodians = @_all_custodians()
-            dedication_successful = rel.to.dedicate custodians
-
-            unless dedication_successful
-               throw new Error("Attempt to set a child with conflicting responsibility.")
+         unless _.isEmpty (custodians = @_all_custodians())
+            # FIXME: Use the non-checking version, #_dedicate, when it's properly segregated
+            rel.to.dedicate custodians
 
       @metadata[idx] = rel
 
@@ -460,6 +472,9 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #
    # If passed a `Liability` instead, this object is simply checked for the presence of that
    # specific `Liability`.
+   #---
+   # TODO: Handle being passed 1. an Execution but no License at all, or 2. a Liability *and* a
+   #       License
    belongs_to: (it, license)->
       return false unless @is_adopted()
 
@@ -523,7 +538,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
             descendant.custodians[family].push liability
             descendant.custodians[family] = _.uniq descendant.custodians[family]
 
-   # DOCME
+   # FIXME: DOCME
+   # TODO: Make this accept an Execution directly, as a convenience
    dedicate: (liabilities...)->
       liabilities = liabilities[0] if _.isArray liabilities[0]
 
@@ -1343,6 +1359,15 @@ Operation.register 'adopt', (liability)->
 
    # If the dedication failed, then this operation failed as well
    return succeeded
+
+
+# Error types
+# ===========
+
+# This is the error thrown by synchronous, responsibility-checking methods (ones not prefixed by `_`
+# or `$`) when the responsibility required for the operation isn't available / held by the
+# currently-evaluating code.
+Paws.AvailabilityError = class AvailabilityError extends Error
 
 
 # Debugging output

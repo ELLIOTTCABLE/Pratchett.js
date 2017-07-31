@@ -71,7 +71,7 @@ describe "Paws' Data types:", ->
             bare_thing = new Thing.with(noughtify: no)()
             expect(bare_thing.metadata).to.have.length 0
 
-         it 'stores relations to other Things', ->
+         it 'stores Relations to other Things', ->
             child1 = new Thing; child2 = new Thing
             thing = new Thing child1, child2
             expect(thing).to.have.property 'metadata'
@@ -165,6 +165,106 @@ describe "Paws' Data types:", ->
 
 
       # ### Thing: Metadata methods ###
+
+      describe '::set', ->
+         describe '(metadata)', ->
+            it 'changes a metadata value', ->
+               child = new Thing
+               a_thing = new Thing child
+
+               expect(a_thing.at(1)).to.be child
+               a_thing.set 1, new Thing
+               expect(a_thing.at(1)).to.not.be child
+
+            it 'accepts a Thing', ->
+               replacement = new Thing
+               a_thing = new Thing(new Thing)
+
+               a_thing.set 1, replacement
+               expect(a_thing.at 1).to.be replacement
+
+            it 'accepts a Relation', ->
+               replacement = new Thing
+               a_thing = new Thing(new Thing)
+
+               a_thing.set 1, (new Relation a_thing, replacement)
+               expect(a_thing.at 1).to.be replacement
+
+            it 'changes the noughty', ->
+               replacement = new Thing
+               a_thing = new Thing
+
+               a_thing.set 0, replacement
+               expect(a_thing.at 0).to.be replacement
+
+            it 'changes values at any index', ->
+               child1 = new Thing; child2 = new Thing; child3 = new Thing
+               replacement = new Thing
+               a_thing = new Thing child1, child2, child3
+
+               expect(a_thing.at 2).to.be child2
+               a_thing.set 2, replacement
+               expect(a_thing.at 2).to.be replacement
+
+            it 'changes values at an arbitrary index, higher than that of any existing elements', ->
+               child = new Thing
+               a_thing = new Thing
+
+               expect(a_thing.at 1337).to.be undefined
+               a_thing.set 1337, child
+               expect(a_thing.at 1337).to.be child
+
+         describe '(ownership)', ->
+            it 'creates backlinks on newly-owned nodes', ->
+               a Thing; another Thing
+
+               expect(another.thing.is_owned_by a.thing).to.be no
+               a.thing.set(1, another.thing.owned_by a.thing)
+               expect(another.thing.is_owned_by a.thing).to.be yes
+
+            it 'removes backlinks on replaced nodes', ->
+               a Thing; another Thing
+
+               a.thing.set(1, another.thing.owned_by a.thing)
+               expect(another.thing.is_owned_by a.thing).to.be yes
+               a.thing.set(1, (some Thing).owned_by a.thing)
+               expect(another.thing.is_owned_by a.thing).to.be no
+
+         describe '(responsibility)', ->
+            it 'dedicates newly-added-as-owned nodes to an existing custodian of the parent', ->
+               a Thing; another Thing
+               an Execution
+
+               a.thing.dedicate(new Liability an.execution, a.thing)
+               expect(a.thing      .belongs_to an.execution, 'read').to.be yes
+
+               expect(another.thing.belongs_to an.execution, 'read').to.be no
+               a.thing.set 1, another.thing.owned_by(a.thing)
+               expect(another.thing.belongs_to an.execution, 'read').to.be yes
+
+            it 'does not dedicate added-as-contained nodes to an existing custodian of the parent', ->
+               a Thing; another Thing
+               an Execution
+
+               a.thing.dedicate(new Liability an.execution, a.thing)
+               expect(a.thing      .belongs_to an.execution, 'read').to.be yes
+
+               expect(another.thing.belongs_to an.execution, 'read').to.be no
+               a.thing.set 1, another.thing.contained_by(a.thing)
+               expect(another.thing.belongs_to an.execution, 'read').to.be no
+
+            it 'dedicates a newly-added-as-owned nods to *multiple* custodians of the parent', ->
+               a Thing; another Thing
+               an Execution; another Execution
+
+               a.thing.dedicate(new Liability an.execution,      a.thing)
+               a.thing.dedicate(new Liability another.execution, a.thing)
+
+               expect(another.thing.belongs_to another.execution, 'read').to.be no
+               a.thing.set 1, another.thing.owned_by(a.thing)
+               expect(another.thing.belongs_to an.execution,      'read').to.be yes
+               expect(another.thing.belongs_to another.execution, 'read').to.be yes
+
 
       describe '::clone', ->
          it 'creates a new Thing', ->
