@@ -191,6 +191,12 @@ describe "Paws' Data types:", ->
             a_thing.set 1, (new Relation a_thing, replacement)
             expect(a_thing.at 1).to.be replacement
 
+         it 'accepts nothingness to signal removal', ->
+            a_thing = new Thing(new Thing)
+
+            a_thing.set 1, undefined
+            expect(a_thing.at 1).to.be undefined
+
          it 'does not directly use the passed Relation object', ->
             replacement = new Thing
             a_relation = new Relation a_thing, replacement
