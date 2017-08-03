@@ -198,6 +198,36 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    compare: (to)-> to == this
 
+   # ### Shared, private methods ###
+
+   _validate_relation_to_add: (rel)->
+      if rel?.owns
+         unless _.isEmpty (custodians = @_all_custodians())
+            unless rel.to.available_to custodians...
+               throw new ResponsibilityError(
+                     "Attempt to add Thing held under conflicting responsibility.")
+
+   _validate_relations_to_add: (relations)->
+      unless _.isEmpty (custodians = @_all_custodians())
+         _.forEach relations, (rel)=>
+            if rel?.owns
+               unless rel.to.available_to custodians...
+                  throw new ResponsibilityError(
+                     "Attempt to add Thing held under conflicting responsibility.")
+
+   _add_edge: (rel)->
+      if rel?.owns
+         rel.to._add_owner rel
+
+         unless _.isEmpty (custodians = @_all_custodians())
+            # FIXME: Use the non-checking version, #_dedicate, when it's properly segregated
+            rel.to.dedicate custodians
+
+   _del_edge: (rel)->
+      if rel?.owns
+         rel.to._del_owner rel
+
+      # FIXME: emancipation NYI
 
    # ### ‘Array-ish’ metadata manipulation ###
 
@@ -215,11 +245,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    set: (idx, it)->
       if it? then rel = new Relation this, it
 
-      if rel?.owns
-         unless _.isEmpty (custodians = @_all_custodians())
-            unless rel.to.available_to custodians...
-               throw new ResponsibilityError(
-                  "Attempt to `set` a child currently held through conflicting responsibility.")
+      @_validate_relation_to_add rel
 
       return @_set idx, rel
 
@@ -227,18 +253,15 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # metadata. Assumes the caller has checked availability, expects a pre-constructed `Relation`.
    #
    # @see set
+   #---
+   # FIXME: Emancipate the replaced link!!
    _set: (idx, rel)->
       prev = @metadata[idx]
 
-      if rel?.owns
-         unless _.isEmpty (custodians = @_all_custodians())
-            # FIXME: Use the non-checking version, #_dedicate, when it's properly segregated
-            rel.to.dedicate custodians
+      @_add_edge rel
+      @_del_edge prev
 
       @metadata[idx] = rel
-
-      prev.to._del_owner prev if prev?.owns
-      rel .to._add_owner rel  if rel?.owns
 
       return rel
 
