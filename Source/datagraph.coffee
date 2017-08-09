@@ -310,6 +310,10 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #
    #     blah.with(own: yes).push(foo, bar, baz)
    #
+   # If the `Thing` in question is affected by responsibility conflicting with that flowing from /
+   # through the receiver (that is, it is both marked as owned, and held with a conflicting license
+   # by other `Liability`), a `ResponsibilityError` will be thrown.
+   #
    # @arg {...(Relation|Thing)} elements  Values to be appended as children
    # @returns {Thing}                     The receiver
    # @throws ResponsibilityError          If one of the new children is to be owned by the parent,
@@ -345,19 +349,40 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return this
 
-   # XXX: This assumes that `emancipate` cannot fail; which is currently the case.
+   # XXX: pop() and shift(), being remove-only operations, currently are purely synchronous, with no
+   #      possibility of failure. Theoretically, though, at least libside, removal is still a
+   #      mutating operation, and *should* require ownership.
+
+   # Remove the ordinally-last `Thing` from the receiver's metadata relations, and returns it.
+   #
+   # If the departing `Thing` in question is affected by responsibility flowing from/through the
+   # receiver, it will be `emancipated()`.
+   #
+   # @returns {Thing}                     The removed entry
    pop: ->
       rel = @metadata.pop()
-      rel.to._del_parent_and_inherited_custodians rel if rel?.owns
+
+      if rel?.owns
+         rel.to._del_parent_and_inherited_custodians rel
+
       return rel?.to
 
+   # Remove the ordinally-first `Thing`, after the noughty, from the receiver's metadata relations;
+   # and returns it.
+   #
+   # If the departing `Thing` in question is affected by responsibility flowing from/through the
+   # receiver, it will be `emancipated()`.
+   #
+   # @returns {Thing}                     The removed entry
    shift: ->
       noughty = @metadata.shift()
       rel     = @metadata.shift()
       @metadata.unshift noughty
 
-      rel.to._del_parent_and_inherited_custodians rel if rel?.owns
-      rel
+      if rel?.owns
+         rel.to._del_parent_and_inherited_custodians rel
+
+      return rel?.to
 
    unshift: (other)->
       # FIXME: Obviate this hack, by extracting the meat of push() to its own private API that both
