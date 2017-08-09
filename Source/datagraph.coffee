@@ -205,29 +205,33 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # Things* can exist in `@owners`, because they can exist in the `@metadata` of the parent, and one
    # of them could be deleted, leaving the second.
 
-   # FIXME: I extracted the responsibility-handling to `_del_ownership`; can I extract the same for
-   #        `_add_ownership`?
-   _add_ownership: (rel)->
-      if rel?.owns
-         @owners.push rel unless _.contains @owners, rel
+   # FIXME: I extracted the responsibility-handling to `_del_parent`; can I extract
+   #        the same for `_add_parent`?
+   _add_parent: (rel)->
+      @owners.push rel unless _.contains @owners, rel
 
       return this
 
    # Private; does *two* useful things:
    #
-   #  - Remove a parent object from the `owners` array,
-   #  - and check the *other* owners for all responsibility inherited through the removed owner,
-   #  - before *removing* (emancipating) any no-longer-reachable Liabilities.
-   _del_ownership: (rel)->
+   #  - Remove a passed parent from the `owners` array,
+   #  - check the *other* owners for all responsibility inherited through the removed owner,
+   #  - and only then remove any *no-longer-reachable* `custodians`.
+   #
+   # N.B.: May only be called on a Relation *actually present as an owner* (i.e. call only on
+   # `rel.to`, and after checking `rel.owns`.)
+   _del_parent_and_inherited_custodians: (rel)->
       _.pull @owners, rel
 
-      @emancipate rel.from.custodians.direct
+      rel.from._all_custodians().forEach (li)=>
+         unless _.any(@owners, (owner)=> _.includes owner._all_custodians(), li )
+            @_del_custodian li
 
-      rel.from.custodians.inherited.forEach (liability)=>
-         unless _.any(@owners, (owner)=> _.includes owner._all_custodians(), liability )
-            @emancipate liability
+      return this
 
-      return rel
+   _del_custodian: (liability)->
+      family = if this is liability.ward then 'direct' else 'inherited'
+      _.pull @custodians[family], liability
 
    # Private; implements the pre-checking-and-throwing behaviour for public methods that call
    # `_add_edge()`.
@@ -241,17 +245,12 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    _add_edge: (rel)->
       if rel?.owns
-         rel.to._add_ownership rel
+         rel.to._add_parent rel
 
          unless _.isEmpty (custodians = @_all_custodians())
             # FIXME: Use the non-checking version, #_dedicate, when it's properly segregated
             rel.to.dedicate custodians
 
-   _del_edge: (rel)->
-      if rel?.owns
-         rel.to._del_ownership rel
-
-      # FIXME: emancipation NYI
 
    # ### ‘Array-ish’ metadata manipulation ###
 
@@ -266,10 +265,12 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #    to one of the parent's custodian-Executions
    #---
    # TODO: Async `::$set`.
-   set: (idx, it)->
-      if it? then rel = new Relation this, it
+   set: (idx, arg)->
+      unless arg?
+         return @_set idx, undefined
 
-      @_validate_relation_to_add [rel]
+      rel = new Relation this, arg
+      @_validate_relations_to_add [rel]
 
       return @_set idx, rel
 
@@ -277,13 +278,14 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # metadata. Assumes the caller has checked availability, expects a pre-constructed `Relation`.
    #
    # @see set
-   #---
-   # FIXME: Emancipate the replaced link!!
    _set: (idx, rel)->
       prev = @metadata[idx]
 
-      @_add_edge rel
-      @_del_edge prev
+      if rel?.owns
+         rel.to._add_parent rel
+
+      if prev?.owns
+         prev.to._del_parent_and_inherited_custodians prev
 
       @metadata[idx] = rel
 
@@ -345,14 +347,14 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
                rel.to.dedicate custodians
 
       _.forEach relations, (rel)=>
-         rel.to._add_ownership rel if rel?.owns
+         rel.to._add_parent rel if rel?.owns
 
       @metadata = @metadata.concat relations
 
    # XXX: This assumes that `emancipate` cannot fail; which is currently the case.
    pop: ->
       rel = @metadata.pop()
-      rel.to._del_ownership rel if rel?.owns
+      rel.to._del_parent_and_inherited_custodians rel if rel?.owns
       return rel?.to
 
    shift: ->
@@ -360,7 +362,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       rel     = @metadata.shift()
       @metadata.unshift noughty
 
-      rel.to._del_ownership rel if rel?.owns
+      rel.to._del_parent_and_inherited_custodians rel if rel?.owns
       rel
 
    unshift: (other)->
@@ -423,13 +425,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    own_at: (idx)->
       if (prev = @metadata[idx])? and not prev.owns
          @metadata[idx] = prev.as_owned()
-         @metadata[idx].to._add_ownership @metadata[idx]
+         @metadata[idx].to._add_parent @metadata[idx]
       else prev
 
    disown_at: (idx)->
       if (prev = @metadata[idx])? and prev.owns
          @metadata[idx] = prev.as_contained()
-         @metadata[idx].to._del_ownership prev
+         @metadata[idx].to._del_parent_and_inherited_custodians prev
          @metadata[idx]
       else prev
 
@@ -606,11 +608,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    _emancipate: (liability)->
       return true unless _.includes @custodians.direct, liability
 
-      @_walk_descendants ->
-         family = if this is liability.ward then 'direct' else 'inherited'
-         _.pull @custodians[family], liability
-
-         undefined
+      @_walk_descendants -> @_del_custodian liability; undefined
 
       return true
 
