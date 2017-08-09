@@ -331,25 +331,20 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
             if rel?.owns
                rel.to._validate_availability_to custodians
 
-      @_push relations
-
-      return this
+      return @_push relations
 
    # Private; directly adds other `Thing`s to the end of the receiver's metadata. Assumes the caller
    # has checked availability, expects an `Array` of pre-constructed `Relation`s.
    #
    # @see push
    _push: (relations)->
-      unless _.isEmpty (custodians = @_all_custodians())
-         _.forEach relations, (rel)=>
-            if rel?.owns
-               # FIXME: Use the non-checking version, #_dedicate, when it's properly segregated
-               rel.to.dedicate custodians
-
       _.forEach relations, (rel)=>
-         rel.to._add_parent_and_inherit_custodians rel if rel?.owns
+         if rel?.owns
+            rel.to._add_parent_and_inherit_custodians rel
 
       @metadata = @metadata.concat relations
+
+      return this
 
    # XXX: This assumes that `emancipate` cannot fail; which is currently the case.
    pop: ->
