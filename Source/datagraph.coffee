@@ -202,13 +202,12 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # ### Shared, private methods ###
 
    # Private; implements the pre-checking-and-throwing behaviour for *public* methods that
-   # eventually call `_add_parent_and_inherit_custodians()`.
-   _validate_availability_to_custodians_of: (new_parent)->
-      unless _.isEmpty (custodians = new_parent._all_custodians())
-         unless @available_to custodians...
-            # FIXME: Add more useful debugging information
-            throw new ResponsibilityError(
-               "Attempt to add Thing held under conflicting responsibility.")
+   # eventually call `_add_parent_and_inherit_custodians()`. Expects a pre-constructed array.
+   _validate_availability_to: (custodians)->
+      unless @available_to custodians...
+         # FIXME: Add more useful debugging information
+         throw new ResponsibilityError(
+            "Attempt to add Thing held under conflicting responsibility.")
 
    # XXX: N.B., when modifying ownership-mutation: Multiple Relations `from` and `to` the *same pair
    #      of Things* can exist in `@owners`, because they can exist in the `@metadata` of the
@@ -271,7 +270,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       rel = new Relation this, arg
 
-      rel.to._validate_availability_to_custodians_of this
+      if rel.owns
+         rel.to._validate_availability_to @_all_custodians()
 
       return @_set idx, rel
 
@@ -326,12 +326,10 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
          return rel
 
-      unless _.isEmpty custodians = @_all_custodians()
+      unless _.isEmpty (custodians = @_all_custodians())
          _.forEach relations, (rel)=>
             if rel?.owns
-               unless rel.to.available_to custodians...
-                  throw new ResponsibilityError(
-                     "Attempt to `push` a child currently held through conflicting responsibility.")
+               rel.to._validate_availability_to custodians
 
       @_push relations
 
