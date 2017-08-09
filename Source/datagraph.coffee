@@ -453,19 +453,34 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # ### ‘Dictionary-ish’ metadata manipulation ###
 
    # Convenience method to create a ‘pair-ish’ `Thing` (one with only two members, the first of
-   # which is a string-ish ‘key.’)
-   @pair: (key, value, own)->
-      it = new Thing
-      it.push Label(key).owned_by it
-      it.push value.contained_by(it, own) if value
-      return it
-
-   # A further convenience to add a new pair to the end of a ‘dictionary-ish’ `Thing`.
+   # which is a `Label` ‘key.’)
    #
-   # The pair-object itself is always owned by the receiver `Thing`; but the third `own` argument
-   # specifies whether the *`value`* is to be further owned by the dictionary-structure as well.
-   define: (key, value, own)->
-      pair = Thing.pair key, value, own
+   # The created thing will own the label, but not the value, by default. This can be overriden by
+   # passing a third indicating whether to `own` the value.
+   #
+   # (N.B. that this cannot fail, despite modifying ownership — the parent is newly-created, and
+   #  thus has no custodians.)
+   @pair: (key, value, own)->
+      pair = new Thing
+      pair._push Label(key).owned_by pair
+      pair._push value.contained_by(pair, own) if value
+      return pair
+
+   # A convenience to append a new ‘pair’ to the end of the receiver (thus “defining” a value, if
+   # the receiver is seen as a pseudo-dictionary.)
+   #
+   # The pair-`Thing` itself and `Label` are always owned by the receiver; but the `value` (although
+   # it defaults to being not-owned) can be configured by passing a Relation:
+   #
+   #     blah.define('foo', bar.owned_by(blah))
+   #
+   # Availability of the `value` will be checked, and a `ResponsibilityError` will be thrown in the
+   # case of a conflict. (See `::push`.)
+   #---
+   # TODO: handling undefined values
+   define: (key, value)->
+      pair = Thing.pair key, value
+
       @push pair.owned_by this
 
    # This implements the core algorithm of the default jux-receiver; this algorithm is very
@@ -860,8 +875,8 @@ Paws.Execution = Execution = class Execution extends Thing
 
       @pristine = yes
       @locals = new Thing().rename 'locals'
-      @locals.define 'locals', @locals, no
-      this   .define 'locals', @locals, yes
+      @locals.define 'locals', @locals
+      this   .define 'locals', @locals.owned_by this
 
       @ops = new Array
 
@@ -887,7 +902,7 @@ Paws.Execution = Execution = class Execution extends Thing
 
       # FIXME: Remove old 'locals' from the Exec's cloned metadata?
       to.locals      = @locals.clone().rename 'locals'
-      to.define        'locals', to.locals, yes
+      to.define        'locals', to.locals.owned_by to
 
       to.advancements = @advancements if @advancements?
 

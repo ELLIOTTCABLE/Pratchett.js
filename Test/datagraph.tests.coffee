@@ -604,7 +604,7 @@ describe "Paws' Data types:", ->
             expect(array[1]).to.be undefined
             expect(array[2]).to.be third
 
-      describe '::pair', ->
+      describe 'pair()', ->
          it 'creates a new Thing', ->
             expect(Thing.pair()).to.be.a Thing
 
@@ -662,6 +662,22 @@ describe "Paws' Data types:", ->
             a_thing.define 'bar', another_thing
             expect(a_thing.find('bar')[0].isPair()).to.be yes
             expect(a_thing.find('bar')[0].valueish()).to.be another_thing
+
+         it 'marks the pushed pair as owned by the receiver', ->
+            a_thing = Thing.construct foo: new Thing
+            another_thing = new Thing
+
+            a_thing.define 'bar', another_thing
+            expect(a_thing.owns_at 1).to.be yes
+
+         it 'defaults, however, to *not* owning the passed value', ->
+            a_thing = new Thing
+            another_thing = new Thing
+
+            a_thing.define 'bar', another_thing
+
+            pair = a_thing.at 1
+            expect(pair.owns_at 2).to.be no
 
          it 'accepts a Thing', ->
             a_thing = Thing.construct foo: new Thing
