@@ -278,6 +278,19 @@ describe "Paws' Data types:", ->
                expect(another.thing.belongs_to an.execution,      'read').to.be yes
                expect(another.thing.belongs_to another.execution, 'read').to.be yes
 
+            it 'emancipates replaced nodes from an existing custodian of the parent', ->
+               a Thing; another Thing; some Thing
+               an Execution
+
+               a.thing.dedicate(new Liability an.execution, a.thing)
+               a.thing.set 1, another.thing.owned_by(a.thing)
+               expect(a.thing      .belongs_to an.execution, 'read').to.be yes
+               expect(another.thing.belongs_to an.execution, 'read').to.be yes
+               expect(some.thing   .belongs_to an.execution, 'read').to.be no
+
+               a.thing.set 1, some.thing.owned_by(a.thing)
+               expect(another.thing.belongs_to an.execution, 'read').to.be no
+
          describe '(errors)', ->
             it 'checks availability, and throws an ResponsibilityError if there is a conflict', ->
                a Thing; another Thing
