@@ -203,13 +203,12 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    # Private; implements the pre-checking-and-throwing behaviour for *public* methods that
    # eventually call `_add_parent_and_inherit_custodians()`.
-   _validate_relations_to_add: (relations)->
-      unless _.isEmpty (custodians = @_all_custodians())
-         _.forEach relations, (rel)=>
-            if rel?.owns
-               unless rel.to.available_to custodians...
-                  throw new ResponsibilityError(
-                     "Attempt to add Thing held under conflicting responsibility.")
+   _validate_availability_to_custodians_of: (new_parent)->
+      unless _.isEmpty (custodians = new_parent._all_custodians())
+         unless @available_to custodians...
+            # FIXME: Add more useful debugging information
+            throw new ResponsibilityError(
+               "Attempt to add Thing held under conflicting responsibility.")
 
    # XXX: N.B., when modifying ownership-mutation: Multiple Relations `from` and `to` the *same pair
    #      of Things* can exist in `@owners`, because they can exist in the `@metadata` of the
@@ -241,11 +240,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return this
 
+   # Private; implements the guts of dedication for internal methods.
    _add_custodian: (li)->
       fam = if this is li.ward then 'direct' else 'inherited'
       unless _.includes @custodians[fam], li
          @custodians[fam].push li
 
+   # Private; implements the guts of emancipation for internal methods.
    _del_custodian: (li)->
       fam = if this is li.ward then 'direct' else 'inherited'
       _.pull @custodians[fam], li
@@ -269,7 +270,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          return @_set idx, undefined
 
       rel = new Relation this, arg
-      @_validate_relations_to_add [rel]
+
+      rel.to._validate_availability_to_custodians_of this
 
       return @_set idx, rel
 
