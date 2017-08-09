@@ -198,15 +198,39 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    compare: (to)-> to == this
 
+
    # ### Shared, private methods ###
 
-   _validate_relation_to_add: (rel)->
-      if rel?.owns
-         unless _.isEmpty (custodians = @_all_custodians())
-            unless rel.to.available_to custodians...
-               throw new ResponsibilityError(
-                     "Attempt to add Thing held under conflicting responsibility.")
+   # N.B., when modifying ownership-mutation: Multiple Relations `from` and `to` the *same pair of
+   # Things* can exist in `@owners`, because they can exist in the `@metadata` of the parent, and one
+   # of them could be deleted, leaving the second.
 
+   # FIXME: I extracted the responsibility-handling to `_del_ownership`; can I extract the same for
+   #        `_add_ownership`?
+   _add_ownership: (rel)->
+      if rel?.owns
+         @owners.push rel unless _.contains @owners, rel
+
+      return this
+
+   # Private; does *two* useful things:
+   #
+   #  - Remove a parent object from the `owners` array,
+   #  - and check the *other* owners for all responsibility inherited through the removed owner,
+   #  - before *removing* (emancipating) any no-longer-reachable Liabilities.
+   _del_ownership: (rel)->
+      _.pull @owners, rel
+
+      @emancipate rel.from.custodians.direct
+
+      rel.from.custodians.inherited.forEach (liability)=>
+         unless _.any(@owners, (owner)=> _.includes owner._all_custodians(), liability )
+            @emancipate liability
+
+      return rel
+
+   # Private; implements the pre-checking-and-throwing behaviour for public methods that call
+   # `_add_edge()`.
    _validate_relations_to_add: (relations)->
       unless _.isEmpty (custodians = @_all_custodians())
          _.forEach relations, (rel)=>
@@ -217,7 +241,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    _add_edge: (rel)->
       if rel?.owns
-         rel.to._add_owner rel
+         rel.to._add_ownership rel
 
          unless _.isEmpty (custodians = @_all_custodians())
             # FIXME: Use the non-checking version, #_dedicate, when it's properly segregated
@@ -225,7 +249,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    _del_edge: (rel)->
       if rel?.owns
-         rel.to._del_owner rel
+         rel.to._del_ownership rel
 
       # FIXME: emancipation NYI
 
@@ -245,7 +269,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    set: (idx, it)->
       if it? then rel = new Relation this, it
 
-      @_validate_relation_to_add rel
+      @_validate_relation_to_add [rel]
 
       return @_set idx, rel
 
@@ -321,14 +345,14 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
                rel.to.dedicate custodians
 
       _.forEach relations, (rel)=>
-         rel.to._add_owner rel if rel?.owns
+         rel.to._add_ownership rel if rel?.owns
 
       @metadata = @metadata.concat relations
 
    # XXX: This assumes that `emancipate` cannot fail; which is currently the case.
    pop: ->
       rel = @metadata.pop()
-      rel.to._del_owner rel if rel?.owns
+      rel.to._del_ownership rel if rel?.owns
       return rel?.to
 
    shift: ->
@@ -336,7 +360,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       rel     = @metadata.shift()
       @metadata.unshift noughty
 
-      rel.to._del_owner rel if rel?.owns
+      rel.to._del_ownership rel if rel?.owns
       rel
 
    unshift: (other)->
@@ -399,13 +423,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    own_at: (idx)->
       if (prev = @metadata[idx])? and not prev.owns
          @metadata[idx] = prev.as_owned()
-         @metadata[idx].to._add_owner @metadata[idx]
+         @metadata[idx].to._add_ownership @metadata[idx]
       else prev
 
    disown_at: (idx)->
       if (prev = @metadata[idx])? and prev.owns
          @metadata[idx] = prev.as_contained()
-         @metadata[idx].to._del_owner prev
+         @metadata[idx].to._del_ownership prev
          @metadata[idx]
       else prev
 
@@ -417,32 +441,6 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          _.contains @owners, other
       else
          _.any @owners, 'from', other
-
-   # N.B.: Multiple Relations `from` and `to` the *same pair of Things* can exist in `@owners`,
-   # because they can exist in the @metadata of the parent, and one of them could be deleted,
-   # leaving the second.
-
-   # FIXME: I extracted the responsibility-handling to `_del_owner`; can I extract the same for
-   #        `_add_owner`?
-   _add_owner: (rel)->
-      @owners.push rel unless _.contains @owners, rel
-      return rel
-
-   # This does *two* useful things:
-   #
-   #  - Remove a parent object from the `owners` array,
-   #  - and check the *other* owners for all responsibility inherited through the removed owner,
-   #  - before *removing* (emancipating) any no-longer-reachable Liabilities.
-   _del_owner: (rel)->
-      _.pull @owners, rel
-
-      @emancipate rel.from.custodians.direct
-
-      rel.from.custodians.inherited.forEach (liability)=>
-         unless _.any(@owners, (owner)=> _.includes owner._all_custodians(), liability )
-            @emancipate liability
-
-      return rel
 
    #---
    # XXX: At construct-time, this depends on `Relation` being defined. Sans hoisting (WHY DID I LAY
