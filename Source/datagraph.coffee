@@ -201,18 +201,30 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    # ### Shared, private methods ###
 
-   # N.B., when modifying ownership-mutation: Multiple Relations `from` and `to` the *same pair of
-   # Things* can exist in `@owners`, because they can exist in the `@metadata` of the parent, and one
-   # of them could be deleted, leaving the second.
+   # Private; implements the pre-checking-and-throwing behaviour for *public* methods that
+   # eventually call `_add_parent_and_inherit_custodians()`.
+   _validate_relations_to_add: (relations)->
+      unless _.isEmpty (custodians = @_all_custodians())
+         _.forEach relations, (rel)=>
+            if rel?.owns
+               unless rel.to.available_to custodians...
+                  throw new ResponsibilityError(
+                     "Attempt to add Thing held under conflicting responsibility.")
 
-   # FIXME: I extracted the responsibility-handling to `_del_parent`; can I extract
-   #        the same for `_add_parent`?
-   _add_parent: (rel)->
+   # XXX: N.B., when modifying ownership-mutation: Multiple Relations `from` and `to` the *same pair
+   #      of Things* can exist in `@owners`, because they can exist in the `@metadata` of the
+   #      parent, and one of them could be deleted, leaving the second.
+
+   # Private; assumes the caller has checked availability, expects a safe (unused) `Relation`.
+   _add_parent_and_inherit_custodians: (rel)->
       @owners.push rel unless _.contains @owners, rel
+
+      rel.from._all_custodians().forEach (li)=>
+         @_add_custodian li
 
       return this
 
-   # Private; does *two* useful things:
+   # Private; does several useful things:
    #
    #  - Remove a passed parent from the `owners` array,
    #  - check the *other* owners for all responsibility inherited through the removed owner,
@@ -229,27 +241,14 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return this
 
-   _del_custodian: (liability)->
-      family = if this is liability.ward then 'direct' else 'inherited'
-      _.pull @custodians[family], liability
+   _add_custodian: (li)->
+      fam = if this is li.ward then 'direct' else 'inherited'
+      unless _.includes @custodians[fam], li
+         @custodians[fam].push li
 
-   # Private; implements the pre-checking-and-throwing behaviour for public methods that call
-   # `_add_edge()`.
-   _validate_relations_to_add: (relations)->
-      unless _.isEmpty (custodians = @_all_custodians())
-         _.forEach relations, (rel)=>
-            if rel?.owns
-               unless rel.to.available_to custodians...
-                  throw new ResponsibilityError(
-                     "Attempt to add Thing held under conflicting responsibility.")
-
-   _add_edge: (rel)->
-      if rel?.owns
-         rel.to._add_parent rel
-
-         unless _.isEmpty (custodians = @_all_custodians())
-            # FIXME: Use the non-checking version, #_dedicate, when it's properly segregated
-            rel.to.dedicate custodians
+   _del_custodian: (li)->
+      fam = if this is li.ward then 'direct' else 'inherited'
+      _.pull @custodians[fam], li
 
 
    # ### ‘Array-ish’ metadata manipulation ###
@@ -275,14 +274,15 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       return @_set idx, rel
 
    # Private; directly assigns another `Thing` to an index-specified location in the receiver's
-   # metadata. Assumes the caller has checked availability, expects a pre-constructed `Relation`.
+   # metadata. Assumes the caller has checked availability, expects a safe (brand-new / unused)
+   # `Relation`.
    #
    # @see set
    _set: (idx, rel)->
       prev = @metadata[idx]
 
       if rel?.owns
-         rel.to._add_parent rel
+         rel.to._add_parent_and_inherit_custodians rel
 
       if prev?.owns
          prev.to._del_parent_and_inherited_custodians prev
@@ -347,7 +347,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
                rel.to.dedicate custodians
 
       _.forEach relations, (rel)=>
-         rel.to._add_parent rel if rel?.owns
+         rel.to._add_parent_and_inherit_custodians rel if rel?.owns
 
       @metadata = @metadata.concat relations
 
@@ -425,7 +425,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    own_at: (idx)->
       if (prev = @metadata[idx])? and not prev.owns
          @metadata[idx] = prev.as_owned()
-         @metadata[idx].to._add_parent @metadata[idx]
+         @metadata[idx].to._add_parent_and_inherit_custodians @metadata[idx]
       else prev
 
    disown_at: (idx)->
