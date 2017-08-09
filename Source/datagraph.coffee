@@ -143,7 +143,13 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       @custodians  = { direct: [], inherited: [] }
       @supplicants = { direct: [], inherited: [] }
 
-      @push elements... if elements.length
+      relations = elements.map (it)=>
+         rel = new Relation this, it
+         rel?.owns = @_?.own if @_?.own?
+         rel
+
+      @_push relations if relations.length
+
       @metadata.unshift undefined if @_?.noughtify != no
 
    # Constructs a generic ‘key/value’ style `Thing` from a `representation` (a JavaScript `Object`-
@@ -320,16 +326,9 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #       iteration here, and the iteration in `::_push`, into one iteration-pass ...
    push: (elements...)->
       relations = elements.map (it)=>
-         if it instanceof Relation
-            rel = it.clone()
-            rel.from = this
-
-         if it instanceof Thing
-            rel = new Relation this, it
-
+         rel = new Relation this, it
          rel?.owns = @_?.own if @_?.own?
-
-         return rel
+         rel
 
       unless _.isEmpty (custodians = @_all_custodians())
          _.forEach relations, (rel)=>
