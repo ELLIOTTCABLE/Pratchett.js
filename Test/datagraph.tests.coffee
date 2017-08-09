@@ -458,6 +458,67 @@ describe "Paws' Data types:", ->
                expect(another.thing.belongs_to an.execution,      'read').to.be no
 
 
+      # XXX: This is not thoroughly tested, due to the amount of duplication with ::push.
+      describe '::unshift', ->
+         it 'adds metadata values', ->
+            a Thing; another Thing
+
+            expect(a.thing.metadata).to.have.length 1
+            a.thing.unshift another.thing
+            expect(a.thing.metadata).to.have.length 2
+
+         it 'places added values after the noughty', ->
+            a Thing; another Thing
+
+            a.thing.unshift another.thing
+            expect(a.thing.at 0).to.not.be another.thing
+            expect(a.thing.at 1).to.be     another.thing
+
+         it 'places added values before existing elements', ->
+            a Thing; some Thing; another Thing
+
+            a.thing.unshift some.thing
+            expect(a.thing.at 1).to.be some.thing
+
+            a.thing.unshift another.thing
+            expect(a.thing.at 1).to.be another.thing
+            expect(a.thing.at 2).to.be some.thing
+
+         it 'accepts multiple arguments', ->
+            a Thing; a Relation, a.thing, new Thing; another Thing
+
+            a.thing.unshift a.thing, a.relation, another.thing
+            expect(a.thing.at 1).to.be a.thing
+            expect(a.thing.at 3).to.be another.thing
+
+         it 'defaults prepended Things to not being owned', ->
+            a Thing; another Thing
+
+            a.thing.unshift another.thing
+            expect(a.thing.owns_at 1).to.be no
+
+         it 'respects the declared ownership of passed Relations', ->
+            a Thing; another Thing
+
+            a.thing.unshift a.thing.owned_by(another.thing)
+            expect(a.thing.owns_at 1).to.be yes
+
+         it 'does not directly use passed Relation objects', ->
+            a Thing; another Thing
+            a Relation, a.thing, another.thing
+
+            a.thing.unshift a.relation
+            expect(a.thing.at 1).to.be another.thing
+            expect(a.thing.metadata[1]).to.not.be a.relation
+
+         it 'can add a noughty', ->
+            a_thing = new Thing.with(noughtify: no)()
+            noughty = new Thing
+
+            expect(a_thing.metadata).to.have.length 0
+            a_thing.unshift noughty
+            expect(a_thing.metadata).to.have.length 1
+
 
       describe '::clone', ->
          it 'creates a new Thing', ->

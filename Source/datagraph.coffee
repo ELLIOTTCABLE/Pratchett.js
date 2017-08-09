@@ -312,7 +312,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # @returns {Thing}                     The receiver
    # @throws ResponsibilityError          If one of the new children is to be owned by the parent,
    #    but is not available to one of the parent's custodian-Executions
-   # @option own {Boolean}                Override the ownership of the added values
+   # @option own {Boolean}                Value with which to override the ownership of the children
+   # @see unshift
    #---
    # TODO: Async `::$push`.
    # TODO: There's gotta be some shortcut-fusion / lazy-evaluation methodology to squash the
@@ -338,7 +339,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       return @_push relations
 
    # Private; directly adds other `Thing`s to the end of the receiver's metadata. Assumes the caller
-   # has checked availability, expects an `Array` of pre-constructed `Relation`s.
+   # has checked availability, expects an `Array` of safe (brand-new / unused) `Relations`.
    #
    # @see push
    _push: (relations)->
@@ -385,18 +386,68 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return rel?.to
 
-   unshift: (other)->
-      # FIXME: Obviate this hack, by extracting the meat of push() to its own private API that both
-      #        push() and this and set() can all call into.
-      # FIXME: Actually, fuck this entire hack. Re-write this.
-      @push other
-      rel = @metadata.pop()
+   # Prepend passed values to the receiver's metadata, immediately following the noughty.
+   #
+   # Passed values can each be either a `Thing` (`foo.unshift(a_thing)`), or a `Relation` expressing
+   # the desired ownership of that value (`foo.unshift(a_thing.contained_by(foo))` or the same with
+   # `owned_by`, for instance). The arguments need not be homogenous.
+   #
+   # You can configure the ownership of all the passed values, wholesale, by explicitly setting the
+   # `own:` option to either `true` or `false`:
+   #
+   #     blah.with(own: yes).unshift(foo, bar, baz)
+   #
+   # If the `Thing` in question is affected by responsibility conflicting with that flowing from /
+   # through the receiver (that is, it is both marked as owned, and held with a conflicting license
+   # by other `Liability`), a `ResponsibilityError` will be thrown.
+   #
+   # @arg {...(Relation|Thing)} elements  Values to be prepended as children
+   # @returns {Thing}                     The receiver
+   # @throws ResponsibilityError          If one of the new children is to be owned by the parent,
+   #    but is not available to one of the parent's custodian-Executions
+   # @option own {Boolean}                Value with which to override the ownership of the children
+   # @see push
+   #---
+   # TODO: Async `::$unshift`.
+   # TODO: cf. TODO on push() re: shortcut-fusion
+   unshift: (elements...)->
+      # FIXME: DRYME, this is all a duplicate of ::push
+      relations = elements.map (it)=>
+         if it instanceof Relation
+            rel = it.clone()
+            rel.from = this
 
-      noughty = @metadata.shift()
-      @metadata.unshift rel
-      @metadata.unshift noughty
+         if it instanceof Thing
+            rel = new Relation this, it
 
-      rel
+         rel?.owns = @_?.own if @_?.own?
+
+         return rel
+
+      unless _.isEmpty (custodians = @_all_custodians())
+         _.forEach relations, (rel)=>
+            if rel?.owns
+               rel.to._validate_availability_to custodians
+
+      return @_unshift relations
+
+   # Private; directly adds other `Things` to the beginning-save-one of the receiver's metadata.
+   # Assumes the caller has checked availability, expects a disposable / brand-new `Array` of safe
+   # (also brand-new / unused) `Relations`.
+   #
+   # @see unshift
+   _unshift: (relations)->
+      _.forEach relations, (rel)=>
+         if rel?.owns
+            rel.to._add_parent_and_inherit_custodians rel
+
+      protect_noughty = @metadata.length != 0
+
+      noughty = @metadata.shift() if protect_noughty
+      @metadata = relations.concat @metadata
+      @metadata.unshift noughty   if protect_noughty
+
+      return this
 
 
    # ### ‘Dictionary-ish’ metadata manipulation ###
