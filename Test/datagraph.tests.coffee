@@ -6,8 +6,6 @@ sinon   = require 'sinon'
 expect  = require('sinon-expect').enhance require('expect.js'), sinon, 'was'
 __      = sinon.match
 
-debugger;
-
 describe "Paws' Data types:", ->
    Paws = require "../Source/Paws.coffee"
 
