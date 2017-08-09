@@ -663,6 +663,37 @@ describe "Paws' Data types:", ->
             expect(a_thing.find('bar')[0].isPair()).to.be yes
             expect(a_thing.find('bar')[0].valueish()).to.be another_thing
 
+         it 'accepts a Thing', ->
+            a_thing = Thing.construct foo: new Thing
+            another_thing = new Thing
+
+            a_thing.define 'bar', another_thing
+            expect(a_thing.find('bar')[0].isPair()).to.be yes
+            expect(a_thing.find('bar')[0].valueish()).to.be another_thing
+
+         it 'accepts a Relation', ->
+            a_thing = Thing.construct foo: new Thing
+            another_thing = new Thing
+
+            a_thing.define 'bar', (new Relation a_thing, another_thing)
+            expect(a_thing.find('bar')[0].isPair()).to.be yes
+            expect(a_thing.find('bar')[0].valueish()).to.be another_thing
+
+         it 'checks availability, and throws an ResponsibilityError if there is a conflict', ->
+            a_thing = new Thing;          another_thing = new Thing
+            an_execution = new Execution; another_execution = new Execution
+
+            a_thing      .dedicate new Liability(an_execution,      a_thing, 'write')
+            another_thing.dedicate new Liability(another_execution, another_thing, 'read')
+
+            expect(-> a_thing.define 'foo', another_thing.owned_by(a_thing)).to
+               .throwException ResponsibilityError
+
+            expect(a_thing.at 1).to.be undefined
+            expect(a_thing      .belongs_to an_execution,      'write').to.be yes
+            expect(another_thing.belongs_to another_execution, 'read').to.be yes
+            expect(another_thing.belongs_to an_execution,      'read').to.be no
+
       describe '::find', ->
          first = new Thing; second = new Thing; third = new Thing
          foo_bar_foo = new Thing Thing.pair('foo', first),
