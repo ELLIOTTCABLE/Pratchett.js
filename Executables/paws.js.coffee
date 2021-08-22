@@ -20,8 +20,9 @@ bluebird.config
 
 Paws        = require '../Library/Paws.js'
 
-{  Thing, Label, Execution, Native
-,  Relation, Combination, Position, Mask
+{  Reactor, parse
+,  Thing, Label, Execution, Native
+,  Relation, Combination, Position, Mask, Operation
 ,  debugging, utilities: _                                                                  } = Paws
 
 {  constructify, parameterizable, delegated
@@ -97,7 +98,7 @@ choose = ->
          info '-- Invoking parse operation'
          go = -> _.forEach sources, (source)->
             info "-- Parse-tree for '#{term.bold source.from}':"
-            seq = Paws.parse Paws.parse.prepare source.code
+            seq = parse parse.prepare source.code
             out.write seq.serialize() + "\n"
 
          if _.isEmpty argv[0]
@@ -126,7 +127,7 @@ choose = ->
 
                if argf['expose-specification'] == true
                   _.forEach collection.rules, (rule)->
-                     rule.body.locals.inject Paws.primitives 'specification'
+                     rule.body.locals.push Paws.primitives 'specification'
 
                collection.report()
                collection.on 'complete', (passed)-> goodbye 1 unless passed
@@ -135,7 +136,7 @@ choose = ->
          rule_unit = (source)->
             info "-- Staging '#{term.bold source.from}' from the command-line ..."
             root = Paws.generateRoot source.code, path.basename source.from, '.paws'
-            root.locals.inject Paws.primitives 'specification'
+            root.locals.push Paws.primitives 'specification'
 
             # FIXME: Respect `--expose-specification` for the *bodies* of libside rules
 
@@ -174,10 +175,13 @@ choose = ->
             info "-- Staging '#{term.bold source.from}' from the command-line ..."
             root = Paws.generateRoot source.code, path.basename source.from, '.paws'
 
-            here = new Paws.reactor.Unit
-            here.stage root
+            reac = Reactor.get() or new Reactor
+            reac.start()
 
-            here.start() unless argf.start == false
+            if argf.start is false
+               root.queue new Operation 'advance', undefined
+            else
+               root.stage undefined
 
          if _.isEmpty argv[0]
             go()
