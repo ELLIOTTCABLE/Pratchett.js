@@ -54,7 +54,7 @@
       "uuid": "^3.0.1"
    },
    "optionalDependencies": {
-      "kexec": "^3.0.0"
+      "@jcoreio/kexec": "^4.0.0"
    },
    "devDependencies": {
       "@elliottcable/mocha-fivemat-reporter": "^0.0.10",
