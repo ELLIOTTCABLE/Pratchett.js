@@ -8,7 +8,7 @@ bluebird    = require 'bluebird'
 minimist    = require 'minimist'
 mustache    = require 'mustache'
 prettify    = require('pretty-error').start()
-kexec       = optional 'kexec'
+kexec       = optional '@jcoreio/kexec'
 
 path        = require 'path'
 fs          = bluebird.promisifyAll require 'fs'
