@@ -107,8 +107,9 @@ Paws.Reactor = Reactor = do ->
       #
       # 1. Return the *currently-governing* `Reactor` instance, if the code-path invoking this
       #    function originated within a `Reactor`-tick;
-      # 2. select an available¹ `Reactor`, if called from client code off-tick;
-      # 3. or create a `Reactor` instance and return it, if none yet exist.
+      # 2. or select an available¹ `Reactor`, if called from client code off-tick.
+      #
+      # Throws a ReferenceError if no `Reactor`s exist.
       #
       # (This method is called as the default behaviour by various convenience methods within Paws
       # if a `Reactor`-argument is needed and omitted; so you'll rarely have to call it yourself,
@@ -119,7 +120,8 @@ Paws.Reactor = Reactor = do ->
       #       strictly-ordered (with, of course, appropriate warnings about that not being a
       #       specified feature, or any guarantees about the reproducibility of that ordering across
       #       versions ...)
-      @get: get = -> current() ? _.sample(_reactors) ? new Reactor
+      # TODO: Needs a better error-type than ReferenceError
+      @get: get = -> current() ? _.sample(_reactors)
 
       #---
       # A private method to `::notify` an arbitrary `Reactor`. This is called by `Thing::_signal`;
