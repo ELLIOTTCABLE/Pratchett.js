@@ -12,11 +12,11 @@ infrastructure execution stage[]
   [infrastructure length[] [locals]];
 
 infrastructure execution stage[]
-  [infrastructure affix[] 
+  [infrastructure affix[]
      [infrastructure get[] [locals] [infrastructure length[] [locals]]]]
    #;
 infrastructure execution stage[]
-  [infrastructure affix[] 
+  [infrastructure affix[]
      [infrastructure get[] [locals] [infrastructure length[] [locals]]]]
   [infrastructure];
 
