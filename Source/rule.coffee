@@ -1,6 +1,5 @@
 { EventEmitter } = require 'events'
 
-# I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
 Paws             = require './Paws.coffee'
 
 {  Thing, Label, Execution, Native

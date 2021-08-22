@@ -18,7 +18,6 @@ bluebird.config
    longStackTraces: true
 
 
-# I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
 Paws        = require '../Library/Paws.js'
 
 {  Thing, Label, Execution, Native
