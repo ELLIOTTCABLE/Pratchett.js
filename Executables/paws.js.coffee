@@ -126,7 +126,7 @@ choose = ->
 
                if argf['expose-specification'] == true
                   _.forEach collection.rules, (rule)->
-                     rule.body.locals.inject Paws.primitives 'specification'
+                     rule.body.locals.push Paws.primitives 'specification'
 
                collection.report()
                collection.on 'complete', (passed)-> goodbye 1 unless passed
@@ -135,7 +135,7 @@ choose = ->
          rule_unit = (source)->
             info "-- Staging '#{term.bold source.from}' from the command-line ..."
             root = Paws.generateRoot source.code, path.basename source.from, '.paws'
-            root.locals.inject Paws.primitives 'specification'
+            root.locals.push Paws.primitives 'specification'
 
             # FIXME: Respect `--expose-specification` for the *bodies* of libside rules
 

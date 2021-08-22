@@ -36,8 +36,8 @@ Paws.generateRoot = (code = '', name)->
    code.rename name if name
    debugging.info "~~ Root-execution generated for #{_.terminal.bold name}" if name
 
-   code.locals.inject Paws.primitives 'infrastructure'
-   code.locals.inject Paws.primitives 'implementation'
+   code.locals.push Paws.primitives 'infrastructure'
+   code.locals.push Paws.primitives 'implementation'
 
    return code
 

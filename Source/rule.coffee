@@ -45,13 +45,13 @@ module.exports = Rule = class Rule extends Thing
       if @caller?
          @body.locals = @caller.clone().locals
 
-      @body.locals.inject primitives.generate_block_locals this
-      this        .inject primitives.generate_members this if @caller
+      @body.locals.push primitives.generate_block_locals this
+      this        .push primitives.generate_members this if @caller
 
       collection.push this if collection
 
    maintain_locals: (@locals)->
-      @body.locals.inject @locals
+      @body.locals.push @locals
 
    dispatch: ->
       return if @dispatched
@@ -73,7 +73,7 @@ module.exports = Rule = class Rule extends Thing
 
    # FIXME: repeated calls?
    eventually: (block)->
-      block.locals.inject @body.locals
+      block.locals.push @body.locals
 
       if not @flushed
          Paws.info "-- Registering 'eventually' for ", Paws.inspect this
