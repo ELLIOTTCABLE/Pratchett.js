@@ -5,7 +5,6 @@ uuid             = require 'uuid'
 _                = require './utilities.coffee'
 debugging        = require './debugging.coffee'
 
-# I'll give $US 5,000 to the person who fucking *fixes* how Node handles globals inside modules. ಠ_ಠ
 {  constructify, parameterizable, delegated
 ,  passthrough, selfify, modifier
 ,  terminal: term                                                                              } = _
