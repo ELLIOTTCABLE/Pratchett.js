@@ -1686,7 +1686,7 @@ describe "Paws' Data types:", ->
             expect(ex.ops).to.have.length 0
 
             a_thing = new Thing
-            ex.respond a_thing
+            ex.stage a_thing
             expect(ex.ops).to.have.length 1
             expect(ex.ops[0]).to.have.property 'op'
             expect(ex.ops[0].op).to.be 'advance'
