@@ -772,7 +772,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          results = subject.find message
 
          if results[0]
-            caller.respond results[0].valueish()
+            caller.stage results[0].valueish()
 
          # FIXME: Welp, this is horrible error-handling. "Print a warning and freeze forevah!!!"
          else
@@ -942,12 +942,17 @@ Paws.Execution = Execution = class Execution extends Thing
       @ops.push something
 
    # A convenience method for pushing an 'advance' `Operation`, specifically.
-   respond: (response)->
+   #---
+   # TODO: Needs to obtain the Unit by climbing the datagraph, if this isn't called on-stack.
+   stage: (response)->
       @queue new Operation 'advance', arguments...
+      Paws.reactor._notify this, 'oper'
 
    # This informs an `Execution` of the ‘result’ of the last `Combination` returned from `next`.
    # This value is stored in the `results` stack, and is later used as one of the values in furhter
    # `Combination`s.
+   #---
+   # FIXME: Should this be public? o_O
    register_response: (response)-> @results[0] = response
 
 
@@ -1089,7 +1094,7 @@ Paws.Execution = Execution = class Execution extends Thing
          subject = params.at 1
          message = params.at 2
 
-         subject.clone().respond message
+         subject.clone().stage message
       .rename 'execution✕'
 
 
@@ -1205,7 +1210,7 @@ Paws.Native = Native = class Native extends Execution
          (caller, value)->
             # FIXME: Pretty this up with prototype extensions. (#last, anybody?)
             @bits[@bits.length - 1] = _.partial @bits[@bits.length - 1], value
-            caller.respond this
+            caller.stage this
 
       # Next, we construct the *first* bit, which is a special case responsible for receiving the
       # `caller` (as is usually the case in the coproductive pattern.) It takes its resumption-
@@ -1213,7 +1218,7 @@ Paws.Native = Native = class Native extends Execution
       # and the concluding bit, below, save a spot for a `caller` argument.)
       bits[0] = (caller)->
          @bits = @bits.map (bit)=> _.partial bit, caller
-         caller.respond this
+         caller.stage this
 
       # Now, the complex part. The *final* bit has quite a few arguments curried into it:
       #
@@ -1237,7 +1242,7 @@ Paws.Native = Native = class Native extends Execution
          var that = { caller: caller, execution: this }
          var result = synch_body.apply(that, [].slice.call(arguments, 2))
          if (typeof result !== 'undefined' && result !== null) {
-            caller.respond(result) }
+            caller.stage(result) }
       """
 
       bits[advancements - 1] = _.partial Function(arg_names..., last_bit), synch_body
@@ -1500,9 +1505,9 @@ Operation.register 'advance', (response)->
       params  = Execution.create_params this, subject, next.message
       params.rename '<parameters>'
 
-      # FIXME: Er. What? How does `respond` play with `Reactor::queue` ... I've clearly gained some
+      # FIXME: Er. What? How does `stage` play with `Reactor::queue` ... I've clearly gained some
       #        disunified design-plans at some point. D:
-      subject.receiver.clone().respond params
+      subject.receiver.clone().stage params
       return true
 
 
