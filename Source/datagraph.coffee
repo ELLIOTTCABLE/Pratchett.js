@@ -1632,10 +1632,4 @@ Native::toString = ->
    if @_?.tag == no then output else @_tagged output
 
 
-
-# Initialization
-# ==============
-Thing._init()
-Execution._init()
-
 debug "++ Datagraph available"
