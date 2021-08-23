@@ -244,16 +244,23 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return this
 
-   # Private; implements the guts of dedication for internal methods.
    _add_custodian: (li)->
       fam = if this is li.ward then 'direct' else 'inherited'
       unless _.includes @custodians[fam], li
          @custodians[fam].push li
 
-   # Private; implements the guts of emancipation for internal methods.
    _del_custodian: (li)->
       fam = if this is li.ward then 'direct' else 'inherited'
       _.pull @custodians[fam], li
+
+   _add_supplicant: (li)->
+      fam = if this is li.ward then 'direct' else 'inherited'
+      unless _.includes @supplicants[fam], li
+         @supplicants[fam].push li
+
+   _del_supplicant: (li)->
+      fam = if this is li.ward then 'direct' else 'inherited'
+      _.pull @supplicants[fam], li
 
 
    # ### ‘Array-ish’ metadata manipulation ###
@@ -658,14 +665,11 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # When passed an existing `descendants` object, this assumes you obtained that by already having
    # checked their availability via `::available_to`.
    #---
-   # FIXME: The constant `uniq`'ing is going to also be slow: need to collect that into a single
-   #        event after any modifications? Ugh, I need `Set`. /=
+   # FIXME: can't I just ... `@_walk_descendants -> @_add_custodian liability`, like below??
    _dedicate: (liability)->
       unless _.includes @custodians.direct, liability
          _.values(@_walk_descendants()).forEach (descendant)=>
-            family = if descendant is liability.ward then 'direct' else 'inherited'
-            descendant.custodians[family].push liability
-            descendant.custodians[family] = _.uniq descendant.custodians[family]
+            descendant._add_custodian liability
 
    # FIXME: DOCME
    # TODO: Make this accept an Execution directly, as a convenience
@@ -705,14 +709,29 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return _.all liabilities, (liability)=> @_emancipate liability
 
+   # FIXME: can't I just ... `@_walk_descendants -> @_add_supplicant liability`, like below??
+   _supplicate: (liability)->
+      unless _.includes @supplicants.direct, liability
+         _.values(@_walk_descendants()).forEach (descendant)=>
+            descendant._add_supplicant liability
+
    # This adds a passed `Liability` into the receiver's `supplicants` array, indicating that the
    # `Execution` needs to be resumed when it will be able to successfully obtain responsibility for
    # the receiver.
    #
    # This should only be called after `::dedicate` has been called, and has indicated failure; this
    # is handled for you by ... # DOCME
-   supplicate: (liability)->
-      @supplicants.push liability
+   supplicate: (liabilities...)->
+      liabilities = liabilities[0] if _.isArray liabilities[0]
+      liabilities.forEach (li)=> @_supplicate li
+      return true
+
+   _clear_supplication: (liability)->
+      return true unless _.includes @supplicants.direct, liability
+
+      @_walk_descendants -> @_del_supplicant liability; undefined
+
+      return true
 
 
    # ### Utility / convenience ###
@@ -879,6 +898,7 @@ Paws.Execution = Execution = class Execution extends Thing
       @ops = new Array
 
       @wards = new Array
+      @blockers = new Array
 
       return this
 
@@ -907,6 +927,8 @@ Paws.Execution = Execution = class Execution extends Thing
       if @instructions? and @results?
          to.instructions = @instructions.slice 0
          to.results      = @results.slice 0
+
+      # TODO: 🤘 ops? wards? blockers??
 
       return to
 
@@ -1039,6 +1061,15 @@ Paws.Execution = Execution = class Execution extends Thing
    #       `Liability::discard` instead of doing these things manually.)
    abjure: (liability)->
       _.pull @wards, liability
+      return liability
+
+   # TODO: DOCME
+   block: (liability)->
+      @blockers.push liability unless _.contains @blockers, liability
+      return liability
+
+   _clear_block: (liability)->
+      _.pull @blockers, liability
       return liability
 
 
@@ -1317,6 +1348,9 @@ Paws.Liability = Liability = delegated('for', Thing) class Liability
       other.custodian   is @custodian  &&
       other.ward        is @ward
 
+   # Convenience method to call `Thing::available_to` on the `ward`.
+   available: -> @ward.available_to this
+
    # This is the union of `Thing::dedicate` and `Execution::accept`, indicating the acceptance of
    # responsibility (represented by the receiver `Liability`) of the `custodian` `Execution` for the
    # `ward` `Thing`.
@@ -1338,6 +1372,19 @@ Paws.Liability = Liability = delegated('for', Thing) class Liability
    discard: ->
       @custodian.abjure this
       @ward.emancipate this
+      return true
+
+   # Thing::supplicate
+   # DOCME
+   # FIXME: does this need checks as to whether the requested liability is already supplicated?
+   request: (liability)->
+      @custodian.block this
+      @ward.supplicate this
+      return true
+
+   _clear_request: (liability)->
+      @custodian._clear_block this
+      @ward._clear_supplication this
       return true
 
 
@@ -1397,8 +1444,8 @@ Paws.Position = Position = class Position
 #  - `'advance'`: given a resumption-value, this will apply that value to the `Execution` in
 #    question, as the result of the previous `Combo` generated by it. This will advance the
 #    evaluation of that `Execution` by one step, generally producing the *next* `Combo`.
-#  - `'adopt'`: given a target object, block further operations (so, advancements) in this
-#    `Execution`'s queue until it is available for responsibility; then take that responsibility.
+#  - `'adopt'`: prevent further operations (so, advancements) in this `Execution`'s queue until all
+#    `blockers` are cleared (i.e. all `Thing`s it's supplicated-to have become available to it.)
 #    This is acheived by returning false every time it's attempted, unless the responsibility in
 #    question has become available.
 Paws.Operation = Operation = class Operation
@@ -1459,7 +1506,7 @@ Operation.register 'advance', (response)->
       return true
 
 
-Operation.register 'adopt', (liability)->
+Operation.register 'adopt', ()->
    # XXX: Debugging NYI.
   #if process.env['TRACE_REACTOR']
   #   warning ">> #{this} ← #{response}"
@@ -1477,13 +1524,13 @@ Operation.register 'adopt', (liability)->
       warning 'Completed Execution attempted to adopt o_O'
       return
 
-   # This will return `false` if `Thing::dedicate` does so, which indicates that, in turn, the
-   # `Thing::available_to` failed.
-   unless succeeded = liability.commit()
-      liability.ward.supplicate liability
+   # This continues attempting all blockers even if one fails; this means the `'adopt'` operation
+   # can fail, but still obtain *some* of the locking it's waiting on.
+   @blockers.forEach (liability)-> liability.commit()
 
-   # If the dedication failed, then this operation failed as well
-   return succeeded
+   # If any of the `dedicate` calls failed, then this exec will still stand `supplicant` thereto;
+   # and thus still have `blockers`.
+   return _.isEmpty blockers
 
 
 # Error types
