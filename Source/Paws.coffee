@@ -171,8 +171,13 @@ Paws.js = (code)->
 
    here.start()
 
-
 Paws.infect = (target)-> @utilities.extend (target ? global), this
+
+
+# Initialization
+# ==============
+Paws.Thing._init()
+Paws.Execution._init()
 
 
 # XXX: Loading order:
