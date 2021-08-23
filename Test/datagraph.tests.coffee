@@ -765,32 +765,32 @@ describe "Paws' Data types:", ->
          it 'finds a matching pair-ish Thing in the subject', ->
             a_thing = Thing.construct foo: another_thing = new Thing
             params = Execution.create_params caller, a_thing, new Label 'foo'
-            sinon.spy caller, 'queue'
+            sinon.spy caller, 'stage'
 
             bit = receiver.advance params
             bit.apply receiver, [params]
 
-            expect(caller.queue).was.calledWith __.has 'params', [another_thing]
+            expect(caller.stage).was.calledWith __.has 'params', [another_thing]
 
          it 'stages the caller if there is a result', ->
             a_thing = Thing.construct foo: another_thing = new Thing
             params = Execution.create_params caller, a_thing, new Label 'foo'
-            sinon.spy caller, 'queue'
+            sinon.spy caller, 'stage'
 
             bit = receiver.advance params
             bit.apply receiver, [params]
 
-            expect(caller.queue).was.calledOnce()
+            expect(caller.stage).was.calledOnce()
 
          it 'does not stage the caller if there is no result', ->
             a_thing = Thing.construct foo: another_thing = new Thing
             params = Execution.create_params caller, a_thing, new Label 'bar'
-            sinon.spy caller, 'queue'
+            sinon.spy caller, 'stage'
 
             bit = receiver.advance params
             bit.apply receiver, [params]
 
-            expect(caller.queue).was.notCalled()
+            expect(caller.stage).was.notCalled()
 
       # NB: A lot of this is duplicating effort from the Giraphe tests; but hey.
       describe '::_walk_descendants', ->
@@ -2061,21 +2061,21 @@ describe "Paws' Data types:", ->
 
             it 'can be invoked with a caller', ->
                exe = synchronous (a, b, c)->
-               sinon.spy a.caller, 'queue'
+               sinon.spy a.caller, 'stage'
 
                expect(-> call exe, a.caller).to.not.throwException()
-               expect(a.caller.queue).was.calledWith __ params: [exe]
+               expect(a.caller.stage).was.calledWith __ params: [exe]
 
             it 'can be invoked with further parameters', ->
                exe = synchronous (a, b, c)->
-               sinon.spy a.caller, 'queue'
+               sinon.spy a.caller, 'stage'
                call exe, a.caller
 
                expect(-> call exe, a.thing).to.not.throwException()
                expect(-> call exe, a.thing).to.not.throwException()
 
-               expect(a.caller.queue).was.calledWith __ params: [exe]
-               expect(a.caller.queue).was.calledThrice()
+               expect(a.caller.stage).was.calledWith __ params: [exe]
+               expect(a.caller.stage).was.calledThrice()
 
             it 'are each provided the `caller` passed to the first bit', ->
                some_function = sinon.spy (a, b, c)->
@@ -2094,67 +2094,67 @@ describe "Paws' Data types:", ->
 
             it 'resume the `caller` after consuming an argument', ->
                exe = synchronous (a, b, c)->
-               queue = sinon.spy a.caller, 'queue'
+               stage = sinon.spy a.caller, 'stage'
 
                call exe, a.caller
-               expect(queue.callCount).to.be 1
-               expect(queue.thisValues[0]).to.be a.caller
-               expect(queue.args[0][0].params).to.contain exe
+               expect(stage.callCount).to.be 1
+               expect(stage.thisValues[0]).to.be a.caller
+               expect(stage.args[0][0].params).to.contain exe
 
                call exe, new Label 123
-               expect(queue.callCount).to.be 2
-               expect(queue.thisValues[1]).to.be a.caller
-               expect(queue.args[1][0].params).to.contain exe
+               expect(stage.callCount).to.be 2
+               expect(stage.thisValues[1]).to.be a.caller
+               expect(stage.args[1][0].params).to.contain exe
 
                call exe, new Label 456
-               expect(queue.callCount).to.be 3
-               expect(queue.thisValues[2]).to.be a.caller
-               expect(queue.args[2][0].params).to.contain exe
+               expect(stage.callCount).to.be 3
+               expect(stage.thisValues[2]).to.be a.caller
+               expect(stage.args[2][0].params).to.contain exe
 
               #call exe, new Label 456
 
             it 'do not re-stage the `caller` after all coproduction if there is no result', ->
                result = new Label "A result!"
                exe = synchronous (a, b)->
-               queue = sinon.spy a.caller, 'queue'
+               stage = sinon.spy a.caller, 'stage'
 
                call exe, a.caller
-               expect(queue.callCount).to.be 1
-               expect(queue.thisValues[0]).to.be a.caller
-               expect(queue.args[0][0].params).to.contain exe
+               expect(stage.callCount).to.be 1
+               expect(stage.thisValues[0]).to.be a.caller
+               expect(stage.args[0][0].params).to.contain exe
 
                call exe, new Label 123
-               expect(queue.callCount).to.be 2
-               expect(queue.thisValues[1]).to.be a.caller
-               expect(queue.args[1][0].params).to.contain exe
+               expect(stage.callCount).to.be 2
+               expect(stage.thisValues[1]).to.be a.caller
+               expect(stage.args[1][0].params).to.contain exe
 
                call exe, new Label 456
-               expect(queue.callCount).to.not.be 3
+               expect(stage.callCount).to.not.be 3
 
             it 're-stage the `caller` after all coproduction if a result is returned', ->
                result = new Label "A result!"
                exe = synchronous (a)-> return result
-               queue = sinon.spy a.caller, 'queue'
+               stage = sinon.spy a.caller, 'stage'
 
                call exe, a.caller
-               expect(queue.callCount).to.be 1
-               expect(queue.thisValues[0]).to.be a.caller
-               expect(queue.args[0][0].params).to.contain exe
+               expect(stage.callCount).to.be 1
+               expect(stage.thisValues[0]).to.be a.caller
+               expect(stage.args[0][0].params).to.contain exe
 
                call exe, new Label 123
-               expect(queue.callCount).to.be 2
-               expect(queue.thisValues[1]).to.be a.caller
-               expect(queue.args[1][0].params).to.contain result
+               expect(stage.callCount).to.be 2
+               expect(stage.thisValues[1]).to.be a.caller
+               expect(stage.args[1][0].params).to.contain result
 
             it 're-stage the `caller` immediately if no arguments is required', ->
-               queue = sinon.spy a.caller, 'queue'
+               stage = sinon.spy a.caller, 'stage'
                result = new Label "A result!"
                exe = synchronous -> return result
 
                call exe, a.caller
-               expect(queue.callCount).to.be 1
-               expect(queue.thisValues[0]).to.be a.caller
-               expect(queue.args[0][0].params).to.contain result
+               expect(stage.callCount).to.be 1
+               expect(stage.thisValues[0]).to.be a.caller
+               expect(stage.args[0][0].params).to.contain result
 
             it 'call the passed function exactly once, when exhausted', ->
                some_function = sinon.spy (a, b, c)->
