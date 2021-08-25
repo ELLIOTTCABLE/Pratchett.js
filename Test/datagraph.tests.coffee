@@ -16,6 +16,9 @@ describe "Paws' Data types:", ->
 
    {  Context, Sequence, Expression }                                                        = parse
 
+   beforeEach ->
+      default_reactor = new Reactor
+
 
    describe 'Thing', -> # ---- ---- ---- ---- ----                                             Thing
       # FIXME: A lot of these tests are more ... integration-ey than unit-ey; and to boot, a lot of
@@ -770,7 +773,7 @@ describe "Paws' Data types:", ->
             bit = receiver.advance params
             bit.apply receiver, [params]
 
-            expect(caller.stage).was.calledWith __.has 'params', [another_thing]
+            expect(caller.stage).was.calledWith another_thing
 
          it 'stages the caller if there is a result', ->
             a_thing = Thing.construct foo: another_thing = new Thing
@@ -1026,12 +1029,14 @@ describe "Paws' Data types:", ->
 
          describe '~ Indirect responsibility', ->
             it 'succeeds if a parent of the receiver belongs to the passed Liability', ->
+               debugger
                a_thing = Thing.construct foo: foo = new Thing, bar:
                    bar = Thing.construct widget: widget = new Thing
 
                a_thing.dedicate a Liability, (an Execution), a_thing
 
-               expect(widget.belongs_to a.liability).to.be yes
+               res = widget.belongs_to a.liability
+               expect(res).to.be yes
 
             it 'fails if a parent has other custodians, but not the passed Liability', ->
                a_thing = Thing.construct foo: foo = new Thing, bar:
@@ -2064,7 +2069,7 @@ describe "Paws' Data types:", ->
                sinon.spy a.caller, 'stage'
 
                expect(-> call exe, a.caller).to.not.throwException()
-               expect(a.caller.stage).was.calledWith __ params: [exe]
+               expect(a.caller.stage).was.calledWith exe
 
             it 'can be invoked with further parameters', ->
                exe = synchronous (a, b, c)->
@@ -2074,7 +2079,7 @@ describe "Paws' Data types:", ->
                expect(-> call exe, a.thing).to.not.throwException()
                expect(-> call exe, a.thing).to.not.throwException()
 
-               expect(a.caller.stage).was.calledWith __ params: [exe]
+               expect(a.caller.stage).was.calledWith exe
                expect(a.caller.stage).was.calledThrice()
 
             it 'are each provided the `caller` passed to the first bit', ->
@@ -2099,17 +2104,17 @@ describe "Paws' Data types:", ->
                call exe, a.caller
                expect(stage.callCount).to.be 1
                expect(stage.thisValues[0]).to.be a.caller
-               expect(stage.args[0][0].params).to.contain exe
+               expect(stage.args[0][0]).to.be exe
 
                call exe, new Label 123
                expect(stage.callCount).to.be 2
                expect(stage.thisValues[1]).to.be a.caller
-               expect(stage.args[1][0].params).to.contain exe
+               expect(stage.args[1][0]).to.be exe
 
                call exe, new Label 456
                expect(stage.callCount).to.be 3
                expect(stage.thisValues[2]).to.be a.caller
-               expect(stage.args[2][0].params).to.contain exe
+               expect(stage.args[2][0]).to.be exe
 
               #call exe, new Label 456
 
@@ -2121,12 +2126,12 @@ describe "Paws' Data types:", ->
                call exe, a.caller
                expect(stage.callCount).to.be 1
                expect(stage.thisValues[0]).to.be a.caller
-               expect(stage.args[0][0].params).to.contain exe
+               expect(stage.args[0][0]).to.be exe
 
                call exe, new Label 123
                expect(stage.callCount).to.be 2
                expect(stage.thisValues[1]).to.be a.caller
-               expect(stage.args[1][0].params).to.contain exe
+               expect(stage.args[1][0]).to.be exe
 
                call exe, new Label 456
                expect(stage.callCount).to.not.be 3
@@ -2139,12 +2144,12 @@ describe "Paws' Data types:", ->
                call exe, a.caller
                expect(stage.callCount).to.be 1
                expect(stage.thisValues[0]).to.be a.caller
-               expect(stage.args[0][0].params).to.contain exe
+               expect(stage.args[0][0]).to.be exe
 
                call exe, new Label 123
                expect(stage.callCount).to.be 2
                expect(stage.thisValues[1]).to.be a.caller
-               expect(stage.args[1][0].params).to.contain result
+               expect(stage.args[1][0]).to.be result
 
             it 're-stage the `caller` immediately if no arguments is required', ->
                stage = sinon.spy a.caller, 'stage'
@@ -2154,7 +2159,7 @@ describe "Paws' Data types:", ->
                call exe, a.caller
                expect(stage.callCount).to.be 1
                expect(stage.thisValues[0]).to.be a.caller
-               expect(stage.args[0][0].params).to.contain result
+               expect(stage.args[0][0]).to.be result
 
             it 'call the passed function exactly once, when exhausted', ->
                some_function = sinon.spy (a, b, c)->
@@ -2327,20 +2332,20 @@ describe "Paws' Data types:", ->
 
       it 'adopts responsibility if available', ->
          a Thing; an Execution, parse 'foo []'
-         a Liability, an.execution, a.thing
 
-         op = new Operation 'adopt', a.liability
+         li = new Liability(an.execution, a.thing)
+         op = new Operation 'adopt', li
 
-         expect(-> op.perform an.execution).to.not.throwException()
+         op.perform an.execution
 
-         expect(a.thing.belongs_to a.liability).to.be yes
-         expect(an.execution.wards).to.contain a.liability # FIXME: Shouldn't this be an API method?
+         expect(a.thing.belongs_to li).to.be yes
+         expect(an.execution.wards).to.contain li # FIXME: Shouldn't this be an API method?
 
       it 'returns truthy if it was able to take ownership', ->
          a Thing; an Execution, parse 'foo []'
-         a Liability, an.execution, a.thing
 
-         op = new Operation 'adopt', a.liability
+         li = new Liability(an.execution, a.thing)
+         op = new Operation 'adopt', li
 
          expect(op.perform an.execution).to.be yes
 
