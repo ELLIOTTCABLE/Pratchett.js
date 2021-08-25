@@ -142,7 +142,7 @@ else
          invocation_guard="./node_modules/.bin/node-debug $hidden --cli --config \
             './Scripts/node-inspectorrc.json'"
       else
-         invocation_guard="node --inspect --debug-brk"
+         invocation_guard="node --inspect-brk"
       fi
    fi
 
