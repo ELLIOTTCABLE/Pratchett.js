@@ -22,8 +22,9 @@ describe "Paws' reactor:", ->
       after      -> Reactor._internals._reactors(originalReactors)
 
       _reactors = undefined
-      beforeEach -> Reactor._internals._reactors(_reactors = new Array)
-      beforeEach -> Reactor._internals._current(null)
+      beforeEach ->
+         Reactor._internals._reactors(_reactors = new Array)
+         Reactor._internals._current(null)
 
       it 'exists', ->
          expect(Reactor).to.be.ok()
@@ -51,22 +52,22 @@ describe "Paws' reactor:", ->
          expect(a.reactor.cache.operational).to.contain another.execution
 
       describe '~ Instance management', ->
-         it 'can retrieve the current Reactor', ->
-            Reactor._internals._current(a Reactor)
-
-            expect(Reactor.get).to.be.ok()
-            expect(Reactor.get()).to.be a.reactor
-
-         it 'can construct a new Reactor', ->
-            expect(Reactor.get()).to.be.a Reactor
-            expect(_reactors).to.not.be.empty()
-
-         it 'will retrieve a previously-created Reactor', ->
+         it 'will retrieve a previously-created Reactor, if not on-stack with a current one', ->
             a Reactor; another Reactor
 
+            expect(Reactor.get).to.be.ok()
             expect(rv = Reactor.get()).to.be.a Reactor
             expect(rv is a.reactor or rv is another.reactor).to.be.ok()
 
+         it 'will preferentially return the *current* reactor, if on-stack', ->
+            a Reactor; another Reactor
+
+            reac = new Reactor
+            Reactor._internals._current(reac)
+
+            expect(Reactor.get()).to.be reac
+
+         # FIXME: This could ... probably be tested better?
          it 'randomizes the returned reactor', ->
             sinon.spy util, 'sample'
             a Reactor; another Reactor
@@ -79,8 +80,8 @@ describe "Paws' reactor:", ->
          it 'multiplexes notifications to Reactor instances', ->
             an Execution; a Reactor
 
-            expect(Reactor._notify an.execution).to.be.ok()
+            expect(Reactor._notify_some an.execution).to.be.ok()
             expect(a.reactor.cache.operational).to.contain an.execution
 
       describe '::next', ->
-         
+         # ...

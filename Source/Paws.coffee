@@ -84,15 +84,15 @@ Paws.Reactor = Reactor = do ->
 
    class Reactor extends EventEmitter
 
-      constructor: constructify(return: this) (ops, resp)->
+      constructor: constructify(return:@) (execs, resp)->
          @cache = new Object
 
-         if ops? and not _.isArray ops
-            @cache.operational    = Array::slice.apply arguments
+         if execs? and not _.isArray execs
+            @cache.operational    = Array::slice.call arguments
             @cache.responsibility = new Array
          else
-            @cache.operational    = ops  ? []
-            @cache.responsibility = resp ? []
+            @cache.operational    = execs ? []
+            @cache.responsibility = resp  ? []
 
          _reactors.push this
 
@@ -126,31 +126,54 @@ Paws.Reactor = Reactor = do ->
       #---
       # A private method to `::notify` an arbitrary `Reactor`. This is called by `Thing::_signal`;
       # and thus by several `Thing`-ownership-mutating methods.
-      @_notify: notify = (it, type)-> get().notify(it, type)
+      @_notify_some: (it, type)->
+         some_reactor = get()
 
+         if some_reactor?
+            some_reactor.notify(it, type)
+         else
+            warning "!! Operations were queued on an Execution, but no Reactor was available to notify."
+
+      # DOCME
       notify: (it, type = 'operational')->
          @cache[type].push it
 
-      # This finds the next `Execution` to be evaluated by `::realize`.
+      # This finds the next `Execution` to be evaluated by `::tick`.
       #
       # If any `Thing`s have `::signal`ed the receiver, then those are checked first (that is, any
       # `Thing.supplicants` are checked for `Thing::available_to` in the order they originally
-      # attempted adoption). If there are no `hints` indicating possible `supplicant` fulfilment,
-      # then an `Execution` is pulled out of the `queue` to be evaluated.
-      #
-      # If there are no supplicants (or all of them
+      # attempted adoption). If there's nothing in the responsibility-cache to indicate possible
+      # `supplicant` fulfilment, or if everything therein proves to still be unavailable for the
+      # `Liability` they're blocked against, then the next `Execution` is pulled out of the
+      # operational-queue instead.
       next: ->
+         # XXX: UGHHGHGHHH SO SLOWWWW this is TERRIBLEEEE; we're at ... what, O(𝑛⁴)? maybe? -_-
+         queue_jumper = _.find @cache.responsibility, (exe)->
+            _.find exe.blockers, (li)->
+               li.available()
+
+         queue_jumper or @cache.operational.unshift()
 
      #upcoming: ->
      #   results = _.filter @queue, (staging)=> @table.allowsStagingOf staging
      #   return if results.length then results else undefined
 
       # DOCME
-      realize: ->
-         unless staging = @next()
+      tick: ->
+         prev_reactor = _current
+         _current = this
+
+         unless exec = @next()
             @awaitingTicks = 0
             return no
-         {stagee, result, requestedMask} = staging
+
+         op = exec.ops[0]
+
+         if op.perform(exec)
+            exec.ops.unshift()
+
+         _current = prev_reactor
+
 
    if debugging.testing()
       Reactor._internals =

@@ -238,29 +238,30 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    _del_parent_and_inherited_custodians: (rel)->
       _.pull @owners, rel
 
+      # FIXME: This m...might be *very* slow
       rel.from._all_custodians().forEach (li)=>
-         unless _.any(@owners, (owner)=> _.includes owner._all_custodians(), li )
+         unless _.any(@owners, (owner)=> li._is_in owner._all_custodians() )
             @_del_custodian li
 
       return this
 
    _add_custodian: (li)->
       fam = if this is li.ward then 'direct' else 'inherited'
-      unless _.includes @custodians[fam], li
-         @custodians[fam].push li
+      unless li._is_in @custodians[fam]
+         li._add_to @custodians[fam]
 
    _del_custodian: (li)->
       fam = if this is li.ward then 'direct' else 'inherited'
-      _.pull @custodians[fam], li
+      li._del_from @custodians[fam]
 
    _add_supplicant: (li)->
       fam = if this is li.ward then 'direct' else 'inherited'
-      unless _.includes @supplicants[fam], li
-         @supplicants[fam].push li
+      unless li._is_in @supplicants[fam]
+         li._add_to @supplicants[fam]
 
    _del_supplicant: (li)->
       fam = if this is li.ward then 'direct' else 'inherited'
-      _.pull @supplicants[fam], li
+      li._del_from @supplicants[fam]
 
 
    # ### ‘Array-ish’ metadata manipulation ###
@@ -624,8 +625,8 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
                return true if liability.custodian is it
 
       else
-         return _.includes(@custodians.direct, it)    or
-                _.includes(@custodians.inherited, it)
+         return it._is_in(@custodians.direct) or
+                it._is_in(@custodians.inherited)
 
    # Private helper that checks *only* the receiver's custodians for conflicts
    _directly_available_to: (liability)->
@@ -667,7 +668,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #---
    # FIXME: can't I just ... `@_walk_descendants -> @_add_custodian liability`, like below??
    _dedicate: (liability)->
-      unless _.includes @custodians.direct, liability
+      unless liability._is_in @custodians.direct
          _.values(@_walk_descendants()).forEach (descendant)=>
             descendant._add_custodian liability
 
@@ -694,7 +695,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    #            `Liability` roots on another node! You probably want `Liability::discard`, which
    #            calls this method.
    _emancipate: (liability)->
-      return true unless _.includes @custodians.direct, liability
+      return true unless liability._is_in @custodians.direct
 
       @_walk_descendants -> @_del_custodian liability; undefined
 
@@ -711,7 +712,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
    # FIXME: can't I just ... `@_walk_descendants -> @_add_supplicant liability`, like below??
    _supplicate: (liability)->
-      unless _.includes @supplicants.direct, liability
+      unless liability._is_in @supplicants.direct
          _.values(@_walk_descendants()).forEach (descendant)=>
             descendant._add_supplicant liability
 
@@ -727,7 +728,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       return true
 
    _clear_supplication: (liability)->
-      return true unless _.includes @supplicants.direct, liability
+      return true unless liability._is_in @supplicants.direct
 
       @_walk_descendants -> @_del_supplicant liability; undefined
 
@@ -764,7 +765,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       @_init_responsibility_walkers()
 
       # The default receiver for `Thing`s simply preforms a ‘lookup.’
-      Thing::receiver = new Native (params)->
+      @default_receiver = (params)->
          caller  = params.at 0
          subject = params.at 1
          message = params.at 2
@@ -778,8 +779,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          else
             notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}."
 
-      .rename 'thing✕'
-
+      Thing::receiver = new Native(@default_receiver).rename 'thing✕'
 
 
 # A `Label` is a type of `Thing` which encapsulates a static Unicode string, serving two purposes:
@@ -821,7 +821,6 @@ Paws.Label = Label = class Label extends Thing
       it = new Thing
       it.push.apply it, _.map @alien.split(''), (char)-> new Label char
       it
-
 
 
 # *Programs* in Paws are a series of nested sequences-of-Paws-objects. For programs that originate
@@ -879,7 +878,7 @@ Paws.Label = Label = class Label extends Thing
 Paws.Execution = Execution = class Execution extends Thing
 
    constructor: constructify (@begin)->
-      if typeof @begin == 'function' then return Native.apply this, arguments
+      if typeof @begin is 'function' then return Native.apply this, arguments
 
       @begin = new Position @begin if @begin? and not (@begin instanceof Position)
 
@@ -945,11 +944,11 @@ Paws.Execution = Execution = class Execution extends Thing
    #---
    # TODO: Needs to obtain the Unit by climbing the datagraph, if this isn't called on-stack.
    stage: (response)->
-      @queue new Operation 'advance', arguments...
-      Paws.reactor._notify this, 'oper'
+      @queue new Operation 'advance', response
+      Paws.Reactor._notify_some this, 'operational'
 
    # This informs an `Execution` of the ‘result’ of the last `Combination` returned from `next`.
-   # This value is stored in the `results` stack, and is later used as one of the values in furhter
+   # This value is stored in the `results` stack, and is later used as one of the values in further
    # `Combination`s.
    #---
    # FIXME: Should this be public? o_O
@@ -984,7 +983,7 @@ Paws.Execution = Execution = class Execution extends Thing
       # If we're continuing to advance a partially-completed `Execution`, ...
       completed = @instructions[0]
       previous_response = @results[0]
-      if not @pristine
+      unless @pristine
 
          # Gets the next instruction from the current sequence (via `Position#next`)
          @instructions[0] =
@@ -992,7 +991,7 @@ Paws.Execution = Execution = class Execution extends Thing
 
          # If we've completed the current sub-expression (a sequence.), then we're going to step out
          # (pop the stack.) and preform the indirected combination.
-         if not upcoming?
+         unless upcoming?
             outer_current_value = @results[1]
             @instructions.shift(); @results.shift()
             return new Combination outer_current_value, previous_response
@@ -1019,7 +1018,7 @@ Paws.Execution = Execution = class Execution extends Thing
             # special-case syntax for referencing the Paws equivalent of `this`. We treat this like
             # a simple embedded-`Thing` combination, except with the current `Execution` as the
             # `Thing` in question:
-            if not upcoming.valueOf()?
+            unless upcoming.valueOf()?
                return new Combination previous_response, this
 
             # Else, the ‘upcoming’ node is a real sub-expression, and we're going to ‘dive’ into it
@@ -1039,7 +1038,7 @@ Paws.Execution = Execution = class Execution extends Thing
       upcoming = @instructions[0]
 
       # (another opportunity for an empty sub-expression / self-reference)
-      if not upcoming.valueOf()?
+      unless upcoming.valueOf()?
          return new Combination previous_response, this
 
       # At this point, through one of several paths above, we've definitely descended into a (or
@@ -1057,7 +1056,8 @@ Paws.Execution = Execution = class Execution extends Thing
    #       the caller; for that reason, this is usually called after `Thing::dedicate`. (You
    #       probably want to use `Liability::commit` instead of doing these things manually.)
    accept: (liability)->
-      @wards.push liability unless _.contains @wards, liability
+      liability._add_to @wards
+      liability._del_from @blockers
       return liability
 
    # Given a `Liability`, this will remove that responsibility from the receiver's `wards`.
@@ -1065,16 +1065,18 @@ Paws.Execution = Execution = class Execution extends Thing
    # Note: This is usually called after `Thing::emancipate`. (You probably want to use
    #       `Liability::discard` instead of doing these things manually.)
    abjure: (liability)->
-      _.pull @wards, liability
+      liability._del_from @wards
       return liability
 
    # TODO: DOCME
    block: (liability)->
-      @blockers.push liability unless _.contains @blockers, liability
+      unless liability._is_in @wards
+         liability._add_to @blockers
+
       return liability
 
    _clear_block: (liability)->
-      _.pull @blockers, liability
+      liability._del_from @blockers
       return liability
 
 
@@ -1090,12 +1092,13 @@ Paws.Execution = Execution = class Execution extends Thing
       # The `Execution` default-receiver is specified to preform a ‘call-pattern’ invocation:
       # cloning the subject-`Execution`, resuming that clone, and explicitly *not* resuming the
       # caller.
-      Execution::receiver = new Native (params)->
+      @default_receiver = (params)->
          subject = params.at 1
          message = params.at 2
 
          subject.clone().stage message
-      .rename 'execution✕'
+
+      Execution::receiver = new Native(@default_receiver).rename 'execution✕'
 
 
 # Correspondingly to normal `Execution`s, some procedures are provided by the implementation (or
@@ -1132,6 +1135,7 @@ Paws.Execution = Execution = class Execution extends Thing
 Paws.Native = Native = class Native extends Execution
 
    constructor: constructify(return:@) (@bits...)->
+      # FIXME: Why are these necessary? idr.
       delete @begin
       delete @instructions
       delete @results
@@ -1198,7 +1202,7 @@ Paws.Native = Native = class Native extends Execution
    #
    # @param { function(... [Thing], this:{caller: Execution, this}): ?Thing }
    #    synch_body   The synchronous function we'll generate an Execution to match
-   @synchronous = (synch_body) ->
+   @synchronous: (synch_body)->
       advancements = synch_body.length + 1
 
       # First, we construct the *middle* bits of the coproductive pattern (that is, the ones that
@@ -1353,6 +1357,24 @@ Paws.Liability = Liability = delegated('for', Thing) class Liability
       other.custodian   is @custodian  &&
       other.ward        is @ward
 
+   # Equivalent to `_.contains()`, but using `::compare` instead of reference-equality. Jesus, I
+   # wish I were writing OCaml. -_-
+   _is_in: (container) ->
+      that = this
+      _.any container, (other)-> that.compare other
+
+   _add_to: (container)->
+      container.push this unless @_is_in container
+
+   _del_from: (container)->
+      that = this
+      idx = _.findIndex container, (other)-> that.compare other
+
+      return if (idx is -1)
+
+      deleted = container.splice idx, 1
+      return deleted[0]
+
    # Convenience method to call `Thing::available_to` on the `ward`.
    available: -> @ward.available_to this
 
@@ -1382,12 +1404,12 @@ Paws.Liability = Liability = delegated('for', Thing) class Liability
    # Thing::supplicate
    # DOCME
    # FIXME: does this need checks as to whether the requested liability is already supplicated?
-   request: (liability)->
+   request: ->
       @custodian.block this
       @ward.supplicate this
       return true
 
-   _clear_request: (liability)->
+   _clear_request: ->
       @custodian._clear_block this
       @ward._clear_supplication this
       return true
@@ -1511,7 +1533,7 @@ Operation.register 'advance', (response)->
       return true
 
 
-Operation.register 'adopt', ()->
+Operation.register 'adopt', (additional_liability)->
    # XXX: Debugging NYI.
   #if process.env['TRACE_REACTOR']
   #   warning ">> #{this} ← #{response}"
@@ -1529,13 +1551,15 @@ Operation.register 'adopt', ()->
       warning 'Completed Execution attempted to adopt o_O'
       return
 
+   additional_liability.request() if additional_liability?
+
    # This continues attempting all blockers even if one fails; this means the `'adopt'` operation
    # can fail, but still obtain *some* of the locking it's waiting on.
    @blockers.forEach (liability)-> liability.commit()
 
    # If any of the `dedicate` calls failed, then this exec will still stand `supplicant` thereto;
    # and thus still have `blockers`.
-   return _.isEmpty blockers
+   return _.isEmpty @blockers
 
 
 # Error types
