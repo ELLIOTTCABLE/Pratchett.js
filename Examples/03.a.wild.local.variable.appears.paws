@@ -1,6 +1,6 @@
 #!/usr/bin/env paws.js --no-start
 
-implementation void[]
+infrastructure void[]
   “It's useful to store state, right? Here we'll create a new name for something, by storing it in
    an assignment-pair on `locals`.”;
 

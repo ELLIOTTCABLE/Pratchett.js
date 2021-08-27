@@ -1,6 +1,6 @@
-#!/usr/bin/env paws.js --no-start
+#!/usr/bin/env paws.js
 
-implementation void[]
+infrastructure void[]
   “Let's try an unnecessarily complex approach to printing something. We'll save it into the data-
    graph, and then read it back out to print it.”;
 
