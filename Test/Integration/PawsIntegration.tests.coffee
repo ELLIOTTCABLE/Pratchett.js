@@ -41,7 +41,5 @@ describe "Language integration tests:", ->
 
          infra = infra_pair.valueish()
 
-         console.log(infra)
-
          expect(infra).to.be.a Thing
          expect(infra.metadata.length).to.be > 20
