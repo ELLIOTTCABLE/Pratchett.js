@@ -180,6 +180,10 @@ Sequence::serialize = ({focus: focus} = {})->
    output = @expressions.map(ser, []).join '; '
    if this == focus then term.em output else output
 
+# FIXME: Ugh, this stupid init-time lack of parser-types in the Datagraph is SO FRUSTRATING
+Sequence::inspect = (ictx, args...)->
+   Sequence::toString.call this, args...
+
 Sequence::toString =
 #---
 # @param  {...!?!?} focus:
@@ -198,7 +202,7 @@ Expression::toString = ({focus: focus} = {})->
       if focus
          f = Context.for focus
 
-         if context and f.text == context.text and f.begin >= context.begin and f.end <= context.end
+         if f.text == context.text and f.begin >= context.begin and f.end <= context.end
             length = f.end - f.begin
             start  = f.begin - context.begin
             end    = start + length
@@ -220,6 +224,8 @@ Expression::toString = ({focus: focus} = {})->
 
    if @_?.tag == no then contents else Thing::_tagged.call this, contents
 
+Expression::inspect = (args...)->
+   @toString args...
 
 _.extend (module.exports = parse), exports
 info "++ Parser available"

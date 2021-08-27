@@ -1,5 +1,6 @@
 Walker           = (require 'giraphe').default
 uuid             = require 'uuid'
+indentString     = require 'indent'
 { EventEmitter } = require 'events'
 
 _                = require './utilities.coffee'
@@ -1020,13 +1021,13 @@ Paws.Execution = Execution = class Execution extends Thing
       @register_response response if response?
 
       # If we're continuing to advance a partially-completed `Execution`, ...
-      completed = @instructions[0]
+      @_last_completed = @instructions[0]
       previous_response = @results[0]
       unless @pristine
 
          # Gets the next instruction from the current sequence (via `Position#next`)
          @instructions[0] =
-         upcoming = completed.next()
+         upcoming = @_last_completed.next()
 
          # If we've completed the current sub-expression (a sequence.), then we're going to step out
          # (pop the stack.) and preform the indirected combination.
@@ -1618,6 +1619,24 @@ Paws.inspect = (object)->
    object instanceof Thing && Thing::inspect.apply(object) or
    _.node.inspect object
 
+# Wraps the meat of an inspect-function
+inspectify = (func)->
+   return (ictx, args...)->
+      old_colour_setting = null
+      if typeof ictx is 'number' # Mocha calls `inspect()` functions with a number
+         old_colour_setting = colour()
+         colour(false)
+
+      unless typeof ictx is 'object'
+         ictx = {}
+
+      result = func.call this, ictx, args...
+
+      if old_colour_setting?
+         colour(old_colour_setting)
+
+      return result
+
 # Generates a short, string-ish form of the UUID to uniquely identify a given object during debug
 Thing::_inspectID = ->
    if @id? then @id.slice(-8) else ''
@@ -1629,6 +1648,7 @@ Thing::_inspectNames = ->
    names
 
 Thing::_inspectTag = -> @constructor.__name__ or @constructor.name
+
 # Wraps an (optional) string and prefixes it with a description of the receiving object. If called
 # without content to wrap, this simply wraps all of the object's names.
 Thing::_tagged = (content)->
@@ -1658,8 +1678,127 @@ Thing::toString = ->
 
 # As an alternative to `toString`, one can invoke `inspect` to produce a more-lengthy description of
 # some Paws objects (possibly multi-line.)
-Thing::inspect = ->
-   @toString()
+Thing::inspect = inspectify (ictx, alien_body)->
+   ictx.seen ||= {} # "inspsection context"
+   ictx.seen[@id] = true
+
+   cseen = {} # "current seen"
+
+   unless @metadata[0]? or @metadata.length > 1
+      return @_tagged()
+
+   idt = (ictx.indent ||= @_?.indent or 3)
+   if 'number' is typeof idt
+      idt = (ictx.indent = new Array(idt + 1).join(' '))
+
+   idt_len = term.strip(idt).length
+
+   ba = (ictx.break_at ||= @_?.break_at or (95 - idt_len))
+
+   body = if alien_body then alien_body + " " else ""
+
+   # max_label_length
+
+   retry = false
+   for rel, i in @metadata
+      entry = ""
+      pn = "" # "pair name"
+      cidt = idt # "current-indent" —  for this 'Relation' only
+      cidt_len = idt_len
+
+      # If there's anything unusual about a 'pair', we don't want to shorthand it
+      if (pair = rel?.to)? and pair.isPair() and
+            (pair.at(0) is undefined) and
+            (pair.keyish().metadata.length is 1) and
+            pair.owns_at 1
+         pn = pair.keyish().alien
+         pn = '“' + pn + '”' if pn.indexOf(' ') != -1
+         pn += ': '
+         rel = pair.metadata[2]
+
+      unless rel?
+         entry += term.fg(10, if ictx.broke then cidt + "< ∅ >" else "∅")
+
+      else if cseen[rel.to.id] or ictx.seen[rel.to.id]
+         desc = term.fg(4, rel.to._tagged "⤣ ")
+
+         if rel.owns
+            desc = pn + desc
+         else
+            desc = pn + term.fg(10, "⎋ ") + desc
+
+         entry += desc
+
+      else # rel exists, not seen
+         cseen[rel.to.id] = true
+         # console.log(cseen)
+
+         sub_ictx = _.extend({}, ictx, {
+            seen: _.extend({}, ictx.seen, cseen),
+            broke: false,
+            break_at: ictx.break_at - cidt_len - pn.length })
+         desc = rel.to.inspect(sub_ictx)
+
+         # If we can save some space by moving the desc to the line after a long pn ...
+         # console.log('brk: ', @_inspectID(), pn.length, cidt_len, sub_ictx.break_at, sub_ictx.broke, sub_ictx.overran)
+         if pn.length > cidt_len and (sub_ictx.broke or sub_ictx.overran)
+            # console.log('DID LONG-KEY BREAK')
+            pn = pn[..-2] + "\n"
+            cidt += '   '
+            cidt_len += 3
+            sub_ictx = _.extend({}, ictx, {
+               seen: _.extend({}, ictx.seen, cseen),
+               broke: false,
+               break_at: ictx.break_at - cidt_len,
+               indent: idt })
+            desc = rel.to.inspect(sub_ictx)
+
+
+         _.extend cseen, sub_ictx.seen
+
+         if ictx.broke
+            if sub_ictx.broke
+               desc = indentString(desc, cidt[..-4] + '  ⎹')
+            else
+               desc = indentString(desc, cidt[..-4] + '   ')
+
+            if rel.owns
+               desc = idt+pn+desc
+            else
+               desc = idt[..-3] + term.fg(10, "⎋ ") + pn + desc[cidt.length..]
+
+         else unless rel.owns
+            desc = pn + term.fg(10, "⎋ ") + desc
+
+         entry += desc
+
+      if ictx.broke
+         body += "\n" + entry
+      else
+         body += (if i > 0 then ", " else "") + entry
+
+         if sub_ictx?.broke or term.strip(body).length >= ba # or body.indexOf("\n") != -1
+            retry = true
+            ictx.broke = true
+            break
+
+   if retry
+      # console.log('breaking', @_inspectID())
+      return @inspect ictx
+
+   _.extend ictx.seen, cseen
+   # console.error('printed', @_inspectID(), 'in', term.strip(body).length)
+
+   if ictx.broke
+      body += "\n"
+
+   # If we got this far and it's still too long (likely due to a miniscule ba), make sure we report
+   # that back
+   # console.log('did we overrun?', term.strip(body).length, ba)
+   if term.strip(body).length >= ba
+      ictx.overran = true
+
+   @_tagged body
 
 Label::_inspectNames = ->
    if @name then term.bold [@name] else []
@@ -1668,16 +1807,80 @@ Label::toString = ->
    output = "“#{@alien}”"
    if @_?.tag == no then output else @_tagged output
 
+Label::inspect = (ictx = {})->
+   output = "“#{@alien}”"
+
+   super ictx, output
+Label::inspect = inspectify Label::inspect
+
 # By default, this will print a serialized version of the `Execution`, with `focus` on the current
 # `Thing`, and a type-tag. If explicitly invoked with `tag: true`, then the serialized content will
 # be omitted; if instead with `serialize: true`, then the tag will be omitted.
 #---
 # FIXME: Should `Execution` and `Native` do their multi-line debugging-info-printing in `inspect`?
 Execution::toString = ->
+   Sequence = Paws.parse.Sequence
+
+   if @begin? and not @begin._sequence instanceof Sequence
+      @begin._sequence = new Sequence(@begin._sequence.expressions...)
+
    if @_?.tag != yes or @_?.serialize == yes
-      output = "{ #{if @begin? then @begin.toString focus: @current().valueOf() else ''} }"
+      if @complete()
+         desc = if @begin? then @begin._sequence.serialize(focus: @_last_completed.valueOf()) + ' ✓'
+      else
+         desc = if @begin? then @begin._sequence.serialize focus: @current().valueOf()
+      output = "{ #{desc ? ''} }"
 
    if @_?.tag == no or @_?.serialize == yes then output else @_tagged output
+
+Execution::inspect = (ictx = {})->
+   # Fail fast if the parser isn't loaded
+   Sequence = Paws.parse.Sequence
+
+   if @begin? and not @begin._sequence instanceof Sequence
+      @begin._sequence = new Sequence(@begin._sequence.expressions...)
+
+   idt = (ictx.indent ||= @_?.indent or 3)
+   if 'number' is typeof idt
+      idt = (ictx.indent = new Array(idt + 1).join(' '))
+
+   idt_len = term.strip(idt).length
+
+   ba = (ictx.break_at ||= @_?.break_at or (95 - idt_len))
+
+   if ictx.alien_broke
+      if @begin?
+         if @complete()
+            desc = @begin._sequence.with(tag: no).inspect(ictx, focus: @_last_completed.valueOf())
+         else
+            desc = @begin._sequence.with(tag: no).inspect(ictx, focus: @current().valueOf())
+
+         desc = desc.replace /^\s+|\s+$/g, ''
+         desc = indentString(desc, idt)
+         abody = "{\n#{desc + if @complete() then ' ✓' else ''}\n}"
+      else
+         abody = "{}"
+
+      sub_ictx = _.extend {}, ictx
+      super sub_ictx, abody
+
+   else
+      # If it keeps it short, we re-serialize instead of keeping the original formatting
+      if @complete()
+         desc = if @begin? then @begin._sequence.serialize focus: @_last_completed.valueOf()
+         abody = "{ #{if desc then desc + ' ✓' else ''} }"
+      else
+         desc = if @begin? then @begin._sequence.serialize focus: @current().valueOf()
+         abody = "{ #{desc || ''} }"
+
+      if term.strip(abody).length >= ba or abody.indexOf("\n") != -1
+         ictx.alien_broke = true
+         ictx.broke = true
+         return @inspect ictx
+
+      sub_ictx = _.extend {}, ictx
+      super sub_ictx, abody
+Execution::inspect = inspectify Execution::inspect
 
 # For `Native`s, we instead print only the tag by default, *if it is named*. If a name is absent, we
 # print the serialized implementation as well.
@@ -1694,5 +1897,10 @@ Native::toString = ->
 
    if @_?.tag == no then output else @_tagged output
 
+Native::inspect = (ictx = {})->
+   output = "FUNCTION"
+
+   super ictx, output
+Native::inspect = inspectify Native::inspect
 
 debug "++ Datagraph available"
