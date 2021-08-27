@@ -569,6 +569,109 @@ describe "Paws' Data types:", ->
             clone = thing.clone()
             expect(clone.custodians.direct).to.be.empty()
 
+      describe '::deep_clone', ->
+         it 'creates a new Thing', ->
+            thing = new Thing
+            expect(thing.deep_clone()).to.not.be thing
+
+         it 'duplicates the metadata of the receiver', ->
+            thing = new Thing new Thing, new Thing, new Thing
+            clone = thing.deep_clone()
+
+            expect(clone.metadata).to.have.length 4
+            clone.metadata.forEach (rel, i) -> if rel
+               expect(clone.at i).to.be.ok()
+               expect(rel).not.to.be      thing.metadata[i]
+               expect(rel.to).not.to.be   thing.metadata[i].to
+               expect(rel.to).to.be.a     Thing
+
+         it 'updates the `from`-linkage on the copied metadata', ->
+            thing = new Thing new Thing, new Thing, new Thing
+            clone = thing.deep_clone()
+
+            clone.metadata.forEach (rel, i) -> if rel
+               expect(rel.from).to.not.be thing
+               expect(rel.from).to.be     clone
+
+         it 'handles empty elements gracefully', ->
+            thing = new Thing new Thing, undefined, new Thing
+
+            expect(-> thing.deep_clone()).to.not.throwError()
+
+         it 'can copy metadata over an existing other-Thing instead of creating one', ->
+            thing1 = new Thing new Thing, new Thing, new Thing
+            thing2 = new Thing new Thing
+            old_metadata = thing2.metadata
+
+            result = thing1.deep_clone(thing2)
+            expect(result).to.be thing2
+            expect(thing2.metadata).to.not.be old_metadata
+
+         it 'does not copy active responsibility', ->
+            thing = new Thing new Thing, new Thing, new Thing
+
+            thing.dedicate a Liability, (an Execution), thing
+
+            expect(thing.custodians.direct).to.not.be.empty()
+            clone = thing.deep_clone()
+            expect(clone.custodians.direct).to.be.empty()
+
+         it 'calls ::clone on descendants', ->
+            a Thing, (a Label)
+            sinon.spy a.label, 'clone'
+
+            a.thing.deep_clone()
+
+            expect(a.label.clone).was.calledOnce()
+
+         it 'calls ::clone on transitive descendants', ->
+            a Thing, (another Thing, (a Label))
+            sinon.spy a.label, 'clone'
+
+            a.thing.deep_clone()
+
+            expect(a.label.clone).was.calledOnce()
+
+         it 're-uses already-cloned nodes', ->
+            repeated = new Thing
+            parent = new Thing(repeated, new Thing(repeated), repeated)
+
+            clone = parent.deep_clone()
+
+            new_repeated = clone.at 1
+            expect(new_repeated).to.not.be repeated
+
+            expect(clone.at 3).to.be new_repeated
+            expect(clone.at(2).at 1).to.be new_repeated
+
+         it 'handles cyclic references gracefully', ->
+            first = new Thing
+            second = new Thing(first)
+            first.push second
+
+            new_first = first.deep_clone()
+            expect(new_first).to.not.be first
+
+            new_second = new_first.at 1
+            expect(new_second).to.not.be second
+
+            expect(new_second.at 1).to.be new_first
+
+      describe '::inject', ->
+         it 'duplicates the metadata of the receiver', ->
+            a Thing; another Thing; some Thing
+            source = new Thing(a.thing, another.thing, some.thing)
+            dest = new Thing()
+
+            dest.inject(source)
+
+            expect(dest.metadata).to.have.length 4
+            source.metadata.forEach (rel, i) -> if rel
+               expect(dest.at i).to.be.ok()
+               expect(rel).not.to.be      dest.metadata[i]
+               expect(rel.to).not.to.be   dest.metadata[i].to
+               expect(rel.to).to.be.a     Thing
+
       describe '::toArray', ->
          it 'reduces the receiver Thing to an Array', ->
             it = new Thing

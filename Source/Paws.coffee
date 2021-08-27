@@ -36,8 +36,8 @@ Paws.generateRoot = (code = '', name)->
    code.rename name if name
    debugging.info "~~ Root-execution generated for #{_.terminal.bold name}" if name
 
-   code.locals.push Paws.primitives 'infrastructure'
-   code.locals.push Paws.primitives 'implementation'
+   code.locals.inject Paws.primitives 'infrastructure'
+   code.locals.inject Paws.primitives 'implementation'
 
    return code
 
@@ -94,6 +94,9 @@ Paws.Reactor = Reactor = do ->
             @cache.operational    = execs ? []
             @cache.responsibility = resp  ? []
 
+         @running = false
+         @awaitingTicks = 0
+
          _reactors.push this
 
       # This returns the current `Reactor` instance if called during a tick (on-stack); otherwise,
@@ -134,11 +137,7 @@ Paws.Reactor = Reactor = do ->
          else
             warning "!! Operations were queued on an Execution, but no Reactor was available to notify."
 
-      # DOCME
-      notify: (it, type = 'operational')->
-         @cache[type].push it
-
-      # This finds the next `Execution` to be evaluated by `::tick`.
+      # This finds the next `Execution` to be evaluated by `::_tick`.
       #
       # If any `Thing`s have `::signal`ed the receiver, then those are checked first (that is, any
       # `Thing.supplicants` are checked for `Thing::available_to` in the order they originally
@@ -152,25 +151,46 @@ Paws.Reactor = Reactor = do ->
             _.find exe.blockers, (li)->
                li.available()
 
-         queue_jumper or @cache.operational.unshift()
-
-     #upcoming: ->
-     #   results = _.filter @queue, (staging)=> @table.allowsStagingOf staging
-     #   return if results.length then results else undefined
+         queue_jumper or @cache.operational.shift()
 
       # DOCME
-      tick: ->
+      start: -> @running = true
+
+      # DOCME
+      notify: (it, type = 'operational')->
+         @cache[type].push it
+
+         # If this is called on-the-stack — i.e. there's already a `::_tick` being evaluated
+         # somewhere up-stack of this `::notify` — then we'll let it finish; this op will be
+         # gotten-to eventually.
+         if _current?
+            @awaitingTicks++
+
+         # If this *wasn't* called on-stack, then we simply boot up the reactor for a while.
+         else if @running
+            @awaitingTicks = 1
+            @_tick()
+
+      # upcoming: ->
+      #    results = _.filter @queue, (staging)=> @table.allowsStagingOf staging
+      #    return if results.length then results else undefined
+
+      # DOCME
+      _tick: ->
+         # XXX: *Can* there be a previous-current-reactor, or will this always be undefined?
          prev_reactor = _current
          _current = this
 
-         unless exec = @next()
-            @awaitingTicks = 0
-            return no
+         while @awaitingTicks--
 
-         op = exec.ops[0]
+            unless exec = @next()
+               @awaitingTicks = 0
+               return no
 
-         if op.perform(exec)
-            exec.ops.unshift()
+            op = exec.ops[0]
+
+            if op.perform(exec)
+               exec.ops.shift()
 
          _current = prev_reactor
 
@@ -189,10 +209,8 @@ Paws.start =
 Paws.js = (code)->
    root = Paws.generateRoot code
 
-   here = new Paws.reactor.Unit
-   here.stage root
-
-   here.start()
+   new Reactor unless Reactor.get()
+   root.stage(undefined)
 
 Paws.infect = (target)-> @utilities.extend (target ? global), this
 

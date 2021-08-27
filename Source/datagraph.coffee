@@ -190,17 +190,48 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # copy this `Thing` *to*, over-writing that `Thing`'s metadata. In the process, the
    # `Relation`s within this relation are themselves cloned, so that changes to the new clone's
    # ownership don't affect the original.
-   clone: (to)->
-      to ?= new Thing.with(noughtify: no)()
-      to.name = @name unless to.name?
+   clone: (into, {clone_metadata} = {clone_metadata: true})->
+      into ?= new Thing.with(noughtify: no)()
 
-      to.metadata = @metadata.map (rel)->
+      if @name? and not into.name?
+         into.name = @name
+
+      if clone_metadata
+         into.metadata = []
+         @_clone into
+
+      return into
+
+   # Private: Just clone the Relations and update their `from` proprety, nothing more.
+   _clone: (into)->
+      rs = @metadata.map (rel)->
          rel = rel?.clone()
-         rel?.from = to
+         rel?.from = into
          rel
 
-      return to
+      into.metadata.splice into.metadata.length, 0, rs...
 
+   # TODO: A deep-`::clone` that stops at ownership boundaries.
+   # structure_clone: (into)->
+
+   # DOCME
+   deep_clone: (into, seen = {})->
+      return seen[@id] if seen[@id]?
+
+      res = @clone into, {clone_metadata: false}
+
+      seen[@id] = res
+
+      res.metadata = @metadata.map (rel)->
+         return rel unless typeof rel is 'object'
+         new_rel = rel.clone()
+         new_rel.from = res
+         new_rel.to = rel.to?.deep_clone(undefined, seen)
+         return new_rel
+
+      return res
+
+   # DOCME
    compare: (to)-> to == this
 
 
@@ -455,6 +486,14 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
 
       return this
 
+   # Deep-copy all the metadata of the `additions` argument, and append them to the receiver.
+   inject: (additions)->
+      adds = additions.deep_clone()
+      adds.metadata.shift()
+
+      # This can skip all the responsibility-checking, right? Because it's brand-spanking-new copies
+      # of everything being added.
+      @_push adds.metadata
 
    # ### ‘Dictionary-ish’ metadata manipulation ###
 
@@ -765,7 +804,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       @_init_responsibility_walkers()
 
       # The default receiver for `Thing`s simply preforms a ‘lookup.’
-      @default_receiver = (params)->
+      thing_receiver = (params)->
          caller  = params.at 0
          subject = params.at 1
          message = params.at 2
@@ -779,7 +818,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
          else
             notice "~~ No results on #{Paws.inspect subject} for #{Paws.inspect message}."
 
-      Thing::receiver = new Native(@default_receiver).rename 'thing✕'
+      Thing::receiver = new Native(thing_receiver).rename 'thing×'
 
 
 # A `Label` is a type of `Thing` which encapsulates a static Unicode string, serving two purposes:
@@ -1092,13 +1131,13 @@ Paws.Execution = Execution = class Execution extends Thing
       # The `Execution` default-receiver is specified to preform a ‘call-pattern’ invocation:
       # cloning the subject-`Execution`, resuming that clone, and explicitly *not* resuming the
       # caller.
-      @default_receiver = (params)->
+      execution_receiver = (params)->
          subject = params.at 1
          message = params.at 2
 
          subject.clone().stage message
 
-      Execution::receiver = new Native(@default_receiver).rename 'execution✕'
+      Execution::receiver = new Native(execution_receiver).rename 'execution×'
 
 
 # Correspondingly to normal `Execution`s, some procedures are provided by the implementation (or
@@ -1487,7 +1526,7 @@ Paws.Operation = Operation = class Operation
       Operation.operations[@op].apply(against, @params)
 
 
-Operation.register 'advance', (response)->
+Operation.register 'advance', op_advance = (response)->
    if process.env['TRACE_REACTOR']
       warning ">> #{this} ← #{response}"
       if @current() instanceof Function
@@ -1533,7 +1572,7 @@ Operation.register 'advance', (response)->
       return true
 
 
-Operation.register 'adopt', (additional_liability)->
+Operation.register 'adopt', op_adopt = (additional_liability)->
    # XXX: Debugging NYI.
   #if process.env['TRACE_REACTOR']
   #   warning ">> #{this} ← #{response}"
