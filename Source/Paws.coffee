@@ -36,8 +36,8 @@ Paws.generateRoot = (code = '', name)->
    code.rename name if name
    debugging.info "~~ Root-execution generated for #{_.terminal.bold name}" if name
 
-   code.locals.inject Paws.primitives 'infrastructure'
-   code.locals.inject Paws.primitives 'implementation'
+   code.locals._inject (Paws.primitives 'infrastructure').deep_clone()
+   code.locals._inject (Paws.primitives 'implementation').deep_clone()
 
    return code
 
@@ -134,8 +134,10 @@ Paws.Reactor = Reactor = do ->
 
          if some_reactor?
             some_reactor.notify(it, type)
+            return true
          else
             warning "!! Operations were queued on an Execution, but no Reactor was available to notify."
+            return false
 
       # This finds the next `Execution` to be evaluated by `::_tick`.
       #

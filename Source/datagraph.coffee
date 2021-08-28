@@ -488,13 +488,10 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
       return this
 
    # Deep-copy all the metadata of the `additions` argument, and append them to the receiver.
-   inject: (additions)->
-      adds = additions.deep_clone()
-      adds.metadata.shift()
+   _inject: (additions)->
+      additions.metadata.shift() if @_?.include_noughty != no
 
-      # This can skip all the responsibility-checking, right? Because it's brand-spanking-new copies
-      # of everything being added.
-      @_push adds.metadata
+      @_push additions.metadata
 
    # ### ‘Dictionary-ish’ metadata manipulation ###
 

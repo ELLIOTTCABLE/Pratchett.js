@@ -657,20 +657,15 @@ describe "Paws' Data types:", ->
 
             expect(new_second.at 1).to.be new_first
 
-      describe '::inject', ->
-         it 'duplicates the metadata of the receiver', ->
-            a Thing; another Thing; some Thing
-            source = new Thing(a.thing, another.thing, some.thing)
-            dest = new Thing()
+      describe '::_inject', ->
+         it 'copies the metadata of the argument onto the receiver wholesale', ->
+            thing1 = new Thing; thing2 = new Thing; thing3 = new Thing
+            orig = new Thing(thing1)
+            additions = new Thing(thing2, thing3)
 
-            dest.inject(source)
-
-            expect(dest.metadata).to.have.length 4
-            source.metadata.forEach (rel, i) -> if rel
-               expect(dest.at i).to.be.ok()
-               expect(rel).not.to.be      dest.metadata[i]
-               expect(rel.to).not.to.be   dest.metadata[i].to
-               expect(rel.to).to.be.a     Thing
+            orig._inject(additions)
+            expect(orig.metadata).to.have.length 4
+            expect(orig.toArray()).to.contain thing1, thing2, thing3
 
       describe '::toArray', ->
          it 'reduces the receiver Thing to an Array', ->
