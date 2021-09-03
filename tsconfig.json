@@ -1,0 +1,30 @@
+{
+   "compilerOptions": {
+      "noEmit": true,
+
+      "esModuleInterop": true,
+      "isolatedModules": true,
+      "noImplicitThis": true,
+      "noImplicitAny": true,
+      "declaration": true,
+      "declarationMap": true,
+
+      // overridden by rollup-plugin-ts
+      // See: <https://github.com/wessberg/rollup-plugin-ts#ignoredoverridden-typescript-options>
+      "target": "ESNext", // (overridden by browserslist)
+      "module": "ESNext",
+      "moduleResolution": "Node"
+   },
+   "include": ["Source/**/*.ts"],
+   "typedocOptions": {
+      "sort": ["static-first", "visibility", "source-order"],
+      "gitRemote": "ec",
+      "name": "Paws.js",
+      "entryPoints": ["./Source/paws.ts"],
+      "excludeExternals": true,
+      "externalPattern": ["**/node_modules/**/*.ts"],
+      "out": "./Docs",
+      "disableOutputCheck": true,
+      "listInvalidSymbolLinks": true
+   }
+}
