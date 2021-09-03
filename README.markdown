@@ -1,7 +1,15 @@
 <div align="center">
    <img src="http://elliottcable.s3.amazonaws.com/p/paws.js-cathode-3.png"><br>
-   <img alt='Maintenance status: Under rapid development pre-release' src="https://img.shields.io/badge/maintained%3F-pre--release-orange.svg?style=flat-square"><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a href="https://github.com/ELLIOTTCABLE/Paws.js/releases"><img alt='Latest GitHub release' src="https://img.shields.io/github/release/ELLIOTTCABLE/Paws.js.svg?style=flat-square&label=release"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://npmjs.com/package/paws.js"><img alt='Latest NPM version' src="https://img.shields.io/npm/v/paws.js.svg?style=flat-square&label=semver"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a href="#license"><img alt='License: Dually-licensed under the  Apache license and Creative Commons' src="https://img.shields.io/badge/license-Apache-blue.svg?style=flat-square"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="http://ell.io/IRC"><img alt='Chat: IRC on Freenode.net' src="https://img.shields.io/badge/chat-IRC-blue.svg?style=flat-square"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://twitter.com/intent/follow?screen_name=ELLIOTTCABLE"><img alt='Follow my work on Twitter' src="https://img.shields.io/twitter/follow/ELLIOTTCABLE.svg?style=flat-square&label=%40ELLIOTTCABLE&color=blue"></a><br>
+   <img alt='Maintenance status: Under rapid development pre-release' src="https://img.shields.io/badge/maintained%3F-pre--release-orange.svg?style=flat-square"><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a href="https://github.com/ELLIOTTCABLE/Paws.js/releases"><img alt='Latest GitHub release' src="https://img.shields.io/github/release/ELLIOTTCABLE/Paws.js.svg?style=flat-square&label=release"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://npmjs.com/package/paws.js"><img alt='Latest NPM version' src="https://img.shields.io/npm/v/paws.js.svg?style=flat-square&label=semver"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a href="#license"><img alt='License: Dually-licensed under the  Apache license and Creative Commons' src="https://img.shields.io/badge/license-Apache-blue.svg?style=flat-square"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://discord.gg/Mst2T9wnUY"><img alt='Chat: #ELLIOTTCABLE on Discord' src="https://img.shields.io/discord/706585477351735326?label=%23ELLIOTTCABLE&logo=discord&logoColor=24272a&labelColor=5865F2&style=flat-square"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://twitter.com/intent/follow?screen_name=ELLIOTTCABLE"><img alt='Follow my work on Twitter' src="https://img.shields.io/twitter/follow/ELLIOTTCABLE.svg?style=flat-square&label=%40ELLIOTTCABLE&color=blue"></a><br>
    <a target="_blank" href="https://travis-ci.org/ELLIOTTCABLE/Paws.js/branches"><img alt='CI status' src="https://img.shields.io/travis/ELLIOTTCABLE/Paws.js/Current.svg?style=flat-square&label=tests"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://coveralls.io/r/ELLIOTTCABLE/Paws.js?branch=Current"><img alt='Coverage status' src="https://img.shields.io/coveralls/ELLIOTTCABLE/Paws.js/Current.svg?style=flat-square"></a><img src="http://elliottcable.s3.amazonaws.com/p/8x8.png"><a target="_blank" href="https://gemnasium.com/ELLIOTTCABLE/Paws.js"><img alt='Dependency status' src="https://img.shields.io/gemnasium/ELLIOTTCABLE/Paws.js.svg?style=flat-square&label=deps"></a>
+
+----
+
+A [major rewrite][] of this project started in 2014, and never got merged; if you're curious where
+this project ended up, **you should probably go look at the [queueless][] branch. (=**
+
+----
+
 </div>
 
 **Hello, friend.** This is a JavaScript implementation of the Paws machine, intended both to be included
@@ -38,17 +46,22 @@ asked! You're my favourite kind of person! Assuming you understand the caveat me
 this project is in flux), you can *absolutely* start experimenting with abstractions on top of the
 Paws machine.
 
-If you want to learn more, you should definitely [grab yourself an IRC client][irc] (I suggest
-[IRCCloud][]), or just [click here][webchat], to join the chatroom where we discuss the Paws project
-as a whole: [`#ELLIOTTCABLE`][webchat] on Freenode. All newcomers are welcome, and contribution is
-hugely appreciated!
+If you want to learn more, you should definitely make a Discord account, and join the chatroom where
+we discuss Paws (as well as entirely-too-much other stuff! Well, mostly dogs, if I'm being honest.)
+All newcomers are welcome, and contribution is hugely appreciated!
 
+<div align="center">
+
+## Join `#ELLIOTTCABLE` on Discord: <br/> https://discord.gg/Mst2T9wnUY
+
+</div>
+
+   [major rewrite]: <https://www.joelonsoftware.com/2000/04/06/things-you-should-never-do-part-i/>
+      "You know, *never* a bad idea. Right? ... um ... right??"
+   [queueless]: <https://github.com/ELLIOTTCABLE/Paws.js/tree/queueless>
    [Node.js]: <http://nodejs.org> "A server-side JavaScript platform"
    [Paws]: <http://paws.mu> "An asynch-heavy distributed platform for concurrent programming"
    [spec]: <http://ell.io/spec> "Specification for the 10th iteration of the Paws design"
-   [irc]: <http://freenode.net/using_the_network.shtml> "freenode: using the network"
-   [IRCCloud]: <http://irccloud.com> "IRCCloud, the IRC client of the future"
-   [webchat]: <http://ell.io/IRC> "Freenode's webchat, for #ELLIOTTCABLE"
 
 Using
 -----
@@ -61,7 +74,7 @@ querying the executable at the command-line:
     ./Executables/paws.js interact  # Example, opens an interactive ‘REPL’ to play with
 
 As for embedding the `Paws.js` API, you'll have to dive into the code and poke around a bit, for the
-moment. I'm also happy to give you a quick overview, if you join [our channel][webchat] and ask!
+moment. I'm also happy to give you a quick overview, if you join our Discord and ask!
 
 *(I swear, API documentation is coming soon! `:P` )*
 
@@ -77,11 +90,12 @@ course.
 After `git clone`'ing the codebase, you should immediately `npm run-script hi`; this will help you
 set up your local copy for hacking.
 
-More specific information ~~can be found in [CONTRIBUTING](./blob/Master/CONTRIBUTING.markdown)~~.
-(Well, eventually. `>,>`)
+More specific information can be found in the [CONTRIBUTING][] file.
 
    [CoffeeScript]: <http://coffeescript.org> "A little language that transpiles into JavaScript"
    [issues]: <https://github.com/ELLIOTTCABLE/Paws.js/issues> "Issue-tracker for Paws.js"
+   [CONTRIBUTING]: <./blob/current+/CONTRIBUTING.markdown>
+      "CONTRIBUTING.markdown on the current+ branch"
 
 License
 -------

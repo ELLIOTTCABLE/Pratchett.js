@@ -26,7 +26,8 @@
          "rulebook": "Test/Rulebook",
          "integration": "Test/Integration",
          "documentation": "Docs",
-         "coverage": "Docs/Coverage"
+         "coverage": "Docs/Coverage",
+         "hooks": "Scripts/git-hooks"
       },
       "mocha": {
          "ui": "bdd",
