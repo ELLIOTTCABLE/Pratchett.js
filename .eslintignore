@@ -1,0 +1,5 @@
+node_modules
+Library
+Executables/*.js
+Docs
+Scripts/istanbul.config.js
