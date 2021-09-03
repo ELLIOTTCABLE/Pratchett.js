@@ -758,7 +758,7 @@ Paws.Thing = Thing = parameterizable class Thing extends EventEmitter
    # the receiver.
    #
    # This should only be called after `::dedicate` has been called, and has indicated failure; this
-   # is handled for you by ... # FIXME: DOCME
+   # is handled for you by ... # DOCME
    supplicate: (liabilities...)->
       liabilities = liabilities[0] if _.isArray liabilities[0]
       liabilities.forEach (li)=> @_supplicate li
