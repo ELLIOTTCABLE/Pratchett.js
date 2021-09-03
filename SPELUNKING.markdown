@@ -1,5 +1,5 @@
 Reading Paws.js
----------------
+===============
 Reading source-code, also known as ‘[spelunking][]’, can be arduous for large projects; but it's
 surely an [extremely rewarding activity][ReadGreatPrograms].
 
@@ -27,8 +27,29 @@ That feel like it applies to you? Cool! Let's get started.
    [ReadGreatPrograms]: <http://wiki.c2.com/?ReadGreatPrograms>
 
 
+Getting help
+------------
+I’m (the author, ELLIOTTCABLE, that is) an educator at heart: I love to *teach*. There’s really no
+reason to go through reading this alone, unless you’re feeling particularly shy — I’d be ecstatic to
+help you out, whether you’re actually interested in my project, or just want to ask beginners’
+questions about programming-language design and development in a friendly place.
+
+First off, I spend way too much of my day chatting in real-time on [Discord][], a text- and voice-
+chat app. You can use it in your browser, download a computer client, or even just log in on your
+phone. Go ahead and click here to join my community; there’s almost *always* interesting, friendly
+folk chatting in there — and once you join, you can find me under the name `ec#2718`:
+
+> ## Join #ELLIOTTCABLE on Discord: <br/> https://discord.gg/Mst2T9wnUY
+
+I'm also very responsive on Twitter: [@ELLIOTTCABLE][]; you’re welcome to hit me up there, in public
+or over direct-message. 💚
+
+   [Discord]: <https://discord.com/> "A text- and voice-chat platform for communities."
+   [@ELLIOTTCABLE]: <https://twitter.com/ELLIOTTCABLE> "ELLIOTTCABLE on Twitter"
+
+
 History
-=======
+-------
 Paws.js development is undertaken using [git][] and [GitHub][]; this means that there is an
 *extremely* thorough and completist history of every change made in the history of this project.
 Notably, this includes every little bump, misstep, and dead-end explored as I work on it.
@@ -91,7 +112,7 @@ like `git log --all -F --grep='!!'`.
 
 
 Tests
-=====
+-----
 I'm a strong adherent to [Test-First Development][tdd]. I strive for high coverage, at least across
 all testing methods (some bits of a programming-language interpreter are difficult to unit test —
 forgive me! 🤣)
@@ -110,8 +131,8 @@ search for it in all the test-files, and start spelunking the codebase from ther
    [tdd]: <https://en.wikipedia.org/wiki/Test-driven_development> "Wikipedia on TDD"
 
 
-Source Code
-===========
+Source code
+-----------
 And here we are — let's dive into the meat!
 
 Paws.js is organized into a few separate concerns. Where possible, some of the functionality is
