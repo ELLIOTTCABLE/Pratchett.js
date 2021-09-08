@@ -11,6 +11,7 @@
    },
    "scripts": {
       "build": "./Scripts/build.sh",
+      "build:docs": "./Scripts/regenerate-docs.sh",
       "prepare": "./Scripts/build.sh",
       "test": "./Scripts/test.sh",
       "ci": "./Scripts/travis.sh",
