@@ -35,8 +35,8 @@ must() { # commands that must succeed
 stash_working=_no
 
 # Check if there are any changes
-may update-index --refresh
-if may diff-index --quiet HEAD -- .':!'"$docs_dir"; then
+may git update-index --refresh
+if may git diff-index --quiet HEAD -- .':!'"$docs_dir"; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling working-dir stashing"
    stash_working=_yes
 fi
