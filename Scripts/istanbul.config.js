@@ -1,8 +1,10 @@
-var package        = require('../package.json')
-  , path           = require('path')
+/* eslint-env node */
 
-var projectRoot    = path.resolve(__dirname, "..")
-  , coverageDir    = path.join(projectRoot, package.config.dirs.coverage)
+var pjson         = require('../package.json')
+  , path          = require('path')
+
+var projectRoot   = path.resolve(__dirname, "..")
+  , coverageDir   = path.join(projectRoot, pjson.config.dirs.coverage)
 
 module.exports = {
 

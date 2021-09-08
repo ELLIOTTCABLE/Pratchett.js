@@ -49,6 +49,13 @@ module.exports = {
 
             // Under minor testing, Array#concat is significantly faster than [...double, ...spread]
             "unicorn/prefer-spread": 1,
+
+            // I intend to transform with Babel or similar
+            "node/no-unsupported-features/es-builtins": 1,
+
+            // This seems super-broken, tbh. It catches all sorts of completely normal
+            // `map()` calls, like, wtf?
+            "unicorn/no-array-callback-reference": 0,
          },
       },
       {

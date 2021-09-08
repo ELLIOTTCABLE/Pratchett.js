@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 ':' //; exec "$(command -v nodejs || command -v node)" "$0" "$@"
 ~function(){
+/* eslint-env node */
 
 // This script searches recent git commits' messages for [git labels][], and prints a list of labels
 // to standard output, ordered by number of occurrences.
@@ -37,7 +38,7 @@ var child_process = require('child_process')
 
 // If piped to `head` or similar, we don't want to spit up on a closing stdout.
 process.stdout.on('error', function(err){
-   if (err.code === 'epipe') process.exit(0) })
+   if (err.code === 'epipe') process.exit(0) }) // eslint-disable-line no-process-exit
 
 
 // First, I generate a log of recent commit messages (delimited by `separator` codepoints).
