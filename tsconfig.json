@@ -11,8 +11,8 @@
 
       // overridden by rollup-plugin-ts
       // See: <https://github.com/wessberg/rollup-plugin-ts#ignoredoverridden-typescript-options>
-      "target": "ESNext", // (overridden by browserslist)
-      "module": "ESNext",
+      "target": "ES2020", // (overridden by browserslist)
+      "module": "ES2020",
       "moduleResolution": "Node"
    },
    "include": ["Source/**/*.ts"],
