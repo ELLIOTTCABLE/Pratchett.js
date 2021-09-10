@@ -1,4 +1,9 @@
-const { ESLint } = require("eslint")
+const { ESLint } = require("eslint"),
+   pjson = require("./package.json"),
+   path = require("path")
+
+const projectRoot = path.resolve(__dirname),
+   docsDir = path.join(projectRoot, pjson.config.dirs.documentation)
 
 // Handling .eslintignore; see:
 //    <https://github.com/okonet/lint-staged/tree/0ef25e81a150ae59749d28565b305c97ec932baa#how-can-i-ignore-files-from-eslintignore>
@@ -21,7 +26,11 @@ module.exports = {
       return [`eslint --cache --max-warnings=0 ${filesToLint}`]
    },
 
-   "*.ts": () => ["tsc -p tsconfig.json --noEmit", "typedoc --logLevel Warn"],
+   "*.ts": () => [
+      "tsc -p tsconfig.json --noEmit",
+      "typedoc --logLevel Warn",
+      `git add "${docsDir}/assets" "${docsDir}/"*.html`,
+   ],
 
    "{Source,Test}/*.{ts,js,mjs,cjs,coffee}":
       "cross-env PRE_COMMIT=true npm --loglevel=silent run test --",
