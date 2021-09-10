@@ -99,7 +99,7 @@ elif [ -n "${PRE_COMMIT##[NFnf]*}" ]; then                                    cr
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling pre-commit mode."
 
    mocha_reporter=dot               # Be quiet,
-   ISTANBUL_REPORTER='text-summary'
+   COVERAGE_REPORTER='text-summary'
    RESPECT_TRACING=no               # if the user has a ‘loud’ environment configured, ignore it,
    RULEBOOK=no                      # don't guarantee that the Rulebook passes on every commit,
    UNIT=yes BATS=yes INTEGRATION=yes COVERAGE=yes  # ... but otherwise, run all of the suites.
