@@ -21,7 +21,7 @@ module.exports = {
       return [`eslint --cache --max-warnings=0 ${filesToLint}`]
    },
 
-   "*.ts": () => ["tsc -p tsconfig.json --noEmit", "typedoc"],
+   "*.ts": () => ["tsc -p tsconfig.json --noEmit", "typedoc --logLevel Warn"],
 
    "{Source,Test}/*.{ts,js,mjs,cjs,coffee}":
       "cross-env PRE_COMMIT=true npm --loglevel=silent run test --",
