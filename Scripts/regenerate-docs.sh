@@ -11,9 +11,9 @@ pute() { printf %s\\n "~~ $*" >&2; }
 # shellcheck disable=SC2154
 docs_dir="$npm_package_config_dirs_documentation"
 
+__filename="$(basename "$0")"
 stash_desc="${__filename}: HIDING UNSTAGED WORK FROM DOCS"
 
-__filename="$(basename "$0")"
 # FIXME: This should support *excluded* modules with a minus, as per `node-debug`:
 #        https://github.com/visionmedia/debug
 if echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)'; then       # 1.  $DEBUG_SCRIPTS
