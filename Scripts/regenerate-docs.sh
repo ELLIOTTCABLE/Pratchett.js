@@ -8,6 +8,7 @@
 puts() { printf %s\\n "$@"; }
 pute() { printf %s\\n "~~ $*" >&2; }
 
+# shellcheck disable=SC2154
 docs_dir="$npm_package_config_dirs_documentation"
 
 stash_desc="${__filename}: HIDING UNSTAGED WORK FROM DOCS"
@@ -21,7 +22,11 @@ if echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)'; then   
    VERBOSE="${VERBOSE:-7}"
 fi
 
-[ -z "${SILENT##[NFnf]*}${QUIET##[NFnf]*}" ] && [ "${VERBOSE:-4}" -gt 6 ] && print_commands=yes
+qflag=_yes
+
+[ -z "${SILENT##[NFnf]*}${QUIET##[NFnf]*}" ] && [ "${VERBOSE:-4}" -gt 5 ] && print_commands=_yes
+[ -z "${SILENT##[NFnf]*}${QUIET##[NFnf]*}" ] && [ "${VERBOSE:-4}" -gt 6 ] && qflag=""
+
 may() { # commands which are allowed to fail
    [ -z ${print_commands+0} ] || puts '`` '"$*" >&2
    "$@" || return $?
@@ -36,14 +41,15 @@ stash_working=_no
 
 # Check if there are any changes
 may git update-index --refresh
-if may git diff-index --quiet HEAD -- .':!'"$docs_dir"; then
+if may git diff-index ${qflag:+--quiet} HEAD -- .':!'"$docs_dir"; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling working-dir stashing"
    stash_working=_yes
 fi
 
 if [ "$stash_working" != "_no" ]; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Stashing working-dir changes"
-   must git stash push --include-untracked --keep-index --quiet -m "$stash_desc" \
+
+   must git stash push --include-untracked --keep-index ${qflag:+--quiet} -m "$stash_desc" \
       -- . ':!'"$docs_dir"
 fi
 
@@ -52,17 +58,17 @@ typedoc_exit_status=$?
 
 if [ "$stash_working" != "_no" ]; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Popping working-dir changes"
-   if may git stash pop --quiet; then
+   if may git stash pop ${qflag:+--quiet}; then
       true # no-op
    else
       pop_exit_status=$?
       [ -n "$DEBUG_SCRIPTS" ] && pute "Popping failed"
       # shellcheck disable=SC2016
-      (
+      {
          pute '!! `git stash pop` failed during working-tree restoration; merging of index'
          pute '   files may be necessary. Check `git status` and `git stash show`; and don'\''t'
          pute '   forget to `git stash drop` once you have successfully used `git stash apply`.'
-      )
+      }
       exit $pop_exit_status
    fi
 fi
