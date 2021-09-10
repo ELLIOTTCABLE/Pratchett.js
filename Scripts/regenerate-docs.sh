@@ -41,7 +41,7 @@ stash_working=_no
 
 # Check if there are any changes
 may git update-index --refresh
-if may git diff-index ${qflag:+--quiet} HEAD -- .':!'"$docs_dir"; then
+if may git diff-index HEAD ${qflag:+--quiet} -- .':!'"$docs_dir"; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling working-dir stashing"
    stash_working=_yes
 fi
@@ -58,7 +58,7 @@ typedoc_exit_status=$?
 
 if [ "$stash_working" != "_no" ]; then
    [ -n "$DEBUG_SCRIPTS" ] && pute "Popping working-dir changes"
-   if may git stash pop ${qflag:+--quiet}; then
+   if may git stash pop --index ${qflag:+--quiet}; then
       true # no-op
    else
       pop_exit_status=$?
