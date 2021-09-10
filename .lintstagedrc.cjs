@@ -34,4 +34,6 @@ module.exports = {
 
    "{Source,Test}/*.{ts,js,mjs,cjs,coffee}":
       "cross-env PRE_COMMIT=true npm --loglevel=silent run test --",
+
+   "Scripts/**/*.sh": "shellcheck",
 }

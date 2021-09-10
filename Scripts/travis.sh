@@ -34,15 +34,18 @@
 puts() { printf %s\\n "$@" ;}
 pute() { printf %s\\n "~~ $*" >&2 ;}
 
-rulebook_dir="$npm_package_config_dirs_rulebook"
-coverage_dir="$npm_package_config_dirs_coverage"
+# shellcheck disable=SC2154
+{
+   rulebook_dir="$npm_package_config_dirs_rulebook"
+   coverage_dir="$npm_package_config_dirs_coverage"
+}
 
 coverage_file="./$coverage_dir/lcov.info"
 
 # FIXME: This should support *excluded* modules with a minus, as per `node-debug`:
 #        https://github.com/visionmedia/debug
 if echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)'; then
-   pute "Script debugging enabled (in: `basename $0`)."
+   pute "Script debugging enabled (in: $(basename "$0"))."
    DEBUG_SCRIPTS=yes
    VERBOSE="${VERBOSE:-7}"
 fi
@@ -103,7 +106,7 @@ for ARG; do case $ARG in
 
          [ -n "$DEBUG_SCRIPTS" ] && pute "Coverage taken, sending '$coverage_file' to Coveralls"
          [ -s "$coverage_file" ] || exit 66
-         cat "$coverage_file" | "$(npm bin)/coveralls"
+         "$(npm bin)/coveralls" <"$coverage_file"
       else
          exit 0
       fi

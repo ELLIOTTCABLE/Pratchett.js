@@ -1,7 +1,7 @@
 curl -O http://www.unicode.org/Public/7.0.0/ucd/extracted/DerivedGeneralCategory.txt
 
-categories="$@"
-if [ ! -n "$categories" ]; then
+categories="$*"
+if [ -z "$categories" ]; then
    categories="Cn Lu Ll Lt Lm Lo Mn Me Mc Nd Nl No Zs Zl Zp Cc Cf Co Cs Pd Ps Pe Pc Po Sm Sc Sk So Pi Pf"
 fi
 

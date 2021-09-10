@@ -1,0 +1,7 @@
+# Preform POSIX-compliant portability testing.
+shell=sh
+
+# I much prefer to use `backticks` in user-facing strings. It's Markdown. Everybody understands it.
+# This is not an error.
+
+disable=SC2016

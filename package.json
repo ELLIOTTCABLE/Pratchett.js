@@ -82,6 +82,7 @@
       "mocha": "^3.2.0",
       "mocha-clean": "^1.0.0",
       "prettier": "^2.4.0",
+      "shellcheck": "^1.0.0",
       "sinon": "^1.17.2",
       "sinon-expect": "^0.3.0",
       "taper": "^0.5.0",

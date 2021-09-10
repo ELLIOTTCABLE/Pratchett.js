@@ -38,15 +38,20 @@ puts() { printf %s\\n "$@" ;}
 pute() { printf %s\\n "~~ $*" >&2 ;}
 argq() { [ $# -gt 0 ] && printf "'%s' " "$@" ;}
 
-source_dir="$npm_package_config_dirs_source"
-bin_dir="$npm_package_config_dirs_bin"
-unit_dir="$npm_package_config_dirs_test"
-integration_dir="$npm_package_config_dirs_integration"
-rulebook_dir="$npm_package_config_dirs_rulebook"
-coverage_dir="$npm_package_config_dirs_coverage"
+# shellcheck disable=SC2154
+{
+   source_dir="$npm_package_config_dirs_source"
+   bin_dir="$npm_package_config_dirs_bin"
+   unit_dir="$npm_package_config_dirs_test"
+   integration_dir="$npm_package_config_dirs_integration"
+   rulebook_dir="$npm_package_config_dirs_rulebook"
+   coverage_dir="$npm_package_config_dirs_coverage"
 
-mocha_ui="$npm_package_config_mocha_ui"
-mocha_reporter="$npm_package_config_mocha_reporter"
+   mocha_ui="$npm_package_config_mocha_ui"
+   mocha_reporter="$npm_package_config_mocha_reporter"
+
+   node_version="$npm_config_node_version"
+}
 
 cache_file="$unit_dir/.tests-succeeded"
 
@@ -58,7 +63,7 @@ export NODE_ENV='test'
 # FIXME: This should support *excluded* modules with a minus, as per `node-debug`:
 #        https://github.com/visionmedia/debug
 if echo "$DEBUG" | grep -qE '(^|,\s*)(\*|Paws.js(:(scripts|\*))?)($|,)'; then       # 1.  $DEBUG_SCRIPTS
-   pute "Script debugging enabled (in: `basename $0`)."
+   pute "Script debugging enabled (in: $(basename "$0"))."
    DEBUG_SCRIPTS=yes
    VERBOSE="${VERBOSE:-7}"
 fi
@@ -98,11 +103,13 @@ if [ -n "${CI##[NFnf]*}" ]; then                                              cr
 elif [ -n "${PRE_COMMIT##[NFnf]*}" ]; then                                    cr=no # 3.  $PRE_COMMIT
    [ -n "$DEBUG_SCRIPTS" ] && pute "Enabling pre-commit mode."
 
-   mocha_reporter=dot               # Be quiet,
+   mocha_reporter="dot"             # Be quiet,
    COVERAGE_REPORTER='text-summary'
    RESPECT_TRACING=no               # if the user has a ‘loud’ environment configured, ignore it,
    RULEBOOK=no                      # don't guarantee that the Rulebook passes on every commit,
-   UNIT=yes BATS=yes INTEGRATION=yes COVERAGE=yes  # ... but otherwise, run all of the suites.
+   BATS=no                          # nor executable-integration-tests,
+   INTEGRATION=no                   # nor integration-tests;
+   UNIT=yes COVERAGE=yes            # ... but run all of the unit-tests and calculate coverage.
 
 else
    [ -n "$DEBUG_SCRIPTS" ] && pute "Running in interactive-invocation mode."
@@ -124,7 +131,7 @@ else
       # FIXME: It's actually specifiaclly Node v6.3.0 that first introduced native `--inspect`
       #        support; I need to do a true semver comparison for this — this will fail between
       #        v6.0.0 and v6.3.0.
-      [ "${npm_config_node_version%%.*}" -lt 6 ] && \
+      [ "${node_version%%.*}" -lt 6 ] && \
          debug_with_module=yes
 
       WATCH='no'
@@ -202,6 +209,7 @@ fi
 go () { [ -n "$print_commands" ] && puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 mochaify() {
+   # shellcheck disable=SC2086
    [ -z "${UNIT##[YTyt]*}" ] && go $invocation_guard                          \
       "./node_modules/.bin/${invocation_guard:+_}${coverage:+_}mocha"         \
       ${debugging:+ --no-timeouts }                                           \
@@ -213,12 +221,14 @@ mochaify() {
 
 batsify() {
    if [ -z "${BATS##[YTyt]*}" ] && command -v bats >/dev/null; then
+      # shellcheck disable=SC2086
       go bats --pretty $BATS_FLAGS "$@"                                       ;fi ;}
 
 ruleify() {
    book="$1"; shift
 
    if [ -d "$PWD/$rulebook_dir/$book/" ]; then
+      # shellcheck disable=SC2086
       go $invocation_guard ./node_modules/.bin/taper                          \
          --runner "$PWD/Executables/paws.js" --runner-param='check'           \
          "$PWD/$rulebook_dir/$book"/*                                         \
@@ -255,6 +265,7 @@ if [ -n "${WATCH##[NFnf]*}" ]; then
    unset WATCH COVERAGE DEBUGGER
    export UNIT BATS INTEGRATION RULEBOOK LETTERS VERBOSE TRACE_REACTOR
 
+   # shellcheck disable=SC2086
    go exec chokidar \
       "${chokidar_verbosity:---silent}"                                       \
       --initial --ignore '**/.*'                                              \
@@ -292,7 +303,7 @@ if [ -z "${RULEBOOK##[YTyt]*}" ]; then
    if [ ! -d "$PWD/$rulebook_dir" ]; then
       [ -n "$DEBUG_SCRIPTS" ] && pute "Rulebook directory not found."
 
-      puts 'Clone the rulebook from this URL to `./'$rulebook_dir'` to check Rulebook compliance:'
+      puts 'Clone the rulebook from this URL to `./'"$rulebook_dir"'` to check Rulebook compliance:'
       puts '   <https://github.com/Paws/Rulebook.git>'
 
       # If explicitly requested, then the Rulebook missing is a fatal error.
