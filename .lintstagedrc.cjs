@@ -32,8 +32,9 @@ module.exports = {
       `git add "${docsDir}/assets" "${docsDir}/"*.html`,
    ],
 
-   "{Source,Test}/*.{ts,js,mjs,cjs,coffee}":
-      "cross-env PRE_COMMIT=true npm --loglevel=silent run test --",
+   // TODO: Eventually, I need to use Jest's "related tests" feature
+   "{Source,Test}/*.{ts,js,mjs,cjs,coffee}": () =>
+      "cross-env PRE_COMMIT=true npm --loglevel=silent run test",
 
    "Scripts/**/*.sh": "shellcheck",
 }
