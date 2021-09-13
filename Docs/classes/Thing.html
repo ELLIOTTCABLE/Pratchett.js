@@ -1,0 +1,1376 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Thing | Paws.js</title>
+	<meta name="description" content="Documentation for Paws.js">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.json" data-base="..">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<a href="../index.html" class="title">Paws.js</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="../modules.html">Paws.js</a>
+				</li>
+				<li>
+					<a href="Thing.html">Thing</a>
+				</li>
+			</ul>
+			<h1>Class Thing</h1>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-comment">
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<a href="#core-data-types" id="core-data-types" style="color: inherit; text-decoration: none;">
+							<h1>Core data-types</h1>
+						</a>
+						<p>The Paws object-space implements a single graph (in the computer-science sense)
+							of homogeneous(!) objects. Each object, or node in that graph, is called a
+						<code>Thing</code>; and is singly-linked² to an ordered list of other nodes.</p>
+					</div>
+					<p>The first member of the metadata-links¹ on a <code>Thing</code> (referred to as the
+						‘noughtie’) is generally reserved for special use from within Paws; and thus
+					Paws&#39; lists are effectively one-indexed.</p>
+					<p>In addition to these links to other nodes that every <code>Thing</code> has, some <code>Thing</code>s
+						carry around additional information; these are implemented as additional
+						JavaScript types, such as <code>Label</code> (which carries around identity, and a
+						description in the form of a Unicode string) or <code>Execution</code> (which encapsulates
+					procedure and execution-status information.)</p>
+					<p>The Paws model is to consider that underlying information as ‘data’ (the actual
+						<em>concerns</em> of a Paws program), and the links <em>between</em> those data as ‘metadata’;
+					describing <strong>the relationships amongst</strong> the actual data.</p>
+					<p>Although objects appear from within Paws to be ordered lists of other objects;
+						they are often <em>treated</em> as ersatz key-value-dictionaries. To this purpose, a
+						single key-value ‘pair’ is often represented as a list-<code>Thing</code> containing only a
+					key <code>Label</code>, and the associated value.</p>
+					<p>Each (type of) object also has a <code>receiver</code> associated with it, involved in the
+						evaluation process; an <code>Execution</code> for a procedure that receives messages ‘sent’
+						to the object in question. This defines the (default) action taken when the
+						object is, for example, the subject on the left- hand-side of a simple
+					expression.</p>
+					<p>The default receiver for a flavour of object depends on the additional data it
+						carries around (that is, the JavaScript type of the node). For instance, the
+						default receiver for plain <code>Thing</code>s (those carrying no additional data around)
+						is an equivalent to the <code>::find</code> operation; that is, to treat the subject-object
+						as a dictionary, and the message-object as a key to search that dictionary for.
+						The default for any object, however, can be overridden per-object, changing how
+						a given node in the graph responds to <code>Combination</code>s with other objects. (See
+					the documentation for <code>Execution</code> for more exposition on the evaluation model.)</p>
+					<hr>
+					<ol>
+						<li><p>The links from one <code>Thing</code> to another are encoded as <code>Relation</code> objects,
+								which are further annotated with the property of <strong>‘ownership’</strong>: an object that
+								‘owns’ an object below it in the graph is claiming that object as a component of
+								the <em>overall data-structure</em> that the parent object represents. (Put simply: a
+								series of ownership-annotated links in the datagraph describe a single
+							data-structure as a subgraph thereof.)</p>
+						</li>
+						<li><p>Note that although Paws objects are, by default, singly-linked, each <code>Thing</code></p>
+						</li>
+					</ol>
+					<p><em>also</em> includes separate reverse-links to all of the <code>Thing</code>s that ‘own’ it, to
+						facilitate responsibility calculations. (Although actual ownership flows
+						only-downwards along the graph, responsibility existing lower on the graph can
+						still preclude owning ancestors from being adopted; so these back-links are
+					maintained on those descendants as hints that they have adopted.)</p>
+					<hr>
+					<p>Many Paws operations change the data-graph; <em>any</em> of these operations can, thus,
+						also effectively mutate responsibility. Libside, this is handled by the user:
+						‘<operation> assumes you&#39;ve taken responsibility for its arguments’, or
+							‘<operation> will return when responsibility is available.’ This becomes a
+					little more complicated when calling from JavaScript, however.</p>
+					<p>While <em>everything</em> is effectively asynch in Paws (that is, after all, sort of
+						the point!), most things happening within a reactor-tick (or in a
+						consuming/embedding application) are <em>synchronous</em>. This is problematic, both
+						because there is no way to ‘block’ an operation mutating responsibility until
+						such responsibility is available, and because when these operations are already
+						being called from within the reactor-tick of a particular Paws operation, we
+						can&#39;t retroactively change that operation to an <code>Operation[&#39;adopt&#39;]</code>! From
+						another perspective, JavaScript operations happen atomically, in a single
+					reactor-tick, from perspective of Paws operations.)</p>
+					<p>This is exposed and communicated in this JavaScript API by partitioning
+						available methods into three categories, and prefixing the names based on their
+					behaviour. In general,</p>
+					<ol>
+						<li><p><em>underscore-prefixed methods</em> like <code>::_set</code> generally do no
+								responsibility-checking, and must be used after explicitly checking that the
+								required responsibility is available (or during a tick on a native that has
+							responsibility for the relevant arguments);</p>
+						</li>
+						<li><p><em>bare methods</em> like <code>::set</code> or <code>::dedicate</code> are still synchronous, but will
+								preform responsibility-checking in the due course of their behaviour, and
+								throw synchronously if they are unable to complete their operations or need
+							to be placed into the operation-queue;</p>
+						</li>
+						<li><p>and <em>dollar-prefixed methods</em> like <code>::$dedicate</code> will return a <code>Promise</code>, and
+								preform their behaviour <em>asynchronously</em>, placing themselves in the Paws
+								operation-queue if necessary (meaning that, if called <em>during</em> a
+							reactor-tick, these may effectively unstage and block the calling operation.)</p>
+						</li>
+					</ol>
+					<p>In general, underscore-prefixed methods may be considered ‘private’, as the bare
+						methods will behave exactly the same, but with additional reasonableness-checks;
+						and dollar-prefixed methods are often essentially analogues to libside
+					primitives.</p>
+					<a href="#method-summary" id="method-summary" style="color: inherit; text-decoration: none;">
+						<h3>Method summary:</h3>
+					</a>
+					<p><code>Thing</code>s are obtained via ...</p>
+					<ul>
+						<li>direct creation, <code>new Thing</code>, with a list of children,</li>
+						<li>by <code>::clone</code>ing an existing <code>Thing</code>,</li>
+						<li>or, as a convenience, with a provided JavaScript template, with <code>.construct</code>,
+						below.</li>
+					</ul>
+					<p>Their <code>Relation</code>s to children are stored in an <code>Array</code>, manipulable ...</p>
+					<ul>
+						<li>canonically, as an ordered set: <code>::at</code>, <code>::set</code>, <code>::push</code>, <code>::pop</code>,
+						<code>::shift</code>, and <code>::unshift</code>;</li>
+						<li>or as a pseudo-dictionary, with ordered ‘pairs’ added by <code>::define</code> and
+						queried by <code>::find</code>.</li>
+					</ul>
+					<p>Meanwhile, the data-structure ownership amongst a structure&#39;s elements is
+					exposed through:</p>
+					<ul>
+						<li><code>::own_at</code> (or <code>Relation::owned_by</code>), to create new membership in a
+						data-structure;</li>
+						<li><code>::disown_at</code> (or <code>Relation::contained_by</code>), to leave ownership-less links
+						between nodes;</li>
+						<li>and <code>::is_owned_by</code> to query ownership relationships.</li>
+					</ul>
+					<blockquote>
+						<p> Of note, as another convenience: all methods that take a <code>Thing</code> and
+							manipulate relationships, can <em>also</em> take given a pre-constructed <code>Relation</code>
+							indicating the desired relationship. It won&#39;t be used directly, but the
+						relationship will be imitated by the changes produced in the data-graph:</p>
+						<pre><code><span style="color: #000000">      </span><span style="color: #001080">a_thing</span><span style="color: #000000">.</span><span style="color: #795E26">set</span><span style="color: #000000">(</span><span style="color: #098658">1</span><span style="color: #000000">, </span><span style="color: #001080">another_thing</span><span style="color: #000000">.</span><span style="color: #795E26">owned_by</span><span style="color: #000000">(</span><span style="color: #001080">a_thing</span><span style="color: #000000">))</span>
+<span style="color: #000000">      # </span><span style="color: #001080">Equivalent</span><span style="color: #000000"> to:</span>
+<span style="color: #000000">      </span><span style="color: #001080">a_thing</span><span style="color: #000000">.</span><span style="color: #795E26">set</span><span style="color: #000000">(</span><span style="color: #098658">1</span><span style="color: #000000">, </span><span style="color: #001080">another_thing</span><span style="color: #000000">)</span>
+<span style="color: #000000">      </span><span style="color: #001080">a_thing</span><span style="color: #000000">.</span><span style="color: #795E26">own_at</span><span style="color: #000000">(</span><span style="color: #098658">1</span><span style="color: #000000">)</span>
+</code></pre>
+					</blockquote>
+				</div>
+			</section>
+			<section class="tsd-panel tsd-hierarchy">
+				<h3>Hierarchy</h3>
+				<ul class="tsd-hierarchy">
+					<li>
+						<span class="tsd-signature-type">EventEmitter</span>
+						<ul class="tsd-hierarchy">
+							<li>
+								<span class="target">Thing</span>
+								<ul class="tsd-hierarchy">
+									<li>
+										<a href="Label.html" class="tsd-signature-type" data-tsd-kind="Class">Label</a>
+									</li>
+									<li>
+										<a href="Execution.html" class="tsd-signature-type" data-tsd-kind="Class">Execution</a>
+									</li>
+									<li>
+										<a href="Native.html" class="tsd-signature-type" data-tsd-kind="Class">Native</a>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel-group tsd-index-group">
+				<h2>Index</h2>
+				<section class="tsd-panel tsd-index-panel">
+					<div class="tsd-index-content">
+						<section class="tsd-index-section ">
+							<h3>Methods</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="Thing.html#isThingish" class="tsd-kind-icon">is<wbr>Thingish</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="Thing.html#construct" class="tsd-kind-icon">construct</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="Thing.html#pair" class="tsd-kind-icon">pair</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#clone" class="tsd-kind-icon">clone</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#_clone" class="tsd-kind-icon">_clone</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#deep_clone" class="tsd-kind-icon">deep_<wbr>clone</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#compare" class="tsd-kind-icon">compare</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#push" class="tsd-kind-icon">push</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#pushAndOwn" class="tsd-kind-icon">push<wbr>And<wbr>Own</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#pushRelations" class="tsd-kind-icon">push<wbr>Relations</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#_push" class="tsd-kind-icon">_push</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#unshift" class="tsd-kind-icon">unshift</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#unshiftAndOwn" class="tsd-kind-icon">unshift<wbr>And<wbr>Own</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#unshiftRelations" class="tsd-kind-icon">unshift<wbr>Relations</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#_unshift" class="tsd-kind-icon">_unshift</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#pop" class="tsd-kind-icon">pop</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#shift" class="tsd-kind-icon">shift</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#contained" class="tsd-kind-icon">contained</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#owned" class="tsd-kind-icon">owned</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#contained_by" class="tsd-kind-icon">contained_<wbr>by</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#owned_by" class="tsd-kind-icon">owned_<wbr>by</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="Thing.html#rename" class="tsd-kind-icon">rename</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="Thing.html#__validate_availability_to" class="tsd-kind-icon">__validate_<wbr>availability_<wbr>to</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="Thing.html#__add_parent_and_inherited_custodians" class="tsd-kind-icon">__add_<wbr>parent_<wbr>and_<wbr>inherited_<wbr>custodians</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="Thing.html#__del_parent_and_inherited_custodians" class="tsd-kind-icon">__del_<wbr>parent_<wbr>and_<wbr>inherited_<wbr>custodians</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="Thing.html#__add_custodian" class="tsd-kind-icon">__add_<wbr>custodian</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="Thing.html#__del_custodian" class="tsd-kind-icon">__del_<wbr>custodian</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="Thing.html#__add_supplicant" class="tsd-kind-icon">__add_<wbr>supplicant</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="Thing.html#__del_supplicant" class="tsd-kind-icon">__del_<wbr>supplicant</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="Thing.html#__all_custodians" class="tsd-kind-icon">__all_<wbr>custodians</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="Thing.html#__unshiftAnd" class="tsd-kind-icon">__unshift<wbr>And</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Constructors</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="Thing.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Properties</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="Thing.html#id" class="tsd-kind-icon">id</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="Thing.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="Thing.html#metadata" class="tsd-kind-icon">metadata</a></li>
+							</ul>
+						</section>
+					</div>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Methods</h2>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					<a name="isThingish" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> is<wbr>Thingish</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">is<wbr>Thingish<span class="tsd-signature-symbol">(</span>value<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">value</span><span class="tsd-signature-symbol"> is </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:180</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>value: <span class="tsd-signature-type">object</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">value</span><span class="tsd-signature-symbol"> is </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					<a name="construct" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> construct</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">construct<span class="tsd-signature-symbol">(</span>rep<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">ThingRepresentation</span>, mbyoptions<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">ThingConstructParameters</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:188</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>rep: <span class="tsd-signature-type">ThingRepresentation</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> mbyoptions: <span class="tsd-signature-type">ThingConstructParameters</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					<a name="pair" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> pair</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">pair<span class="tsd-signature-symbol">(</span>key<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, value<span class="tsd-signature-symbol">?: </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a>, own<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:524</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<a href="#39dictionary-ish39-metadata-manipulation" id="39dictionary-ish39-metadata-manipulation" style="color: inherit; text-decoration: none;">
+										<h3>&#39;Dictionary-ish&#39; metadata manipulation</h3>
+									</a>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>key: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> value: <a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> own: <span class="tsd-signature-type">boolean</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="clone" class="tsd-anchor"></a>
+					<h3>clone</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">clone<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:267</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<a href="#common-methods-overriden-by-subtypes" id="common-methods-overriden-by-subtypes" style="color: inherit; text-decoration: none;">
+										<h3>Common methods, overriden by subtypes</h3>
+									</a>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="_clone" class="tsd-anchor"></a>
+					<h3>_clone</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">_clone<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:270</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="deep_clone" class="tsd-anchor"></a>
+					<h3>deep_<wbr>clone</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">deep_<wbr>clone<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:273</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="compare" class="tsd-anchor"></a>
+					<h3>compare</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">compare<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:276</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="push" class="tsd-anchor"></a>
+					<h3>push</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">push<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>mixed_additions<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:339</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Append passed values to the receiver&#39;s metadata.</p>
+								</div>
+								<p>Passed values can each be either a <code>Thing</code> (<code>foo.push(a_thing)</code>), or a
+									<code>Relation</code> expressing the desired ownership of that value
+								(<code>foo.push(a_thing.owned_by(foo))</code>. The arguments need not be homogenous.</p>
+								<p>If the <code>Thing</code> in question is affected by responsibility conflicting with that
+									flowing from / through the receiver (that is, it is both marked as owned, and
+									held with a conflicting license by other <code>Liability</code>), a <code>ResponsibilityError</code>
+								will be thrown.</p>
+								<dl class="tsd-comment-tags">
+									<dt>arg</dt>
+									<dd><p>mixed_additions          Values to be appended as children</p>
+									</dd>
+									<dt>throws</dt>
+									<dd><p>ResponsibilityError   If one of the new children is to be owned by the parent,
+										but is not available to one of the parent&#39;s custodian-Executions</p>
+									</dd>
+									<dt>see</dt>
+									<dd><p>unshift</p>
+									</dd>
+								</dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>mixed_additions: <span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="pushAndOwn" class="tsd-anchor"></a>
+					<h3>push<wbr>And<wbr>Own</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">push<wbr>And<wbr>Own<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>mixed_additions<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:351</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p><code>::push()</code>, but set each added <code>Thing</code> as owned by the receiver.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>mixed_additions: <span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="pushRelations" class="tsd-anchor"></a>
+					<h3>push<wbr>Relations</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">push<wbr>Relations<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>relations<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:364</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Optimized <code>::push()</code> that accepts only <code>Relations</code>.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>relations: <span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="_push" class="tsd-anchor"></a>
+					<h3>_push</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">_push<span class="tsd-signature-symbol">(</span>on_each_relation<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-symbol">(</span>r<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span>, <span class="tsd-signature-symbol">...</span>relations<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:378</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>DANGER, SYNC: <code>::push()</code>, but disregarding responsibility; use only on brand-new
+									values not existing anywhere in the datagraph yet.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> on_each_relation: <span class="tsd-signature-symbol">(</span>r<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span></h5>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-signature">
+											<ul class="tsd-signatures tsd-kind-type-literal">
+												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>r<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+											</ul>
+											<ul class="tsd-descriptions">
+												<li class="tsd-description">
+													<h4 class="tsd-parameters-title">Parameters</h4>
+													<ul class="tsd-parameters">
+														<li>
+															<h5>r: <span class="tsd-signature-type">UnknownRelation</span></h5>
+														</li>
+													</ul>
+													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>relations: <span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="unshift" class="tsd-anchor"></a>
+					<h3>unshift</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">unshift<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>mixed_additions<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:413</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Prepend passed values to the receiver&#39;s metadata, immediately following the
+									noughty.</p>
+								</div>
+								<p>Passed values can each be either a <code>Thing</code> (<code>foo.push(a_thing)</code>), or a
+									<code>Relation</code> expressing the desired ownership of that value
+								(<code>foo.push(a_thing.owned_by(foo))</code>. The arguments need not be homogenous.</p>
+								<p>If the <code>Thing</code> in question is affected by responsibility conflicting with that
+									flowing from / through the receiver (that is, it is both marked as owned, and
+									held with a conflicting license by other <code>Liability</code>), a <code>ResponsibilityError</code>
+								will be thrown.</p>
+								<dl class="tsd-comment-tags">
+									<dt>arg</dt>
+									<dd><p>mixed_additions          Values to be appended as children</p>
+									</dd>
+									<dt>throws</dt>
+									<dd><p>ResponsibilityError   If one of the new children is to be owned by the parent,
+										but is not available to one of the parent&#39;s custodian-Executions</p>
+									</dd>
+									<dt>see</dt>
+									<dd><p>push</p>
+									</dd>
+								</dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>mixed_additions: <span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="unshiftAndOwn" class="tsd-anchor"></a>
+					<h3>unshift<wbr>And<wbr>Own</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">unshift<wbr>And<wbr>Own<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>mixed_additions<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:425</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p><code>::unshift()</code>, but set each added <code>Thing</code> as owned by the receiver.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>mixed_additions: <span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="unshiftRelations" class="tsd-anchor"></a>
+					<h3>unshift<wbr>Relations</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">unshift<wbr>Relations<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>relations<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:438</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Optimized <code>::unshift()</code> that accepts only <code>Relations</code>.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>relations: <span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="_unshift" class="tsd-anchor"></a>
+					<h3>_unshift</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">_unshift<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>relations<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:452</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>DANGER, SYNC: <code>::unshift()</code>, but disregarding responsibility; use only on
+									brand-new values not existing anywhere in the datagraph yet.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>relations: <span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="pop" class="tsd-anchor"></a>
+					<h3>pop</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">pop<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:485</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Remove the ordinally-last <code>Thing</code> from the receiver&#39;s metadata relations, and
+									returns it.</p>
+								</div>
+								<p>If the departing <code>Thing</code> in question is affected by responsibility flowing
+								from/through the receiver, it will be <code>::emancipate</code>&#39;d.</p>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></h4>
+							<p>The removed entry</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="shift" class="tsd-anchor"></a>
+					<h3>shift</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">shift<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:502</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Remove the ordinally-first <code>Thing</code>, after the noughty, from the receiver&#39;s
+									metadata relations; and returns it.</p>
+								</div>
+								<p>If the departing <code>Thing</code> in question is affected by responsibility flowing
+								from/through the receiver, it will be <code>::emancipate</code>&#39;d.</p>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></h4>
+							<p>The removed entry</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="contained" class="tsd-anchor"></a>
+					<h3>contained</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">contained<span class="tsd-signature-symbol">(</span>own<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Relation.html" class="tsd-signature-type" data-tsd-kind="Class">Relation</a><span class="tsd-signature-symbol">&lt;</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:539</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<a href="#utility--convenience" id="utility--convenience" style="color: inherit; text-decoration: none;">
+										<h3>Utility / convenience</h3>
+									</a>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> own: <span class="tsd-signature-type">boolean</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="Relation.html" class="tsd-signature-type" data-tsd-kind="Class">Relation</a><span class="tsd-signature-symbol">&lt;</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="owned" class="tsd-anchor"></a>
+					<h3>owned</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">owned<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Relation.html" class="tsd-signature-type" data-tsd-kind="Class">Relation</a><span class="tsd-signature-symbol">&lt;</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:543</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <a href="Relation.html" class="tsd-signature-type" data-tsd-kind="Class">Relation</a><span class="tsd-signature-symbol">&lt;</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="contained_by" class="tsd-anchor"></a>
+					<h3>contained_<wbr>by</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">contained_<wbr>by<span class="tsd-signature-symbol">(</span>other<span class="tsd-signature-symbol">: </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a>, own<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Relation.html" class="tsd-signature-type" data-tsd-kind="Class">Relation</a><span class="tsd-signature-symbol">&lt;</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:547</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>other: <a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> own: <span class="tsd-signature-type">boolean</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="Relation.html" class="tsd-signature-type" data-tsd-kind="Class">Relation</a><span class="tsd-signature-symbol">&lt;</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="owned_by" class="tsd-anchor"></a>
+					<h3>owned_<wbr>by</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">owned_<wbr>by<span class="tsd-signature-symbol">(</span>other<span class="tsd-signature-symbol">: </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Relation.html" class="tsd-signature-type" data-tsd-kind="Class">Relation</a><span class="tsd-signature-symbol">&lt;</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:551</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>other: <a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="Relation.html" class="tsd-signature-type" data-tsd-kind="Class">Relation</a><span class="tsd-signature-symbol">&lt;</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="rename" class="tsd-anchor"></a>
+					<h3>rename</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">rename<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:555</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>name: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="__validate_availability_to" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> __validate_<wbr>availability_<wbr>to</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">__validate_<wbr>availability_<wbr>to<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>_arguments<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:284</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<a href="#common-private-methods" id="common-private-methods" style="color: inherit; text-decoration: none;">
+										<h3>Common private methods</h3>
+									</a>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>_arguments: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="__add_parent_and_inherited_custodians" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> __add_<wbr>parent_<wbr>and_<wbr>inherited_<wbr>custodians</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">__add_<wbr>parent_<wbr>and_<wbr>inherited_<wbr>custodians<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>_arguments<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:287</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>_arguments: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="__del_parent_and_inherited_custodians" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> __del_<wbr>parent_<wbr>and_<wbr>inherited_<wbr>custodians</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">__del_<wbr>parent_<wbr>and_<wbr>inherited_<wbr>custodians<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>_arguments<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:290</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>_arguments: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="__add_custodian" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> __add_<wbr>custodian</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">__add_<wbr>custodian<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>_arguments<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:293</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>_arguments: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="__del_custodian" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> __del_<wbr>custodian</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">__del_<wbr>custodian<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>_arguments<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:296</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>_arguments: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="__add_supplicant" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> __add_<wbr>supplicant</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">__add_<wbr>supplicant<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>_arguments<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:299</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>_arguments: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="__del_supplicant" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> __del_<wbr>supplicant</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">__del_<wbr>supplicant<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>_arguments<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:302</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>_arguments: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="__all_custodians" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> __all_<wbr>custodians</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">__all_<wbr>custodians<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>_arguments<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:310</li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<a href="#common-helpers" id="common-helpers" style="color: inherit; text-decoration: none;">
+										<h3>Common helpers</h3>
+									</a>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>_arguments: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="__unshiftAnd" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> __unshift<wbr>And</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">__unshift<wbr>And<span class="tsd-signature-symbol">(</span>on_each_relation<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-symbol">(</span>r<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span>, <span class="tsd-signature-symbol">...</span>relations<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in datagraph.ts:456</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> on_each_relation: <span class="tsd-signature-symbol">(</span>r<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span></h5>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-signature">
+											<ul class="tsd-signatures tsd-kind-type-literal">
+												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>r<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+											</ul>
+											<ul class="tsd-descriptions">
+												<li class="tsd-description">
+													<h4 class="tsd-parameters-title">Parameters</h4>
+													<ul class="tsd-parameters">
+														<li>
+															<h5>r: <span class="tsd-signature-type">UnknownRelation</span></h5>
+														</li>
+													</ul>
+													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>relations: <span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Constructors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
+					<a name="constructor" class="tsd-anchor"></a>
+					<h3>constructor</h3>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Thing<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>mixed_additions<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Overrides EventEmitter.constructor</p>
+								<ul>
+									<li>Defined in datagraph.ts:237</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>mixed_additions: <span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Properties</h2>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="id" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> id</h3>
+					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <a href="../modules.html#UUIDv4" class="tsd-signature-type" data-tsd-kind="Type alias">UUIDv4</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in datagraph.ts:175</li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="name" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> name</h3>
+					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in datagraph.ts:176</li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="metadata" class="tsd-anchor"></a>
+					<h3>metadata</h3>
+					<div class="tsd-signature tsd-kind-icon">metadata<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in datagraph.ts:177</li>
+						</ul>
+					</aside>
+				</section>
+			</section>
+		</div>
+		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation primary">
+				<ul>
+					<li class=" ">
+						<a href="../modules.html">Exports</a>
+					</li>
+				</ul>
+			</nav>
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+					<li class=" tsd-kind-type-alias">
+						<a href="../modules.html#UUIDv4" class="tsd-kind-icon">UUIDv4</a>
+					</li>
+				</ul>
+				<ul class="current">
+					<li class="current tsd-kind-class">
+						<a href="Thing.html" class="tsd-kind-icon">Thing</a>
+						<ul>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
+								<a href="Thing.html#isThingish" class="tsd-kind-icon">is<wbr>Thingish</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
+								<a href="Thing.html#construct" class="tsd-kind-icon">construct</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
+								<a href="Thing.html#pair" class="tsd-kind-icon">pair</a>
+							</li>
+							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
+								<a href="Thing.html#constructor" class="tsd-kind-icon">constructor</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="Thing.html#id" class="tsd-kind-icon">id</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="Thing.html#name" class="tsd-kind-icon">name</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="Thing.html#metadata" class="tsd-kind-icon">metadata</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#clone" class="tsd-kind-icon">clone</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#_clone" class="tsd-kind-icon">_clone</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#deep_clone" class="tsd-kind-icon">deep_<wbr>clone</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#compare" class="tsd-kind-icon">compare</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#push" class="tsd-kind-icon">push</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#pushAndOwn" class="tsd-kind-icon">push<wbr>And<wbr>Own</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#pushRelations" class="tsd-kind-icon">push<wbr>Relations</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#_push" class="tsd-kind-icon">_push</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#unshift" class="tsd-kind-icon">unshift</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#unshiftAndOwn" class="tsd-kind-icon">unshift<wbr>And<wbr>Own</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#unshiftRelations" class="tsd-kind-icon">unshift<wbr>Relations</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#_unshift" class="tsd-kind-icon">_unshift</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#pop" class="tsd-kind-icon">pop</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#shift" class="tsd-kind-icon">shift</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#contained" class="tsd-kind-icon">contained</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#owned" class="tsd-kind-icon">owned</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#contained_by" class="tsd-kind-icon">contained_<wbr>by</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#owned_by" class="tsd-kind-icon">owned_<wbr>by</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="Thing.html#rename" class="tsd-kind-icon">rename</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="Thing.html#__validate_availability_to" class="tsd-kind-icon">__validate_<wbr>availability_<wbr>to</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="Thing.html#__add_parent_and_inherited_custodians" class="tsd-kind-icon">__add_<wbr>parent_<wbr>and_<wbr>inherited_<wbr>custodians</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="Thing.html#__del_parent_and_inherited_custodians" class="tsd-kind-icon">__del_<wbr>parent_<wbr>and_<wbr>inherited_<wbr>custodians</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="Thing.html#__add_custodian" class="tsd-kind-icon">__add_<wbr>custodian</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="Thing.html#__del_custodian" class="tsd-kind-icon">__del_<wbr>custodian</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="Thing.html#__add_supplicant" class="tsd-kind-icon">__add_<wbr>supplicant</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="Thing.html#__del_supplicant" class="tsd-kind-icon">__del_<wbr>supplicant</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="Thing.html#__all_custodians" class="tsd-kind-icon">__all_<wbr>custodians</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="Thing.html#__unshiftAnd" class="tsd-kind-icon">__unshift<wbr>And</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+				<ul class="after-current">
+					<li class=" tsd-kind-class tsd-has-type-parameter">
+						<a href="Relation.html" class="tsd-kind-icon">Relation</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="Label.html" class="tsd-kind-icon">Label</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="Execution.html" class="tsd-kind-icon">Execution</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="Native.html" class="tsd-kind-icon">Native</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer class="with-border-bottom">
+	<div class="container">
+		<h2>Legend</h2>
+		<div class="tsd-legend-group">
+			<ul class="tsd-legend">
+				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected method</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li>
+			</ul>
+		</div>
+	</div>
+</footer>
+<div class="container tsd-generator">
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
+</div>
+<div class="overlay"></div>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>
