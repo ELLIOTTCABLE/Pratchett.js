@@ -5,8 +5,7 @@
 
       "esModuleInterop": true,
       "isolatedModules": true,
-      "noImplicitThis": true,
-      "noImplicitAny": true,
+      "strict": true,
       "declaration": true,
       "declarationMap": true,
 
