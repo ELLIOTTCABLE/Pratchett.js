@@ -60,22 +60,33 @@ module.exports = {
       },
       {
          files: ["*.tests.ts", "*.tests.tsx"],
+         parserOptions: {
+            tsconfigRootDir: __dirname,
+            project: ["./Test/tsconfig.json"],
+         },
          plugins: ["@typescript-eslint", "import", "unicorn", "jest"],
+         settings: {
+            node: {
+               allowModules: ["chai"],
+            },
+         },
          extends: [
             "eslint:recommended",
             "plugin:@typescript-eslint/recommended",
             "plugin:@typescript-eslint/recommended-requiring-type-checking",
             "plugin:eslint-comments/recommended",
-            "plugin:node/recommended",
             "plugin:import/recommended",
             "plugin:import/typescript",
-            "plugin:jest/recommended",
-            "plugin:jest/style",
+            // "plugin:jest/recommended",
+            // "plugin:jest/style",
             "plugin:unicorn/recommended",
             "prettier",
          ],
          rules: {
             "@typescript-eslint/unbound-method": "error",
+
+            // It is idiomatic to nest test-describe-blocks deeply
+            "unicorn/consistent-function-scoping": 0,
          },
       },
    ],

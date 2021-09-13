@@ -1,4 +1,5 @@
 {
+   "include": ["Source/**/*.ts"],
    "compilerOptions": {
       "noEmit": true,
 
@@ -15,7 +16,6 @@
       "module": "ES2020",
       "moduleResolution": "Node"
    },
-   "include": ["Source/**/*.ts"],
    "typedocOptions": {
       "sort": ["static-first", "visibility", "source-order"],
       "gitRemote": "ec",

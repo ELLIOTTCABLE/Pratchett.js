@@ -209,13 +209,16 @@ fi
 go () { [ -n "$print_commands" ] && puts '`` '"$*" >&2 ; "$@" || exit $? ;}
 
 mochaify() {
+   export TS_NODE_PROJECT='./Test/tsconfig.json'
+
    # shellcheck disable=SC2086
    [ -z "${UNIT##[YTyt]*}" ] && go $invocation_guard                          \
       "./node_modules/.bin/${invocation_guard:+_}${coverage:+_}mocha"         \
       ${debugging:+ --no-timeouts }                                           \
       ${coverage:+ --require './Library/register-coffee-coverage.js' }        \
       --require mocha-clean/brief                                             \
-      --compilers coffee:coffee-script/register                               \
+      --require coffee-script/register                                        \
+      --require ts-node/register                                              \
       --reporter "$mocha_reporter" --ui "$mocha_ui"                           \
       "$@"                                                                    ;}
 
@@ -277,7 +280,10 @@ fi
 
 # Execution of tests
 # ------------------                                                             # i) Mocha,
-mochaify "$unit_dir"/*.tests.coffee ${integration:+"$integration_dir/"*.tests.coffee} "$@"
+# shellcheck disable=SC2140
+mochaify \
+   "$unit_dir"/*.tests.coffee "$unit_dir"/*.tests.ts \
+   ${integration:+"$integration_dir/"*.tests.coffee "$integration_dir/"*.tests.ts} "$@"
 
                                                                                  # ii) Istanbul,
 [ -n "$coverage" ] && istanbul report --config='Scripts/istanbul.config.js' $COVERAGE_REPORTER
