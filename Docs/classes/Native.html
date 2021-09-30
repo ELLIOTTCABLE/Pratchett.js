@@ -67,7 +67,7 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a>
+						<a href="Execution.html" class="tsd-signature-type" data-tsd-kind="Class">Execution</a>
 						<ul class="tsd-hierarchy">
 							<li>
 								<span class="target">Native</span>
@@ -106,6 +106,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="Native.html#contained_by" class="tsd-kind-icon">contained_<wbr>by</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="Native.html#owned_by" class="tsd-kind-icon">owned_<wbr>by</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="Native.html#rename" class="tsd-kind-icon">rename</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="Native.html#stage" class="tsd-kind-icon">stage</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="Native.html#__validate_availability_to" class="tsd-kind-icon">__validate_<wbr>availability_<wbr>to</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="Native.html#__add_parent_and_inherited_custodians" class="tsd-kind-icon">__add_<wbr>parent_<wbr>and_<wbr>inherited_<wbr>custodians</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="Native.html#__del_parent_and_inherited_custodians" class="tsd-kind-icon">__del_<wbr>parent_<wbr>and_<wbr>inherited_<wbr>custodians</a></li>
@@ -117,18 +118,19 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="Native.html#__unshiftAnd" class="tsd-kind-icon">__unshift<wbr>And</a></li>
 							</ul>
 						</section>
-						<section class="tsd-index-section tsd-is-inherited">
+						<section class="tsd-index-section ">
 							<h3>Constructors</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><a href="Native.html#constructor" class="tsd-kind-icon">constructor</a></li>
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="Native.html#constructor" class="tsd-kind-icon">constructor</a></li>
 							</ul>
 						</section>
-						<section class="tsd-index-section tsd-is-inherited">
+						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="Native.html#id" class="tsd-kind-icon">id</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="Native.html#name" class="tsd-kind-icon">name</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="Native.html#metadata" class="tsd-kind-icon">metadata</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="Native.html#bits" class="tsd-kind-icon">bits</a></li>
 							</ul>
 						</section>
 					</div>
@@ -145,9 +147,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#isThingish">isThingish</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#isThingish">isThingish</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:180</li>
+									<li>Defined in datagraph.ts:181</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -169,9 +171,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#construct">construct</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#construct">construct</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:188</li>
+									<li>Defined in datagraph.ts:189</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -196,9 +198,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#pair">pair</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#pair">pair</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:524</li>
+									<li>Defined in datagraph.ts:525</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -228,19 +230,19 @@
 					<a name="synchronous" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagStatic">Static</span> synchronous</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
-						<li class="tsd-signature tsd-kind-icon">synchronous<span class="tsd-signature-symbol">(</span>synch_body<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Native.html" class="tsd-signature-type" data-tsd-kind="Class">Native</a></li>
+						<li class="tsd-signature tsd-kind-icon">synchronous<span class="tsd-signature-symbol">(</span>synch_body<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">NativeRepresentation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Native.html" class="tsd-signature-type" data-tsd-kind="Class">Native</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in datagraph.ts:585</li>
+									<li>Defined in datagraph.ts:592</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>synch_body: <span class="tsd-signature-type">Function</span></h5>
+									<h5>synch_body: <span class="tsd-signature-type">NativeRepresentation</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="Native.html" class="tsd-signature-type" data-tsd-kind="Class">Native</a></h4>
@@ -256,9 +258,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#clone">clone</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#clone">clone</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:267</li>
+									<li>Defined in datagraph.ts:268</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -281,9 +283,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#_clone">_clone</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#_clone">_clone</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:270</li>
+									<li>Defined in datagraph.ts:271</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -299,9 +301,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#deep_clone">deep_clone</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#deep_clone">deep_clone</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:273</li>
+									<li>Defined in datagraph.ts:274</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -317,9 +319,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#compare">compare</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#compare">compare</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:276</li>
+									<li>Defined in datagraph.ts:277</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -335,9 +337,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#push">push</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#push">push</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:339</li>
+									<li>Defined in datagraph.ts:340</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -383,9 +385,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#pushAndOwn">pushAndOwn</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#pushAndOwn">pushAndOwn</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:351</li>
+									<li>Defined in datagraph.ts:352</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -412,9 +414,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#pushRelations">pushRelations</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#pushRelations">pushRelations</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:364</li>
+									<li>Defined in datagraph.ts:365</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -441,9 +443,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#_push">_push</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#_push">_push</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:378</li>
+									<li>Defined in datagraph.ts:379</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -492,9 +494,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#unshift">unshift</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#unshift">unshift</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:413</li>
+									<li>Defined in datagraph.ts:414</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -541,9 +543,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#unshiftAndOwn">unshiftAndOwn</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#unshiftAndOwn">unshiftAndOwn</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:425</li>
+									<li>Defined in datagraph.ts:426</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -570,9 +572,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#unshiftRelations">unshiftRelations</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#unshiftRelations">unshiftRelations</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:438</li>
+									<li>Defined in datagraph.ts:439</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -599,9 +601,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#_unshift">_unshift</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#_unshift">_unshift</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:452</li>
+									<li>Defined in datagraph.ts:453</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -629,9 +631,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#pop">pop</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#pop">pop</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:485</li>
+									<li>Defined in datagraph.ts:486</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -656,9 +658,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#shift">shift</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#shift">shift</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:502</li>
+									<li>Defined in datagraph.ts:503</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -683,9 +685,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#contained">contained</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#contained">contained</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:539</li>
+									<li>Defined in datagraph.ts:540</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -714,9 +716,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#owned">owned</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#owned">owned</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:543</li>
+									<li>Defined in datagraph.ts:544</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="Relation.html" class="tsd-signature-type" data-tsd-kind="Class">Relation</a><span class="tsd-signature-symbol">&lt;</span><a href="Native.html" class="tsd-signature-type" data-tsd-kind="Class">Native</a><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -732,9 +734,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#contained_by">contained_by</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#contained_by">contained_by</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:547</li>
+									<li>Defined in datagraph.ts:548</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -759,9 +761,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#owned_by">owned_by</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#owned_by">owned_by</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:551</li>
+									<li>Defined in datagraph.ts:552</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -783,9 +785,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#rename">rename</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#rename">rename</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:555</li>
+									<li>Defined in datagraph.ts:556</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -798,6 +800,30 @@
 						</li>
 					</ul>
 				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="stage" class="tsd-anchor"></a>
+					<h3>stage</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">stage<span class="tsd-signature-symbol">(</span>response<span class="tsd-signature-symbol">?: </span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#stage">stage</a></p>
+								<ul>
+									<li>Defined in datagraph.ts:583</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> response: <a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 					<a name="__validate_availability_to" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagProtected">Protected</span> __validate_<wbr>availability_<wbr>to</h3>
@@ -807,9 +833,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#__validate_availability_to">__validate_availability_to</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#__validate_availability_to">__validate_availability_to</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:284</li>
+									<li>Defined in datagraph.ts:285</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -838,9 +864,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#__add_parent_and_inherited_custodians">__add_parent_and_inherited_custodians</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#__add_parent_and_inherited_custodians">__add_parent_and_inherited_custodians</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:287</li>
+									<li>Defined in datagraph.ts:288</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -862,9 +888,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#__del_parent_and_inherited_custodians">__del_parent_and_inherited_custodians</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#__del_parent_and_inherited_custodians">__del_parent_and_inherited_custodians</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:290</li>
+									<li>Defined in datagraph.ts:291</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -886,9 +912,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#__add_custodian">__add_custodian</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#__add_custodian">__add_custodian</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:293</li>
+									<li>Defined in datagraph.ts:294</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -910,9 +936,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#__del_custodian">__del_custodian</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#__del_custodian">__del_custodian</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:296</li>
+									<li>Defined in datagraph.ts:297</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -934,9 +960,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#__add_supplicant">__add_supplicant</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#__add_supplicant">__add_supplicant</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:299</li>
+									<li>Defined in datagraph.ts:300</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -958,9 +984,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#__del_supplicant">__del_supplicant</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#__del_supplicant">__del_supplicant</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:302</li>
+									<li>Defined in datagraph.ts:303</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -982,9 +1008,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#__all_custodians">__all_custodians</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#__all_custodians">__all_custodians</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:310</li>
+									<li>Defined in datagraph.ts:311</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1013,9 +1039,9 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#__unshiftAnd">__unshiftAnd</a></p>
+								<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#__unshiftAnd">__unshiftAnd</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:456</li>
+									<li>Defined in datagraph.ts:457</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1050,43 +1076,37 @@
 					</ul>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-inherited">
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Constructors</h2>
-				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
-					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Native<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>mixed_additions<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Native.html" class="tsd-signature-type" data-tsd-kind="Class">Native</a></li>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Native<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="Native.html" class="tsd-signature-type" data-tsd-kind="Class">Native</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#constructor">constructor</a></p>
+								<p>Overrides <a href="Execution.html">Execution</a>.<a href="Execution.html#constructor">constructor</a></p>
 								<ul>
-									<li>Defined in datagraph.ts:237</li>
+									<li>Defined in datagraph.ts:681</li>
 								</ul>
 							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>mixed_additions: <span class="tsd-signature-symbol">(</span><a href="Thing.html" class="tsd-signature-type" data-tsd-kind="Class">Thing</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span></h5>
-								</li>
-							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="Native.html" class="tsd-signature-type" data-tsd-kind="Class">Native</a></h4>
 						</li>
 					</ul>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-inherited">
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="id" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> id</h3>
 					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <a href="../modules.html#UUIDv4" class="tsd-signature-type" data-tsd-kind="Type alias">UUIDv4</a></div>
 					<aside class="tsd-sources">
-						<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#id">id</a></p>
+						<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#id">id</a></p>
 						<ul>
-							<li>Defined in datagraph.ts:175</li>
+							<li>Defined in datagraph.ts:176</li>
 						</ul>
 					</aside>
 				</section>
@@ -1095,9 +1115,9 @@
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> name</h3>
 					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
-						<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#name">name</a></p>
+						<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#name">name</a></p>
 						<ul>
-							<li>Defined in datagraph.ts:176</li>
+							<li>Defined in datagraph.ts:177</li>
 						</ul>
 					</aside>
 				</section>
@@ -1106,9 +1126,19 @@
 					<h3>metadata</h3>
 					<div class="tsd-signature tsd-kind-icon">metadata<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnknownRelation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div>
 					<aside class="tsd-sources">
-						<p>Inherited from <a href="Thing.html">Thing</a>.<a href="Thing.html#metadata">metadata</a></p>
+						<p>Inherited from <a href="Execution.html">Execution</a>.<a href="Execution.html#metadata">metadata</a></p>
 						<ul>
-							<li>Defined in datagraph.ts:177</li>
+							<li>Defined in datagraph.ts:178</li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="bits" class="tsd-anchor"></a>
+					<h3>bits</h3>
+					<div class="tsd-signature tsd-kind-icon">bits<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">NativeBit</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in datagraph.ts:589</li>
 						</ul>
 					</aside>
 				</section>
@@ -1156,7 +1186,7 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
 								<a href="Native.html#synchronous" class="tsd-kind-icon">synchronous</a>
 							</li>
-							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
+							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
 								<a href="Native.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -1225,6 +1255,12 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="Native.html#rename" class="tsd-kind-icon">rename</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="Native.html#stage" class="tsd-kind-icon">stage</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="Native.html#bits" class="tsd-kind-icon">bits</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 								<a href="Native.html#__validate_availability_to" class="tsd-kind-icon">__validate_<wbr>availability_<wbr>to</a>
 							</li>
@@ -1271,7 +1307,6 @@
 				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
 			</ul>
 			<ul class="tsd-legend">
-				<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited constructor</span></li>
 				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
 				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li>
 			</ul>
